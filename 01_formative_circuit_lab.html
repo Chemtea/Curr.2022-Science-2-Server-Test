@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <!-- ================= [차시 잠금 가드 스크립트] ================= -->
+  <script>
+    (function() {
+      // 1. 현재 차시 정보 설정 (형성평가/수행평가 총괄)
+      const THIS_UNIT_KEY = "unit3_eval";   // 단원 키
+      const THIS_LESSON_ID = "u3e_l1";      // 차시 ID
+      const LOCK_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzt79aRnksXzvk1vTohMMLISbuDMVLpsdBTolC68Nrl_LJC1boxggJclPz87zkjsqTf/exec";
+
+      // 2. 잠김 감지 시 화면 완전 차단 함수
+      function enforceLock() {
+        document.documentElement.innerHTML = `
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>수업 잠김 안내</title>
+            <style>
+              body {
+                background-color: #0b0e14;
+                color: #e2e8f0;
+                font-family: 'Pretendard', sans-serif;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                margin: 0;
+                text-align: center;
+                padding: 20px;
+              }
+              .lock-card {
+                background: #182238;
+                border: 1px solid #334155;
+                border-radius: 16px;
+                padding: 30px 24px;
+                max-width: 400px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+              }
+              h2 { color: #f87171; margin-bottom: 10px; font-size: 1.3rem; }
+              p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px; }
+              button {
+                background: #0284c7;
+                color: #fff;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+                cursor: pointer;
+                font-size: 0.95rem;
+              }
+              button:hover { background: #0369a1; }
+            </style>
+          </head>
+          <body>
+            <div class="lock-card">
+              <h2>🔒 수업 준비 중 (접근 제한)</h2>
+              <p>선생님에 의해 현재 차시 학습이 잠겨 있습니다.<br>수업 시간에 다시 접속해주세요.</p>
+              <button onclick="location.href='index.html'">홈 포털로 이동하기</button>
+            </div>
+          </body>
+        `;
+      }
+
+      // 3. Apps Script에서 잠금 상태 확인 (POST 방식)
+      function verifyLockStatus() {
+        fetch(LOCK_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "get_locks" }),
+          cache: "no-store"
+        })
+        .then(res => {
+          if (!res.ok) throw new Error("잠금 상태 확인 HTTP 오류: " + res.status);
+          return res.json();
+        })
+        .then(data => {
+          if (data && data[THIS_UNIT_KEY]) {
+            const unitLocked = data[THIS_UNIT_KEY].isLocked === true;
+            const lessonLocked =
+              data[THIS_UNIT_KEY].lessons &&
+              data[THIS_UNIT_KEY].lessons[THIS_LESSON_ID] === true;
+
+            // 단원 전체가 잠겼거나 해당 차시가 잠겨 있으면 즉시 차단
+            if (unitLocked || lessonLocked) {
+              enforceLock();
+            }
+          }
+        })
+        .catch(err => {
+          console.warn("POST 잠금 상태 확인 실패:", err);
+        });
+      }
+
+      // ① 페이지 로드 즉시 확인
+      verifyLockStatus();
+
+      // ② 백그라운드 탭/화면 꺼짐에서 다시 돌아왔을 때 즉시 재확인
+      document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === "visible") {
+          verifyLockStatus();
+        }
+      });
+
+      // 창으로 다시 돌아오거나 인터넷 연결이 복구되면 즉시 재확인
+      window.addEventListener("focus", verifyLockStatus);
+      window.addEventListener("online", verifyLockStatus);
+
+      // ③ 페이지가 켜져 있는 동안 10초마다 주기적 확인
+      setInterval(verifyLockStatus, 10000);
+    })();
+  </script>
+  <!-- ============================================================= -->
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>중2 과학 가상 실험실 (형성평가용) - 빛 합성 전기 회로</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-dim: #94a3b8;
+      --red: #ef4444;
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Malgun Gothic', 'Segoe UI', sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 14px; line-height: 1.4; }
+    .container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+    
+    header { background: var(--card); padding: 14px 20px; border-radius: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    h1 { font-size: 1.25rem; color: var(--accent); }
+    .badge { background: #0284c7; color: white; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+
+    /* 학생 정보 입력 및 고정 바 */
+    .student-bar {
+      background: #0f172a;
+      border: 1.5px solid #0284c7;
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .student-inputs { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .student-inputs input {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      outline: none;
+      width: 110px;
+    }
+    .student-inputs input:disabled {
+      background: #334155;
+      color: #94a3b8;
+      border-color: #475569;
+      cursor: not-allowed;
+    }
+    .btn-action {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-action:hover { opacity: 0.9; }
+    .btn-teacher { background: #475569; }
+    .btn-teacher:hover { background: #334155; }
+
+    /* 개념 설명 배너 */
+    .help-banner { background: #0f233d; border: 1px solid #1d4ed8; border-radius: 10px; padding: 12px 16px; font-size: 0.85rem; }
+    .help-title { color: #93c5fd; font-weight: bold; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .help-desc { color: #cbd5e1; line-height: 1.5; }
+
+    .main-grid { display: grid; grid-template-columns: 400px 1fr; gap: 14px; }
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+    .card { background: var(--card); border-radius: 10px; border: 1px solid var(--border); padding: 16px; }
+    .card-title { font-size: 0.95rem; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* 채널별 조작 상자 */
+    .channel-box { padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); background: #0f172a; }
+    .channel-box.r { border-left: 5px solid var(--red); }
+    .channel-box.g { border-left: 5px solid var(--green); }
+    .channel-box.b { border-left: 5px solid var(--blue); }
+
+    .ch-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .ch-title { font-weight: bold; font-size: 0.9rem; }
+    .ch-toggle { cursor: pointer; font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; border: none; font-weight: bold; }
+    .ch-toggle.on { background: #22c55e; color: black; }
+    .ch-toggle.off { background: #64748b; color: white; }
+
+    .val-row { display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; color: var(--text-dim); }
+    .val-highlight { color: #fff; font-weight: bold; font-family: monospace; }
+    input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: #334155; cursor: pointer; }
+    .r-slider { accent-color: var(--red); }
+    .g-slider { accent-color: var(--green); }
+    .b-slider { accent-color: var(--blue); }
+
+    canvas { width: 100%; height: 220px; background: #020617; border-radius: 8px; border: 1px solid var(--border); display: block; }
+    
+    .screen-panel { display: flex; gap: 12px; align-items: center; margin-top: 12px; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .color-preview { width: 70px; height: 70px; border-radius: 8px; border: 2px solid #fff; box-shadow: 0 0 16px rgba(255,255,255,0.2); }
+    .color-info { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.82rem; }
+    .info-item { background: #1e293b; padding: 4px 8px; border-radius: 4px; }
+    .info-label { color: var(--text-dim); font-size: 0.7rem; }
+    .info-val { font-weight: bold; color: var(--accent); font-family: monospace; font-size: 0.92rem; }
+
+    .btn-record { width: 100%; background: #0284c7; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem; margin-top: 10px; }
+    .btn-record:hover { opacity: 0.9; }
+
+    /* 테이블 탭 버튼 */
+    .table-tabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .tab-btn { background: #1e293b; border: 1px solid var(--border); color: var(--text-dim); padding: 5px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: bold; }
+    .tab-btn.active { background: #0284c7; color: white; border-color: #38bdf8; }
+    .tab-btn.r.active { background: #dc2626; border-color: #f87171; }
+    .tab-btn.g.active { background: #16a34a; border-color: #4ade80; }
+    .tab-btn.b.active { background: #2563eb; border-color: #60a5fa; }
+
+    .table-wrap { overflow-x: auto; max-height: 220px; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; text-align: center; }
+    th, td { padding: 6px 6px; border: 1px solid var(--border); }
+    th { background: #0f172a; color: var(--accent); position: sticky; top: 0; }
+    input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
+    /* 제출 버튼 영역 */
+    .submit-bar {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+    .btn-submit-final {
+      background: #16a34a;
+      color: white;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-size: 0.92rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .btn-submit-final:hover { background: #15803d; }
+    .btn-submit-final:disabled {
+      background: #64748b !important;
+      color: #cbd5e1 !important;
+      cursor: not-allowed !important;
+      opacity: 0.8;
+    }
+
+    /* 학생용 형성평가 그래프 분석 카드 */
+    .btn-lock { background: #475569; color: white; border: none; padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+    .btn-lock:hover { background: #64748b; }
+    .btn-lock.unlocked { background: #059669; }
+    .btn-lock.unlocked:hover { background: #047857; }
+
+    .pwd-panel { display: none; background: #0f172a; border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; margin-bottom: 12px; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .pwd-input { background: #1e293b; border: 1px solid var(--border); color: white; padding: 6px 10px; border-radius: 4px; font-size: 0.85rem; outline: none; width: 140px; }
+    .pwd-btn { background: #2563eb; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; }
+    
+    .graph-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; font-size: 0.85rem; }
+    .graph-opt-btn { background: #1e293b; border: 1px solid #475569; color: #cbd5e1; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; font-weight: bold; }
+    .graph-opt-btn.active { background: #0284c7; color: white; border-color: #38bdf8; }
+    select { background: #0f172a; color: white; border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; outline: none; font-size: 0.82rem; }
+
+    /* 모달 팝업 */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-box {
+      background: #1e293b;
+      border: 1.5px solid #38bdf8;
+      border-radius: 12px;
+      padding: 22px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .modal-title { font-size: 1.15rem; font-weight: bold; color: #38bdf8; margin-bottom: 12px; }
+    .modal-content { font-size: 0.9rem; color: #cbd5e1; line-height: 1.6; margin-bottom: 16px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+    /* 교사용 채점기 패널 */
+    .teacher-panel {
+      display: none;
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      border-radius: 10px;
+      padding: 16px;
+      margin-top: 8px;
+    }
+    .teacher-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+      background: #1e293b;
+      padding: 12px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div>
+      <span class="badge">중학교 2학년 과학 형성평가 가상실험실</span>
+      <h1>💡 빛 합성 전기 회로 실험실</h1>
+    </div>
+    <div>
+      <button class="btn-action btn-teacher" onclick="openTeacherAuthModal()">🔑 교사용 채점기 모드</button>
+    </div>
+  </header>
+
+  <!-- 학생 정보 등록 및 잠금 바 -->
+  <div class="student-bar">
+    <div class="student-inputs">
+      <span>👤 <b>학번:</b></span>
+      <input type="text" id="stuId" placeholder="예: 20101">
+      <span><b>이름:</b></span>
+      <input type="text" id="stuName" placeholder="예: 홍길동">
+      <button class="btn-action" id="btnLockStudent" onclick="lockStudentInfo()">🔒 정보 고정(저장)</button>
+      <button class="btn-action btn-teacher" id="btnUnlockStudent" style="display:none;" onclick="openUnlockModal()">🔓 정보 수정(교사 인증)</button>
+    </div>
+    <div style="font-size: 0.8rem; color: #94a3b8;">
+      * 학번과 이름을 고정한 뒤 데이터를 기록하고 최종 제출하세요.
+    </div>
+  </div>
+
+  <!-- 개념 설명 배너 -->
+  <div class="help-banner">
+    <div class="help-title">📌 [탐구 도움말] 빛의 세기 수치(0 ~ 255)와 전기 회로의 비밀</div>
+    <div class="help-desc">
+      • <b>빛의 세기(0~255)란?</b> 컴퓨터와 스마트폰 화면은 빛의 세기를 <b>가장 어두운 0(꺼짐)</b>부터 <b>가장 밝은 255(최대 밝기)</b>까지 256단계로 세밀하게 조절하여 색을 만듭니다.<br>
+      • <b>전기와 빛의 연결 원리:</b> 회로의 <b>저항을 작게 조절</b>하면 <b>전류가 많이 흘러</b> 전구가 더 밝아지고(수치 증가), 저항을 크게 하면 전류가 줄어들어 빛이 어두워집니다(수치 감소).
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- 조작 패널 -->
+    <div class="card">
+      <div class="card-title">
+        <span>⚡ 전기 회로 조작판 (건전지 전압: 6.0 V 고정)</span>
+      </div>
+
+      <!-- RED 채널 -->
+      <div class="channel-box r">
+        <div class="ch-header">
+          <span class="ch-title" style="color:var(--red);">🔴 빨강 전구 회로</span>
+          <button class="ch-toggle on" id="btn-r" onclick="toggleCh('r')">스위치 켜짐</button>
+        </div>
+        <div class="val-row">
+          <span>저항 크기: <span class="val-highlight" id="disp-rr">5.0 Ω</span></span>
+          <span>흐르는 전류: <span class="val-highlight" id="disp-ir">1.20 A</span></span>
+        </div>
+        <input type="range" class="r-slider" id="sl-rr" min="5" max="30" step="2.5" value="5">
+      </div>
+
+      <!-- GREEN 채널 -->
+      <div class="channel-box g">
+        <div class="ch-header">
+          <span class="ch-title" style="color:var(--green);">🟢 초록 전구 회로</span>
+          <button class="ch-toggle on" id="btn-g" onclick="toggleCh('g')">스위치 켜짐</button>
+        </div>
+        <div class="val-row">
+          <span>저항 크기: <span class="val-highlight" id="disp-rg">5.0 Ω</span></span>
+          <span>흐르는 전류: <span class="val-highlight" id="disp-ig">1.20 A</span></span>
+        </div>
+        <input type="range" class="g-slider" id="sl-rg" min="5" max="30" step="2.5" value="5">
+      </div>
+
+      <!-- BLUE 채널 -->
+      <div class="channel-box b">
+        <div class="ch-header">
+          <span class="ch-title" style="color:var(--blue);">🔵 파랑 전구 회로</span>
+          <button class="ch-toggle on" id="btn-b" onclick="toggleCh('b')">스위치 켜짐</button>
+        </div>
+        <div class="val-row">
+          <span>저항 크기: <span class="val-highlight" id="disp-rb">5.0 Ω</span></span>
+          <span>흐르는 전류: <span class="val-highlight" id="disp-ib">1.20 A</span></span>
+        </div>
+        <input type="range" class="b-slider" id="sl-rb" min="5" max="30" step="2.5" value="5">
+      </div>
+
+      <button class="btn-record" id="btnRecord">📋 현재 측정값을 아래 표에 기록</button>
+    </div>
+
+    <!-- 시뮬레이션 및 계측 패널 -->
+    <div class="card">
+      <div class="card-title">
+        <span>🎨 빛의 삼원색 합성 스크린 및 측정 결과</span>
+      </div>
+
+      <canvas id="colorCanvas"></canvas>
+
+      <div class="screen-panel">
+        <div class="color-preview" id="colorPreview"></div>
+        <div class="color-info">
+          <div class="info-item">
+            <div class="info-label">빛의 세기 비율 (빨, 초, 파)</div>
+            <div class="info-val" id="valRgb">빨강 255, 초록 255, 파랑 255</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">합성된 빛의 색</div>
+            <div class="info-val" id="valName" style="color:#ffffff;">흰색</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">전체 회로 전류</div>
+            <div class="info-val" id="valItot">3.60 A</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">전체 소비 전력</div>
+            <div class="info-val" id="valPtot">21.6 W</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 데이터 기록장 (탭별 분리 및 체크박스 지원) -->
+  <div class="card">
+    <div class="card-title">
+      <span>📝 실험 결과 기록장 (원하는 데이터를 선택하여 아래 형성평가 그래프로 확인할 수 있습니다)</span>
+      <button onclick="clearLogs()" id="btnClearLogs" style="background:#475569; border:none; color:white; padding:3px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;">기록 초기화</button>
+    </div>
+
+    <div class="table-tabs">
+      <button class="tab-btn active" id="tab-all" onclick="setTableTab('all')">📑 전체 요약 보기</button>
+      <button class="tab-btn r" id="tab-r" onclick="setTableTab('r')">🔴 빨강 전구 분석표</button>
+      <button class="tab-btn g" id="tab-g" onclick="setTableTab('g')">🟢 초록 전구 분석표</button>
+      <button class="tab-btn b" id="tab-b" onclick="setTableTab('b')">🔵 파랑 전구 분석표</button>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead id="tbHead"></thead>
+        <tbody id="tbBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 최종 제출 영역 -->
+    <div class="submit-bar">
+      <button class="btn-submit-final" id="btnSubmitFinal" onclick="openSubmitModal()">🚀 최종 실험 데이터 제출하기 (구글 시트 연동)</button>
+    </div>
+  </div>
+
+  <!-- 학생용 형성평가 그래프 분석 카드 (비밀번호 255) -->
+  <div class="card" id="graphSectionCard">
+    <div class="card-title">
+      <span>📈 저항에 따른 전류·밝기 그래프 분석 (형성평가 확인용)</span>
+      <button class="btn-lock" id="btnToggleGraph" onclick="handleGraphToggle()">🔒 그래프 확인하기 (비밀번호 입력)</button>
+    </div>
+
+    <!-- 비밀번호 입력창 -->
+    <div class="pwd-panel" id="pwdPanel">
+      <span style="font-size:0.85rem; color:#93c5fd;">🔑 선생님께 안내받은 비밀번호를 입력하세요:</span>
+      <input type="password" id="pwdInput" class="pwd-input" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') verifyPassword()">
+      <button class="pwd-btn" onclick="verifyPassword()">확인</button>
+      <span id="pwdMsg" style="font-size:0.8rem; color:#ef4444; margin-left:6px;"></span>
+    </div>
+
+    <!-- 그래프 표시 영역 -->
+    <div id="graphContainer" style="display: none;">
+      <div class="graph-controls">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <span><b>분석 대상:</b></span>
+          <select id="graphChannelSelect" onchange="renderGraph()">
+            <option value="r">🔴 빨강 전구 회로</option>
+            <option value="g">🟢 초록 전구 회로</option>
+            <option value="b">🔵 파랑 전구 회로</option>
+          </select>
+          <span><b>세로축(Y축) 선택:</b></span>
+          <select id="graphYTypeSelect" onchange="renderGraph()">
+            <option value="current">흐르는 전류 (A) - 옴의 법칙</option>
+            <option value="brightness">빛의 세기 (0 ~ 255)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <button class="graph-opt-btn" id="btnConnectCurve" onclick="toggleConnectCurve()">📈 데이터 곡선 잇기 (OFF)</button>
+          <button class="graph-opt-btn" id="btnTheoryLine" onclick="toggleTheoryLine()">📏 이론 옴의 법칙 기준선 (OFF)</button>
+        </div>
+      </div>
+      <canvas id="analysisCanvas" style="width:100%; height:280px; background:#020617; border-radius:8px; border:1px solid var(--border); display:block;"></canvas>
+    </div>
+  </div>
+
+  <!-- 교사용 채점기 모드 패널 -->
+  <div class="teacher-panel card" id="teacherGradingPanel">
+    <div class="card-title" style="border-bottom: 2px solid #38bdf8;">
+      <span>🧑‍🏫 [교사용 채점기] 학생 데이터 대조 및 자동 작도 뷰어</span>
+      <button onclick="closeTeacherMode()" style="background:#ef4444; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;">채점기 닫기</button>
+    </div>
+
+    <div class="teacher-controls">
+      <div>
+        <label style="font-size:0.8rem; color:#94a3b8;">구글 시트 Web App URL:</label><br>
+        <input type="text" id="gasUrlInput" style="width:100%; background:#0f172a; border:1px solid var(--border); color:#fff; padding:5px 8px; border-radius:4px; font-size:0.8rem;">
+      </div>
+      <div>
+        <label style="font-size:0.8rem; color:#94a3b8;">채점 대상 학생 조회 (학번 및 이름 입력):</label><br>
+        <div style="display:flex; gap:6px; margin-top:2px;">
+          <input type="text" id="searchStuId" style="background:#0f172a; border:1px solid var(--border); color:#fff; padding:5px 8px; border-radius:4px; font-size:0.8rem; width:100px;" placeholder="학번 입력">
+          <input type="text" id="searchStuName" style="background:#0f172a; border:1px solid var(--border); color:#fff; padding:5px 8px; border-radius:4px; font-size:0.8rem; width:100px;" placeholder="이름 입력">
+          <button class="btn-action" onclick="fetchStudentFromSheet()">🔍 시트 조회</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 학생이 찾아낸 색상 정보 표시 -->
+    <div id="teacherColorResults" style="background:#1e293b; border:1px solid var(--border); border-radius:8px; padding:10px 14px; margin-bottom:12px; display:none;">
+      <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:6px;">
+        🎨 <b>학생이 탐구 중 발견/합성한 색상 목록:</b> <span style="font-size:0.75rem; color:#cbd5e1;">(핵심 목표 색상인 <b>흰색, 주황색, 보라색</b>은 빨간 글씨로 강조 표시됩니다.)</span>
+      </div>
+      <div id="teacherColorBadges" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
+    </div>
+
+    <!-- 채점 대상 학생 정보 및 컨트롤 -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+      <div style="font-size:0.9rem;">
+        현재 채점 대상: <span id="gradingStuInfo" style="color:#38bdf8; font-weight:bold;">선택되지 않음</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <select id="teacherChSelect" onchange="renderTeacherGraph()" style="background:#0f172a; color:#fff; border:1px solid var(--border); padding:4px 8px; border-radius:4px; font-size:0.82rem;">
+          <option value="r">🔴 빨강 전구 회로</option>
+          <option value="g">🟢 초록 전구 회로</option>
+          <option value="b">🔵 파랑 전구 회로</option>
+        </select>
+        <button class="btn-action" id="btnTeacherCurve" onclick="toggleTeacherCurve()">📈 학생 데이터 곡선 잇기 (OFF)</button>
+        <button class="btn-action" id="btnTeacherTheory" onclick="toggleTeacherTheory()">📏 이론 옴의 법칙선 (ON)</button>
+      </div>
+    </div>
+
+    <!-- 교사용 채점 대조 캔버스 -->
+    <canvas id="teacherCanvas" style="width:100%; height:260px; background:#020617; border-radius:8px; border:1px solid var(--border);"></canvas>
+  </div>
+</div>
+
+<!-- ==================== 모달 팝업 ==================== -->
+
+<!-- 1. 교사 인증 모달 -->
+<div class="modal-overlay" id="modalTeacherAuth">
+  <div class="modal-box">
+    <div class="modal-title">🔑 교사용 채점기 인증</div>
+    <div class="modal-content">
+      구글 시트 서버에 등록된 교사용 비밀번호를 입력해주세요.
+      <input type="password" id="teacherAuthPwd" style="width:100%; margin-top:8px; background:#0f172a; border:1px solid var(--border); color:#fff; padding:8px; border-radius:4px; font-size:1rem;" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') verifyTeacherAuth()">
+      <div id="teacherAuthMsg" style="color:#ef4444; font-size:0.8rem; margin-top:4px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-action btn-teacher" onclick="closeModal('modalTeacherAuth')">취소</button>
+      <button class="btn-action" id="btnTeacherAuthSubmit" onclick="verifyTeacherAuth()">인증하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. 학생 정보 수정 교사 인증 모달 -->
+<div class="modal-overlay" id="modalUnlockAuth">
+  <div class="modal-box">
+    <div class="modal-title">🔓 학생 정보 수정 (교사 인증)</div>
+    <div class="modal-content">
+      학생 정보 잠금을 해제하려면 교사용 비밀번호를 입력해야 합니다.<br>
+      <span style="font-size:0.8rem; color:#94a3b8;">* 잠금 해제 시 최종 제출 상태도 함께 초기화되어 재제출이 가능해집니다.</span>
+      <input type="password" id="unlockAuthPwd" style="width:100%; margin-top:8px; background:#0f172a; border:1px solid var(--border); color:#fff; padding:8px; border-radius:4px; font-size:1rem;" placeholder="교사 비밀번호 입력" onkeydown="if(event.key==='Enter') verifyUnlockAuth()">
+      <div id="unlockAuthMsg" style="color:#ef4444; font-size:0.8rem; margin-top:4px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-action btn-teacher" onclick="closeModal('modalUnlockAuth')">취소</button>
+      <button class="btn-action" id="btnUnlockAuthSubmit" onclick="verifyUnlockAuth()">수정 해제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. 학생 데이터 제출 확인 모달 -->
+<div class="modal-overlay" id="modalSubmitConfirm">
+  <div class="modal-box">
+    <div class="modal-title">📤 형성평가 실험 데이터 최종 제출</div>
+    <div class="modal-content">
+      <div style="background:#0f172a; padding:10px; border-radius:6px; margin-bottom:10px;">
+        • <b>학번:</b> <span id="confirmStuId" style="color:#38bdf8; font-weight:bold;"></span><br>
+        • <b>이름:</b> <span id="confirmStuName" style="color:#38bdf8; font-weight:bold;"></span><br>
+        • <b>기록된 데이터 수:</b> <span id="confirmDataCount" style="color:#22c55e; font-weight:bold;"></span>개
+      </div>
+      <div style="color:#fde047; font-size:0.85rem; line-height:1.45;">
+        ⚠️ <b>주의 (재제출 불가 안내):</b><br>
+        제출된 실험 데이터는 형성평가 구글 시트로 전송되며, <b>선생님께서 종이 실험보고서에 직접 그린 그래프와 데이터의 일치 여부를 대조하여 채점을 진행</b>합니다.<br>
+        <b>제출 후에는 다시 재제출할 수 없습니다.</b> 현재 기록된 데이터를 최종 제출하시겠습니까?
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-action btn-teacher" onclick="closeModal('modalSubmitConfirm')">취소</button>
+      <button class="btn-action" style="background:#16a34a;" id="btnConfirmSubmit" onclick="executeSubmitData()">확인 및 최종 제출</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const V = 6.0;
+  const I_MAX = 1.20;
+  // 요청하신 형성평가 연동 구글 시트 Apps Script Web App URL
+  const TARGET_GAS_URL = "https://script.google.com/macros/s/AKfycbxCIt90cs2ziP_CjCObuEWTeOprLu9Ep9wqIidKXs94wDV4lkyff7sStZLaul8oIPzn/exec";
+
+  let state = {
+    r: { on: true, R: 5.0, I: 1.2, val: 255 },
+    g: { on: true, R: 5.0, I: 1.2, val: 255 },
+    b: { on: true, R: 5.0, I: 1.2, val: 255 }
+  };
+
+  const slRr = document.getElementById('sl-rr');
+  const slRg = document.getElementById('sl-rg');
+  const slRb = document.getElementById('sl-rb');
+
+  const dispRr = document.getElementById('disp-rr');
+  const dispRg = document.getElementById('disp-rg');
+  const dispRb = document.getElementById('disp-rb');
+  const dispIr = document.getElementById('disp-ir');
+  const dispIg = document.getElementById('disp-ig');
+  const dispIb = document.getElementById('disp-ib');
+
+  const btnR = document.getElementById('btn-r');
+  const btnG = document.getElementById('btn-g');
+  const btnB = document.getElementById('btn-b');
+
+  const canvas = document.getElementById('colorCanvas');
+  const ctx = canvas.getContext('2d');
+  const preview = document.getElementById('colorPreview');
+  const valRgb = document.getElementById('valRgb');
+  const valName = document.getElementById('valName');
+  const valItot = document.getElementById('valItot');
+  const valPtot = document.getElementById('valPtot');
+  const tbHead = document.getElementById('tbHead');
+  const tbBody = document.getElementById('tbBody');
+  const btnRecord = document.getElementById('btnRecord');
+
+  const stuId = document.getElementById('stuId');
+  const stuName = document.getElementById('stuName');
+  const btnLockStudent = document.getElementById('btnLockStudent');
+  const btnUnlockStudent = document.getElementById('btnUnlockStudent');
+  const btnSubmitFinal = document.getElementById('btnSubmitFinal');
+  const btnClearLogs = document.getElementById('btnClearLogs');
+
+  // 학생용 그래프 요소
+  const btnToggleGraph = document.getElementById('btnToggleGraph');
+  const pwdPanel = document.getElementById('pwdPanel');
+  const pwdInput = document.getElementById('pwdInput');
+  const pwdMsg = document.getElementById('pwdMsg');
+  const graphContainer = document.getElementById('graphContainer');
+  const analysisCanvas = document.getElementById('analysisCanvas');
+  const actx = analysisCanvas.getContext('2d');
+  const graphChannelSelect = document.getElementById('graphChannelSelect');
+  const graphYTypeSelect = document.getElementById('graphYTypeSelect');
+  const btnConnectCurve = document.getElementById('btnConnectCurve');
+  const btnTheoryLine = document.getElementById('btnTheoryLine');
+
+  let logs = [];
+  let isStudentLocked = false;
+  let isSubmitted = false;
+  let isGraphUnlocked = false;
+  let isGraphVisible = false;
+  let isCurveConnected = false;
+  let isTheoryLineShown = false;
+  let currentTableTab = 'all';
+
+  // 교사용 채점기 요소
+  let teacherLogs = [];
+  let isTeacherCurveOn = false;
+  let isTeacherTheoryOn = true;
+  const teacherCanvas = document.getElementById('teacherCanvas');
+  const tactx = teacherCanvas.getContext('2d');
+  const teacherGradingPanel = document.getElementById('teacherGradingPanel');
+  const gasUrlInput = document.getElementById('gasUrlInput');
+  const searchStuId = document.getElementById('searchStuId');
+  const searchStuName = document.getElementById('searchStuName');
+  const gradingStuInfo = document.getElementById('gradingStuInfo');
+  const btnTeacherCurve = document.getElementById('btnTeacherCurve');
+  const btnTeacherTheory = document.getElementById('btnTeacherTheory');
+
+  gasUrlInput.value = TARGET_GAS_URL;
+
+  function toggleCh(ch) {
+    state[ch].on = !state[ch].on;
+    const btn = document.getElementById(`btn-${ch}`);
+    if (state[ch].on) {
+      btn.textContent = '스위치 켜짐';
+      btn.className = 'ch-toggle on';
+    } else {
+      btn.textContent = '스위치 꺼짐';
+      btn.className = 'ch-toggle off';
+    }
+    update();
+  }
+
+  function update() {
+    state.r.R = parseFloat(slRr.value);
+    state.g.R = parseFloat(slRg.value);
+    state.b.R = parseFloat(slRb.value);
+
+    ['r', 'g', 'b'].forEach(ch => {
+      if (state[ch].on) {
+        state[ch].I = V / state[ch].R;
+        state[ch].val = Math.round(Math.min(255, (state[ch].I / I_MAX) * 255));
+      } else {
+        state[ch].I = 0;
+        state[ch].val = 0;
+      }
+    });
+
+    dispRr.textContent = `${state.r.R.toFixed(1)} Ω`;
+    dispRg.textContent = `${state.g.R.toFixed(1)} Ω`;
+    dispRb.textContent = `${state.b.R.toFixed(1)} Ω`;
+
+    dispIr.textContent = `${state.r.I.toFixed(2)} A`;
+    dispIg.textContent = `${state.g.I.toFixed(2)} A`;
+    dispIb.textContent = `${state.b.I.toFixed(2)} A`;
+
+    const rVal = state.r.val;
+    const gVal = state.g.val;
+    const bVal = state.b.val;
+
+    preview.style.backgroundColor = `rgb(${rVal}, ${gVal}, ${bVal})`;
+    valRgb.textContent = `빨강 ${rVal}, 초록 ${gVal}, 파랑 ${bVal}`;
+    valName.textContent = getColorName(rVal, gVal, bVal);
+
+    const Itot = state.r.I + state.g.I + state.b.I;
+    const Ptot = V * Itot;
+    valItot.textContent = `${Itot.toFixed(2)} A`;
+    valPtot.textContent = `${Ptot.toFixed(1)} W`;
+
+    drawVenn(rVal, gVal, bVal);
+  }
+
+  function getColorName(r, g, b) {
+    if (r === 0 && g === 0 && b === 0) return '빛 꺼짐';
+    if (r > 200 && g > 200 && b > 200) return '흰색';
+    if (r > 200 && g > 200 && b < 50) return '노란색';
+    if (r > 200 && g < 50 && b > 200) return '자홍색';
+    if (r < 50 && g > 200 && b > 200) return '청록색';
+    if (r > 200 && g >= 80 && g <= 160 && b < 50) return '주황색';
+    if (r >= 80 && r <= 160 && g < 50 && b > 200) return '보라색';
+    if (r > 180 && g < 50 && b < 50) return '빨간색';
+    if (r < 50 && g > 180 && b < 50) return '초록색';
+    if (r < 50 && g < 50 && b > 180) return '파란색';
+    return '혼합색';
+  }
+
+  function drawVenn(r, g, b) {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2 + 10;
+    const rad = Math.min(w, h) * 0.28;
+
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.globalCompositeOperation = 'screen';
+
+    if (r > 0) {
+      ctx.fillStyle = `rgb(${r}, 0, 0)`;
+      ctx.beginPath();
+      ctx.arc(cx, cy - rad * 0.5, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (g > 0) {
+      ctx.fillStyle = `rgb(0, ${g}, 0)`;
+      ctx.beginPath();
+      ctx.arc(cx - rad * 0.55, cy + rad * 0.4, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (b > 0) {
+      ctx.fillStyle = `rgb(0, 0, ${b})`;
+      ctx.beginPath();
+      ctx.arc(cx + rad * 0.55, cy + rad * 0.4, rad, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('빨강(R)', cx - 18, cy - rad * 1.3);
+    ctx.fillText('초록(G)', cx - rad * 1.5, cy + rad * 0.85);
+    ctx.fillText('파랑(B)', cx + rad * 0.95, cy + rad * 0.85);
+  }
+
+  function lockStudentInfo() {
+    const idVal = stuId.value.trim();
+    const nameVal = stuName.value.trim();
+    if (!idVal || !nameVal) {
+      alert("학번과 이름을 모두 입력해주세요.");
+      return;
+    }
+    stuId.disabled = true;
+    stuName.disabled = true;
+    btnLockStudent.style.display = 'none';
+    btnUnlockStudent.style.display = 'inline-block';
+    isStudentLocked = true;
+  }
+
+  function openUnlockModal() {
+    document.getElementById('unlockAuthPwd').value = '';
+    document.getElementById('unlockAuthMsg').textContent = '';
+    document.getElementById('modalUnlockAuth').style.display = 'flex';
+    document.getElementById('unlockAuthPwd').focus();
+  }
+
+  // 서버 연동 학생 정보 잠금 해제 비동기 인증 (비밀번호 미노출)
+  function verifyUnlockAuth() {
+    const pwd = document.getElementById('unlockAuthPwd').value.trim();
+    const gasUrl = TARGET_GAS_URL;
+    const msgEl = document.getElementById('unlockAuthMsg');
+    const btnSubmit = document.getElementById('btnUnlockAuthSubmit');
+
+    if (!pwd) {
+      msgEl.textContent = '❌ 비밀번호를 입력해주세요.';
+      return;
+    }
+
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '인증 중...';
+
+    fetch(gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "verifyAuth", password: pwd })
+    })
+    .then(res => res.json())
+    .then(data => {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '수정 해제';
+
+      if (data && data.success) {
+        stuId.disabled = false;
+        stuName.disabled = false;
+        btnLockStudent.style.display = 'inline-block';
+        btnUnlockStudent.style.display = 'none';
+        isStudentLocked = false;
+
+        if (isSubmitted) {
+          if (confirm("이미 제출된 상태입니다. 재제출이 가능하도록 제출 상태를 초기화하시겠습니까?")) {
+            isSubmitted = false;
+            btnSubmitFinal.disabled = false;
+            btnSubmitFinal.textContent = '🚀 최종 실험 데이터 제출하기 (구글 시트 연동)';
+          }
+        }
+        closeModal('modalUnlockAuth');
+      } else {
+        msgEl.textContent = '❌ 비밀번호가 올바르지 않습니다.';
+      }
+    })
+    .catch(err => {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '수정 해제';
+      msgEl.textContent = '⚠️ 서버 통신 오류가 발생했습니다.';
+      console.error(err);
+    });
+  }
+
+  // 데이터 기록 기능
+  btnRecord.addEventListener('click', () => {
+    if (isSubmitted) {
+      alert("⚠️ 이미 최종 데이터가 제출되었습니다. 제출 후에는 추가 기록을 할 수 없습니다.");
+      return;
+    }
+
+    const row = {
+      no: logs.length + 1,
+      selected: true,
+      rOn: state.r.on, rR: state.r.R, rI: state.r.I, rVal: state.r.val,
+      gOn: state.g.on, gR: state.g.R, gI: state.g.I, gVal: state.g.val,
+      bOn: state.b.on, bR: state.b.R, bI: state.b.I, bVal: state.b.val,
+      rr: state.r.on ? `${state.r.R.toFixed(1)} Ω` : '꺼짐',
+      ir: state.r.on ? `${state.r.I.toFixed(2)} A` : '0.00 A',
+      rg: state.g.on ? `${state.g.R.toFixed(1)} Ω` : '꺼짐',
+      ig: state.g.on ? `${state.g.I.toFixed(2)} A` : '0.00 A',
+      rb: state.b.on ? `${state.b.R.toFixed(1)} Ω` : '꺼짐',
+      ib: state.b.on ? `${state.b.I.toFixed(2)} A` : '0.00 A',
+      rgb: `(${state.r.val}, ${state.g.val}, ${state.b.val})`,
+      name: valName.textContent
+    };
+    logs.push(row);
+    renderTable();
+    if (isGraphVisible) renderGraph();
+  });
+
+  function setTableTab(tab) {
+    currentTableTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    renderTable();
+  }
+
+  function renderTable() {
+    tbHead.innerHTML = '';
+    tbBody.innerHTML = '';
+
+    const allChecked = logs.length > 0 && logs.every(r => r.selected);
+
+    if (currentTableTab === 'all') {
+      tbHead.innerHTML = `
+        <tr>
+          <th style="width: 42px;"><input type="checkbox" id="checkAll" ${allChecked ? 'checked' : ''} onclick="toggleSelectAll(this)" title="전체 선택/해제"></th>
+          <th>번호</th>
+          <th>빨강 저항</th>
+          <th>빨강 전류</th>
+          <th>초록 저항</th>
+          <th>초록 전류</th>
+          <th>파랑 저항</th>
+          <th>파랑 전류</th>
+          <th>빛의 세기 (빨, 초, 파)</th>
+          <th>합성된 빛의 색</th>
+        </tr>
+      `;
+
+      logs.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" ${r.selected ? 'checked' : ''} onchange="toggleRowSelect(${idx}, this.checked)"></td>
+          <td>${r.no}</td>
+          <td>${r.rr}</td>
+          <td>${r.ir}</td>
+          <td>${r.rg}</td>
+          <td>${r.ig}</td>
+          <td>${r.rb}</td>
+          <td>${r.ib}</td>
+          <td>${r.rgb}</td>
+          <td>${r.name}</td>
+        `;
+        tbBody.appendChild(tr);
+      });
+    } else {
+      const chName = (currentTableTab === 'r') ? '빨강' : (currentTableTab === 'g') ? '초록' : '파랑';
+      const chColor = (currentTableTab === 'r') ? 'var(--red)' : (currentTableTab === 'g') ? 'var(--green)' : 'var(--blue)';
+
+      tbHead.innerHTML = `
+        <tr>
+          <th style="width: 42px;"><input type="checkbox" id="checkAll" ${allChecked ? 'checked' : ''} onclick="toggleSelectAll(this)" title="전체 선택/해제"></th>
+          <th>번호</th>
+          <th style="color:${chColor};">${chName} 저항 (Ω)</th>
+          <th style="color:${chColor};">${chName} 전류 (A)</th>
+          <th style="color:${chColor};">${chName} 빛의 세기 (0~255)</th>
+          <th>스위치 상태</th>
+          <th>전체 합성색</th>
+        </tr>
+      `;
+
+      logs.forEach((r, idx) => {
+        const isOn = (currentTableTab === 'r') ? r.rOn : (currentTableTab === 'g') ? r.gOn : r.bOn;
+        const res = (currentTableTab === 'r') ? r.rR : (currentTableTab === 'g') ? r.gR : r.bR;
+        const cur = (currentTableTab === 'r') ? r.rI : (currentTableTab === 'g') ? r.gI : r.bI;
+        const bri = (currentTableTab === 'r') ? r.rVal : (currentTableTab === 'g') ? r.gVal : r.bVal;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="checkbox" ${r.selected ? 'checked' : ''} onchange="toggleRowSelect(${idx}, this.checked)"></td>
+          <td>${r.no}</td>
+          <td style="font-weight:bold;">${isOn ? res.toFixed(1) + ' Ω' : '-'}</td>
+          <td style="font-weight:bold;">${isOn ? cur.toFixed(2) + ' A' : '0.00 A'}</td>
+          <td>${bri}</td>
+          <td>${isOn ? '<span style="color:#22c55e;">켜짐</span>' : '<span style="color:#94a3b8;">꺼짐</span>'}</td>
+          <td>${r.name}</td>
+        `;
+        tbBody.appendChild(tr);
+      });
+    }
+  }
+
+  function toggleRowSelect(index, isChecked) {
+    logs[index].selected = isChecked;
+    const checkAll = document.getElementById('checkAll');
+    if (checkAll) {
+      checkAll.checked = logs.length > 0 && logs.every(r => r.selected);
+    }
+    if (isGraphVisible) renderGraph();
+  }
+
+  function toggleSelectAll(masterBox) {
+    const isChecked = masterBox.checked;
+    logs.forEach(r => r.selected = isChecked);
+    renderTable();
+    if (isGraphVisible) renderGraph();
+  }
+
+  function clearLogs() {
+    if (isSubmitted) {
+      alert("⚠️ 이미 최종 데이터가 제출되어 초기화할 수 없습니다.");
+      return;
+    }
+    if (confirm("정말로 기록된 모든 데이터를 초기화하시겠습니까?")) {
+      logs = [];
+      renderTable();
+      if (isGraphVisible) renderGraph();
+    }
+  }
+
+  // 학생용 형성평가 그래프 비밀번호(255) 인증 및 토글 관리
+  function handleGraphToggle() {
+    if (!isGraphUnlocked) {
+      if (pwdPanel.style.display === 'flex') {
+        pwdPanel.style.display = 'none';
+      } else {
+        pwdPanel.style.display = 'flex';
+        pwdInput.value = '';
+        pwdMsg.textContent = '';
+        pwdInput.focus();
+      }
+    } else {
+      isGraphVisible = !isGraphVisible;
+      if (isGraphVisible) {
+        graphContainer.style.display = 'block';
+        btnToggleGraph.textContent = '👁️ 그래프 숨기기';
+        renderGraph();
+      } else {
+        graphContainer.style.display = 'none';
+        btnToggleGraph.textContent = '👁️ 그래프 보기';
+      }
+    }
+  }
+
+  function verifyPassword() {
+    const pwd = pwdInput.value.trim();
+    if (pwd === '255') {
+      isGraphUnlocked = true;
+      isGraphVisible = true;
+      pwdPanel.style.display = 'none';
+      graphContainer.style.display = 'block';
+      btnToggleGraph.className = 'btn-lock unlocked';
+      btnToggleGraph.textContent = '👁️ 그래프 숨기기';
+      renderGraph();
+    } else {
+      pwdMsg.textContent = '❌ 비밀번호가 올바르지 않습니다. (힌트: 빛의 최대 세기 값)';
+      pwdInput.focus();
+    }
+  }
+
+  function toggleConnectCurve() {
+    isCurveConnected = !isCurveConnected;
+    btnConnectCurve.classList.toggle('active', isCurveConnected);
+    btnConnectCurve.textContent = isCurveConnected ? '📈 데이터 곡선 잇기 (ON)' : '📈 데이터 곡선 잇기 (OFF)';
+    renderGraph();
+  }
+
+  function toggleTheoryLine() {
+    isTheoryLineShown = !isTheoryLineShown;
+    btnTheoryLine.classList.toggle('active', isTheoryLineShown);
+    btnTheoryLine.textContent = isTheoryLineShown ? '📏 이론 옴의 법칙 기준선 (ON)' : '📏 이론 옴의 법칙 기준선 (OFF)';
+    renderGraph();
+  }
+
+  function drawSmoothSpline(ctx, pts) {
+    if (pts.length < 2) return;
+    if (pts.length === 2) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      ctx.lineTo(pts[1].x, pts[1].y);
+      ctx.stroke();
+      return;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
+
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+    }
+    ctx.stroke();
+  }
+
+  function renderGraph() {
+    if (!isGraphVisible) return;
+
+    analysisCanvas.width = analysisCanvas.clientWidth;
+    analysisCanvas.height = analysisCanvas.clientHeight;
+    const w = analysisCanvas.width;
+    const h = analysisCanvas.height;
+
+    actx.fillStyle = '#020617';
+    actx.fillRect(0, 0, w, h);
+
+    const targetCh = graphChannelSelect.value;
+    const yType = graphYTypeSelect.value;
+
+    const padLeft = 65;
+    const padRight = 30;
+    const padTop = 30;
+    const padBottom = 45;
+
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    const xMax = 35.0;
+    const yMax = (yType === 'current') ? 1.5 : 300;
+
+    actx.strokeStyle = '#1e293b';
+    actx.lineWidth = 1;
+    for (let rx = 5; rx <= 35; rx += 5) {
+      const x = padLeft + (rx / xMax) * plotW;
+      actx.beginPath(); actx.moveTo(x, padTop); actx.lineTo(x, h - padBottom); actx.stroke();
+      actx.fillStyle = '#64748b';
+      actx.font = '11px sans-serif';
+      actx.textAlign = 'center';
+      actx.fillText(`${rx}Ω`, x, h - padBottom + 16);
+    }
+
+    const ySteps = (yType === 'current') ? [0.3, 0.6, 0.9, 1.2, 1.5] : [50, 100, 150, 200, 255, 300];
+    ySteps.forEach(yVal => {
+      const y = h - padBottom - (yVal / yMax) * plotH;
+      actx.beginPath(); actx.moveTo(padLeft, y); actx.lineTo(w - padRight, y); actx.stroke();
+      actx.fillStyle = '#64748b';
+      actx.font = '11px sans-serif';
+      actx.textAlign = 'right';
+      actx.fillText(yVal.toString(), padLeft - 8, y + 4);
+    });
+
+    actx.strokeStyle = '#475569';
+    actx.lineWidth = 2;
+    actx.beginPath();
+    actx.moveTo(padLeft, padTop);
+    actx.lineTo(padLeft, h - padBottom);
+    actx.lineTo(w - padRight, h - padBottom);
+    actx.stroke();
+
+    actx.fillStyle = '#64748b';
+    actx.textAlign = 'right';
+    actx.fillText('0', padLeft - 8, h - padBottom + 4);
+
+    actx.fillStyle = '#94a3b8';
+    actx.font = 'bold 12px sans-serif';
+    actx.textAlign = 'center';
+    actx.fillText('가변 저항 크기 (Ω)', padLeft + plotW / 2, h - 10);
+
+    actx.save();
+    actx.translate(18, padTop + plotH / 2);
+    actx.rotate(-Math.PI / 2);
+    actx.fillText((yType === 'current') ? '회로 전류 (A)' : '빛의 세기 수치 (0~255)', 0, 0);
+    actx.restore();
+
+    if (isTheoryLineShown) {
+      actx.strokeStyle = '#64748b';
+      actx.lineWidth = 1.8;
+      actx.setLineDash([5, 5]);
+      actx.beginPath();
+      let isFirst = true;
+      for (let r = 4.5; r <= 35.0; r += 0.5) {
+        const i_theo = V / r;
+        const y_theo = (yType === 'current') ? i_theo : Math.min(255, (i_theo / I_MAX) * 255);
+        const px = padLeft + (r / xMax) * plotW;
+        const py = h - padBottom - (y_theo / yMax) * plotH;
+        if (isFirst) { actx.moveTo(px, py); isFirst = false; }
+        else { actx.lineTo(px, py); }
+      }
+      actx.stroke();
+      actx.setLineDash([]);
+    }
+
+    const rawSelected = [];
+    logs.forEach(log => {
+      if (!log.selected) return;
+      const isOn = (targetCh === 'r') ? log.rOn : (targetCh === 'g') ? log.gOn : log.bOn;
+      if (!isOn) return;
+
+      const rVal = (targetCh === 'r') ? log.rR : (targetCh === 'g') ? log.gR : log.bR;
+      const current = (targetCh === 'r') ? log.rI : (targetCh === 'g') ? log.gI : log.bI;
+      const brightness = (targetCh === 'r') ? log.rVal : (targetCh === 'g') ? log.gVal : log.bVal;
+
+      const yVal = (yType === 'current') ? current : brightness;
+      const px = padLeft + (rVal / xMax) * plotW;
+      const py = h - padBottom - (yVal / yMax) * plotH;
+
+      rawSelected.push({ r: rVal, y: yVal, x: px, yPix: py, current, brightness, no: log.no });
+    });
+
+    if (rawSelected.length === 0) {
+      actx.fillStyle = '#fbbf24';
+      actx.font = '13px sans-serif';
+      actx.textAlign = 'center';
+      actx.fillText('⚠️ 위 표에서 체크된 데이터가 없거나 해당 전구 회로가 꺼진 상태입니다.', padLeft + plotW / 2, padTop + plotH / 2);
+      return;
+    }
+
+    rawSelected.sort((a, b) => a.r - b.r);
+
+    const colorTheme = (targetCh === 'r') ? '#ef4444' : (targetCh === 'g') ? '#22c55e' : '#3b82f6';
+
+    if (isCurveConnected) {
+      actx.strokeStyle = colorTheme;
+      actx.lineWidth = 2.5;
+      drawSmoothSpline(actx, rawSelected.map(p => ({ x: p.x, y: p.yPix })));
+    }
+
+    rawSelected.forEach(pt => {
+      actx.fillStyle = '#ffffff';
+      actx.beginPath();
+      actx.arc(pt.x, pt.yPix, 6.5, 0, Math.PI * 2);
+      actx.fill();
+
+      actx.fillStyle = colorTheme;
+      actx.beginPath();
+      actx.arc(pt.x, pt.yPix, 4.5, 0, Math.PI * 2);
+      actx.fill();
+
+      actx.fillStyle = '#f8fafc';
+      actx.font = 'bold 11px sans-serif';
+      actx.textAlign = 'center';
+      const labelText = (yType === 'current') ? `(${pt.r}Ω, ${pt.current.toFixed(2)}A)` : `(${pt.r}Ω, ${pt.brightness})`;
+      actx.fillText(labelText, pt.x, pt.yPix - 10);
+    });
+  }
+
+  // 최종 제출 모달
+  function openSubmitModal() {
+    if (isSubmitted) {
+      alert("⚠️ 이미 최종 데이터가 제출되었습니다. 재제출은 불가능합니다.");
+      return;
+    }
+
+    const idVal = stuId.value.trim();
+    const nameVal = stuName.value.trim();
+
+    if (!idVal || !nameVal || !isStudentLocked) {
+      alert("⚠️ 먼저 상단에서 학번과 이름을 입력하고 [정보 고정(저장)] 버튼을 눌러주세요.");
+      return;
+    }
+    if (logs.length === 0) {
+      alert("⚠️ 기록된 실험 데이터가 없습니다. 먼저 실험값을 기록해주세요.");
+      return;
+    }
+
+    document.getElementById('confirmStuId').textContent = idVal;
+    document.getElementById('confirmStuName').textContent = nameVal;
+    document.getElementById('confirmDataCount').textContent = logs.length;
+    document.getElementById('modalSubmitConfirm').style.display = 'flex';
+  }
+
+  function executeSubmitData() {
+    const gasUrl = TARGET_GAS_URL;
+    const payload = {
+      action: "submit",
+      studentId: stuId.value.trim(),
+      studentName: stuName.value.trim(),
+      logs: logs
+    };
+
+    const btnConfirm = document.getElementById('btnConfirmSubmit');
+    btnConfirm.disabled = true;
+    btnConfirm.textContent = "전송 중...";
+
+    fetch(gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+      isSubmitted = true;
+      btnSubmitFinal.disabled = true;
+      btnSubmitFinal.textContent = "🔒 제출 완료 (재제출 불가)";
+      alert("🎉 형성평가 실험 데이터가 구글 시트에 성공적으로 제출되었습니다!\n재제출은 불가능하며, 이제 종이 실험보고서 작성을 완료하세요.");
+      closeModal('modalSubmitConfirm');
+      btnConfirm.disabled = false;
+      btnConfirm.textContent = "확인 및 최종 제출";
+    })
+    .catch(err => {
+      alert("전송 중 오류가 발생했습니다. 구글 시트 배포 설정을 확인하세요.");
+      console.error(err);
+      btnConfirm.disabled = false;
+      btnConfirm.textContent = "확인 및 최종 제출";
+    });
+  }
+
+  // 서버 연동 교사 인증
+  function openTeacherAuthModal() {
+    document.getElementById('teacherAuthPwd').value = '';
+    document.getElementById('teacherAuthMsg').textContent = '';
+    document.getElementById('modalTeacherAuth').style.display = 'flex';
+    document.getElementById('teacherAuthPwd').focus();
+  }
+
+  function verifyTeacherAuth() {
+    const pwd = document.getElementById('teacherAuthPwd').value.trim();
+    const gasUrl = TARGET_GAS_URL;
+    const msgEl = document.getElementById('teacherAuthMsg');
+    const btnSubmit = document.getElementById('btnTeacherAuthSubmit');
+
+    if (!pwd) {
+      msgEl.textContent = '❌ 비밀번호를 입력해주세요.';
+      return;
+    }
+
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '인증 중...';
+
+    fetch(gasUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "verifyAuth", password: pwd })
+    })
+    .then(res => res.json())
+    .then(data => {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '인증하기';
+
+      if (data && data.success) {
+        closeModal('modalTeacherAuth');
+        teacherGradingPanel.style.display = 'block';
+        teacherGradingPanel.scrollIntoView({ behavior: 'smooth' });
+        renderTeacherGraph();
+        renderTeacherDiscoveredColors();
+      } else {
+        msgEl.textContent = '❌ 비밀번호가 올바르지 않습니다.';
+      }
+    })
+    .catch(err => {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '인증하기';
+      msgEl.textContent = '⚠️ 서버 통신 오류가 발생했습니다.';
+      console.error(err);
+    });
+  }
+
+  function closeTeacherMode() {
+    teacherGradingPanel.style.display = 'none';
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+
+  // 교사용 색상 분석
+  function renderTeacherDiscoveredColors() {
+    const colorContainer = document.getElementById('teacherColorResults');
+    const badgesContainer = document.getElementById('teacherColorBadges');
+    
+    if (!colorContainer || !badgesContainer) return;
+
+    if (!teacherLogs || teacherLogs.length === 0) {
+      colorContainer.style.display = 'none';
+      badgesContainer.innerHTML = '';
+      return;
+    }
+
+    const discoveredColors = [];
+    teacherLogs.forEach(log => {
+      if (log.name && log.name !== '빛 꺼짐' && !discoveredColors.includes(log.name)) {
+        discoveredColors.push(log.name);
+      }
+    });
+
+    badgesContainer.innerHTML = '';
+    if (discoveredColors.length === 0) {
+      badgesContainer.innerHTML = '<span style="font-size:0.82rem; color:#64748b;">발견된 유효 합성색이 없습니다.</span>';
+    } else {
+      const redTargets = ['흰색', '주황색', '보라색'];
+      discoveredColors.forEach(cName => {
+        const span = document.createElement('span');
+        const isRed = redTargets.some(target => cName.includes(target));
+
+        span.style.padding = '4px 10px';
+        span.style.borderRadius = '6px';
+        span.style.fontSize = '0.85rem';
+        span.style.fontWeight = 'bold';
+        span.style.border = isRed ? '1.5px solid #ef4444' : '1px solid var(--border)';
+        span.style.background = isRed ? 'rgba(239, 68, 68, 0.15)' : '#0f172a';
+        span.style.color = isRed ? '#ef4444' : '#f8fafc';
+        span.textContent = cName + (isRed ? ' ★' : '');
+        badgesContainer.appendChild(span);
+      });
+    }
+    colorContainer.style.display = 'block';
+  }
+
+  function fetchStudentFromSheet() {
+    const gasUrl = TARGET_GAS_URL;
+    const queryId = searchStuId.value.trim();
+    const queryName = searchStuName.value.trim();
+
+    if (!queryId) {
+      alert("조회할 학번을 입력해주세요.");
+      searchStuId.focus();
+      return;
+    }
+
+    gradingStuInfo.textContent = "구글 시트에서 데이터 조회 중...";
+
+    fetch(`${gasUrl}?studentId=${encodeURIComponent(queryId)}&t=${Date.now()}`)
+      .then(res => {
+        if (!res.ok) throw new Error("서버 응답 오류");
+        return res.json();
+      })
+      .then(data => {
+        if (!data || data.length === 0) {
+          alert(`학번 [${queryId}]의 제출 데이터를 찾을 수 없습니다.`);
+          gradingStuInfo.textContent = "조회 실패 (데이터 없음)";
+          teacherLogs = [];
+          renderTeacherGraph();
+          renderTeacherDiscoveredColors();
+          return;
+        }
+
+        let matched = data;
+        if (queryName) {
+          matched = data.filter(d => String(d.studentName).trim() === queryName);
+        }
+
+        if (matched.length === 0) {
+          alert(`학번 [${queryId}], 이름 [${queryName}]과 일치하는 제출 데이터를 찾을 수 없습니다.\n(학번만 일치하는 데이터는 ${data.length}건 존재합니다.)`);
+          gradingStuInfo.textContent = "조회 실패 (이름 불일치)";
+          teacherLogs = [];
+          renderTeacherGraph();
+          renderTeacherDiscoveredColors();
+          return;
+        }
+
+        if (matched.length >= 2) {
+          alert(`⚠️ [중복 제출 경고]\n학번 [${matched[0].studentId}] (${matched[0].studentName}) 학생의 제출 기록이 총 ${matched.length}건 발견되었습니다!\n가장 마지막(최근)에 제출된 데이터를 불러와 채점 그래프에 표시합니다.`);
+        }
+
+        const latest = matched[matched.length - 1];
+        teacherLogs = (typeof latest.logs === 'string') ? JSON.parse(latest.logs) : latest.logs;
+        
+        const countBadge = matched.length >= 2 ? ` <span style="color:#ef4444; font-weight:bold;">(중복 ${matched.length}건)</span>` : '';
+        const timeStr = latest.timestamp ? new Date(latest.timestamp).toLocaleTimeString() : '확인됨';
+        gradingStuInfo.innerHTML = `[${latest.studentId}] ${latest.studentName}${countBadge} (기록 ${teacherLogs.length}건, 제출시간: ${timeStr})`;
+        
+        renderTeacherGraph();
+        renderTeacherDiscoveredColors();
+      })
+      .catch(err => {
+        alert("데이터를 가져오는 중 통신 오류가 발생했습니다.\n구글 시트 Apps Script의 권한 설정을 확인하세요.");
+        console.error(err);
+        gradingStuInfo.textContent = "조회 오류 발생";
+        teacherLogs = [];
+        renderTeacherDiscoveredColors();
+      });
+  }
+
+  function toggleTeacherCurve() {
+    isTeacherCurveOn = !isTeacherCurveOn;
+    btnTeacherCurve.textContent = isTeacherCurveOn ? '📈 학생 데이터 곡선 잇기 (ON)' : '📈 학생 데이터 곡선 잇기 (OFF)';
+    renderTeacherGraph();
+  }
+
+  function toggleTeacherTheory() {
+    isTeacherTheoryOn = !isTeacherTheoryOn;
+    btnTeacherTheory.textContent = isTeacherTheoryOn ? '📏 이론 옴의 법칙선 (ON)' : '📏 이론 옴의 법칙선 (OFF)';
+    renderTeacherGraph();
+  }
+
+  function drawSmoothSpline(ctx, pts) {
+    if (pts.length < 2) return;
+    if (pts.length === 2) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      ctx.lineTo(pts[1].x, pts[1].y);
+      ctx.stroke();
+      return;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = i > 0 ? pts[i - 1] : pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = i < pts.length - 2 ? pts[i + 2] : p2;
+
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+    }
+    ctx.stroke();
+  }
+
+  function renderTeacherGraph() {
+    teacherCanvas.width = teacherCanvas.clientWidth;
+    teacherCanvas.height = teacherCanvas.clientHeight;
+    const w = teacherCanvas.width;
+    const h = teacherCanvas.height;
+
+    tactx.fillStyle = '#020617';
+    tactx.fillRect(0, 0, w, h);
+
+    const targetCh = document.getElementById('teacherChSelect').value;
+    const padLeft = 65;
+    const padRight = 30;
+    const padTop = 30;
+    const padBottom = 45;
+
+    const plotW = w - padLeft - padRight;
+    const plotH = h - padTop - padBottom;
+
+    const xMax = 35.0;
+    const yMax = 1.5;
+
+    tactx.strokeStyle = '#1e293b';
+    tactx.lineWidth = 1;
+    for (let rx = 5; rx <= 35; rx += 5) {
+      const x = padLeft + (rx / xMax) * plotW;
+      tactx.beginPath(); tactx.moveTo(x, padTop); tactx.lineTo(x, h - padBottom); tactx.stroke();
+      tactx.fillStyle = '#64748b';
+      tactx.font = '11px sans-serif';
+      tactx.textAlign = 'center';
+      tactx.fillText(`${rx}Ω`, x, h - padBottom + 16);
+    }
+
+    [0.3, 0.6, 0.9, 1.2, 1.5].forEach(yVal => {
+      const y = h - padBottom - (yVal / yMax) * plotH;
+      tactx.beginPath(); tactx.moveTo(padLeft, y); tactx.lineTo(w - padRight, y); tactx.stroke();
+      tactx.fillStyle = '#64748b';
+      tactx.font = '11px sans-serif';
+      tactx.textAlign = 'right';
+      tactx.fillText(yVal.toFixed(1), padLeft - 8, y + 4);
+    });
+
+    tactx.strokeStyle = '#475569';
+    tactx.lineWidth = 2;
+    tactx.beginPath();
+    tactx.moveTo(padLeft, padTop);
+    tactx.lineTo(padLeft, h - padBottom);
+    tactx.lineTo(w - padRight, h - padBottom);
+    tactx.stroke();
+
+    tactx.fillStyle = '#94a3b8';
+    tactx.font = 'bold 12px sans-serif';
+    tactx.textAlign = 'center';
+    tactx.fillText('가변 저항 크기 (Ω)', padLeft + plotW / 2, h - 10);
+
+    tactx.save();
+    tactx.translate(18, padTop + plotH / 2);
+    tactx.rotate(-Math.PI / 2);
+    tactx.fillText('흐르는 전류 (A)', 0, 0);
+    tactx.restore();
+
+    if (isTeacherTheoryOn) {
+      tactx.strokeStyle = '#64748b';
+      tactx.lineWidth = 1.8;
+      tactx.setLineDash([5, 5]);
+      tactx.beginPath();
+      let isFirst = true;
+      for (let r = 4.5; r <= 35.0; r += 0.5) {
+        const i_theo = V / r;
+        const px = padLeft + (r / xMax) * plotW;
+        const py = h - padBottom - (i_theo / yMax) * plotH;
+        if (isFirst) { tactx.moveTo(px, py); isFirst = false; }
+        else { tactx.lineTo(px, py); }
+      }
+      tactx.stroke();
+      tactx.setLineDash([]);
+    }
+
+    if (teacherLogs.length === 0) {
+      tactx.fillStyle = '#fbbf24';
+      tactx.font = '13px sans-serif';
+      tactx.textAlign = 'center';
+      tactx.fillText('💡 학번과 이름을 조회하면 학생이 제출한 실제 측정 데이터 점과 곡선이 이곳에 표시됩니다.', padLeft + plotW / 2, padTop + plotH / 2);
+      return;
+    }
+
+    const pts = [];
+    teacherLogs.forEach(log => {
+      const isOn = (targetCh === 'r') ? log.rOn : (targetCh === 'g') ? log.gOn : log.bOn;
+      if (!isOn) return;
+      const rVal = (targetCh === 'r') ? log.rR : (targetCh === 'g') ? log.gR : log.bR;
+      const curVal = (targetCh === 'r') ? log.rI : (targetCh === 'g') ? log.gI : log.bI;
+
+      const px = padLeft + (rVal / xMax) * plotW;
+      const py = h - padBottom - (curVal / yMax) * plotH;
+      pts.push({ r: rVal, cur: curVal, x: px, y: py });
+    });
+
+    pts.sort((a, b) => a.r - b.r);
+
+    const themeColor = (targetCh === 'r') ? '#ef4444' : (targetCh === 'g') ? '#22c55e' : '#3b82f6';
+
+    if (isTeacherCurveOn && pts.length >= 2) {
+      tactx.strokeStyle = themeColor;
+      tactx.lineWidth = 2.5;
+      drawSmoothSpline(tactx, pts);
+    }
+
+    pts.forEach(pt => {
+      tactx.fillStyle = '#ffffff';
+      tactx.beginPath();
+      tactx.arc(pt.x, pt.y, 6.5, 0, Math.PI * 2);
+      tactx.fill();
+
+      tactx.fillStyle = themeColor;
+      tactx.beginPath();
+      tactx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+      tactx.fill();
+
+      tactx.fillStyle = '#f8fafc';
+      tactx.font = 'bold 11px sans-serif';
+      tactx.textAlign = 'center';
+      tactx.fillText(`(${pt.r}Ω, ${pt.cur.toFixed(2)}A)`, pt.x, pt.y - 10);
+    });
+  }
+
+  [slRr, slRg, slRb].forEach(s => s.addEventListener('input', update));
+  window.addEventListener('resize', () => {
+    update();
+    if (isGraphVisible) renderGraph();
+    if (teacherGradingPanel.style.display === 'block') {
+      renderTeacherGraph();
+      renderTeacherDiscoveredColors();
+    }
+  });
+
+  // 초기화 실행
+  update();
+  renderTable();
+</script>
+</body>
+</html>

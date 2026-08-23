@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<!-- ================= [차시 잠금 가드 스크립트] ================= -->
+<script>
+  (function() {
+    // 1. 현재 차시 정보 설정 (이 파일 전용 ID)
+    const THIS_UNIT_KEY = "unit3_eval";
+    const THIS_LESSON_ID = "u3e_l4";
+    const LOCK_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzt79aRnksXzvk1vTohMMLISbuDMVLpsdBTolC68Nrl_LJC1boxggJclPz87zkjsqTf/exec";
+
+    // 2. 잠김 감지 시 화면 완전 차단 함수
+    function enforceLock() {
+      document.documentElement.innerHTML = `
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>수업 잠김 안내</title>
+          <style>
+            body {
+              background-color: #0b0e14;
+              color: #e2e8f0;
+              font-family: 'Pretendard', sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              text-align: center;
+              padding: 20px;
+            }
+            .lock-card {
+              background: #182238;
+              border: 1px solid #334155;
+              border-radius: 16px;
+              padding: 30px 24px;
+              max-width: 400px;
+              box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            }
+            h2 { color: #f87171; margin-bottom: 10px; font-size: 1.3rem; }
+            p { color: #94a3b8; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px; }
+            button {
+              background: #0284c7;
+              color: #fff;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 8px;
+              font-weight: bold;
+              cursor: pointer;
+              font-size: 0.95rem;
+            }
+            button:hover { background: #0369a1; }
+          </style>
+        </head>
+        <body>
+          <div class="lock-card">
+            <h2>🔒 수업 준비 중 (접근 제한)</h2>
+            <p>선생님에 의해 현재 차시 학습이 잠겨 있습니다.<br>수업 시간에 다시 접속해주세요.</p>
+            <button onclick="location.href='index.html'">홈 포털로 이동하기</button>
+          </div>
+        </body>
+      `;
+    }
+
+    // 3. Apps Script에서 잠금 상태 확인 (POST 방식)
+    function verifyLockStatus() {
+      fetch(LOCK_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "get_locks" }),
+        cache: "no-store"
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("잠금 상태 확인 HTTP 오류: " + res.status);
+        return res.json();
+      })
+      .then(data => {
+        if (data && data[THIS_UNIT_KEY]) {
+          const unitLocked = data[THIS_UNIT_KEY].isLocked === true;
+          const lessonLocked =
+            data[THIS_UNIT_KEY].lessons &&
+            data[THIS_UNIT_KEY].lessons[THIS_LESSON_ID] === true;
+
+          // 단원 전체가 잠겼거나 해당 차시가 잠겨 있으면 즉시 차단
+          if (unitLocked || lessonLocked) {
+            enforceLock();
+          }
+        }
+      })
+      .catch(err => {
+        console.warn("POST 잠금 상태 확인 실패:", err);
+      });
+    }
+
+    // ① 페이지 로드 즉시 확인
+    verifyLockStatus();
+
+    // ② 백그라운드 탭/화면 꺼짐에서 다시 돌아왔을 때 즉시 재확인
+    document.addEventListener("visibilitychange", function() {
+      if (document.visibilityState === "visible") {
+        verifyLockStatus();
+      }
+    });
+
+    // 창으로 다시 돌아오거나 인터넷 연결이 복구되면 즉시 재확인
+    window.addEventListener("focus", verifyLockStatus);
+    window.addEventListener("online", verifyLockStatus);
+
+    // ③ 페이지가 켜져 있는 동안 10초마다 주기적 확인
+    setInterval(verifyLockStatus, 10000);
+  })();
+</script>
+<!-- ============================================================= -->
+
+  <meta charset="UTF-8">
+  <title>중2 과학 IB 탐구 실험보고서 - 빛 합성 전기 회로 (모범 답안)</title>
+  <style>
+    /* A4 용지 인쇄 및 화면 표준 규격 */
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm 6mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+      color: #0f172a;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      background-color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+    }
+
+    /* 화면 상단 인쇄 버튼 툴바 */
+    .no-print-bar {
+      width: 210mm;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      padding: 10px 18px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+    .no-print-bar span {
+      color: #f8fafc;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .print-btn {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 7px 18px;
+      border-radius: 5px;
+      font-weight: bold;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .print-btn:hover { background: #0369a1; }
+
+    /* A4 페이지 컨테이너 (2쪽 레이아웃 제어) */
+    .page {
+      width: 210mm;
+      height: 297mm;
+      max-height: 297mm;
+      background: #fff;
+      padding: 8mm 10mm 6mm 10mm;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .page-break {
+      margin-bottom: 16px;
+      page-break-after: always;
+    }
+
+    @media print {
+      body { background: transparent; padding: 0; }
+      .no-print-bar { display: none !important; }
+      .page {
+        box-shadow: none;
+        width: 100%;
+        height: 283mm;
+        max-height: 283mm;
+        padding: 0;
+        margin: 0;
+      }
+      .page-break {
+        page-break-after: always !important;
+        break-after: page !important;
+        margin-bottom: 0;
+      }
+    }
+
+    /* 상단 헤더 */
+    .doc-header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 4px;
+      margin-bottom: 5px;
+    }
+    .main-title {
+      font-size: 17px;
+      font-weight: 800;
+      text-align: center;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .info-table th, .info-table td {
+      border: 1px solid #64748b;
+      padding: 4px 6px;
+      text-align: center;
+    }
+    .info-table th {
+      background: #f8fafc;
+      font-weight: 700;
+    }
+
+    .scenario-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #0284c7;
+      padding: 4px 8px;
+      font-size: 9.8px;
+      line-height: 1.35;
+      margin-bottom: 4px;
+    }
+
+    .criterion-section {
+      border: 1px solid #64748b;
+      border-radius: 4px;
+      padding: 5px 8px;
+    }
+    .criterion-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      background: #0f172a;
+      color: #fff;
+      padding: 2.5px 8px;
+      border-radius: 3px;
+      display: inline-block;
+      margin-bottom: 3px;
+    }
+
+    .item-group {
+      margin-bottom: 3px;
+    }
+    .item-label {
+      font-size: 10.2px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .hint-tag {
+      font-size: 9px;
+      font-weight: normal;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 2px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* 모범 답안 텍스트 스타일 */
+    .ans {
+      color: #0369a1;
+      font-weight: 600;
+    }
+    .ans-circle {
+      border: 1.5px solid #0284c7;
+      border-radius: 12px;
+      padding: 0 4px;
+      color: #0284c7;
+      font-weight: 700;
+      background: #e0f2fe;
+    }
+
+    /* 필기 라인 */
+    .write-box {
+      border-bottom: 1px dashed #94a3b8;
+      min-height: 15.5px;
+      font-size: 9.5px;
+      display: flex;
+      align-items: center;
+      padding: 0 2px;
+      margin-bottom: 1.5px;
+      line-height: 1.3;
+    }
+    .write-box.solid { border-bottom: 1px solid #94a3b8; }
+    .write-box-line {
+      border-bottom: 1px dashed #94a3b8;
+      height: 15px;
+      margin-bottom: 1.5px;
+      font-size: 9.5px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* 테이블 스타일 */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.3px;
+      text-align: center;
+    }
+    .data-table th, .data-table td {
+      border: 1px solid #64748b;
+      padding: 3px 4px;
+      height: 15.5px;
+    }
+    .data-table th {
+      background: #f1f5f9;
+      font-weight: 700;
+    }
+
+    /* 2열 배치 그리드 */
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+
+    /* 대형 모눈 그래프 컨테이너 */
+    .graph-outer {
+      border: 1px solid #475569;
+      padding: 4px 6px 4px 6px;
+      margin-top: 2px;
+      margin-bottom: 2px;
+      background: #fff;
+    }
+    .graph-title-row {
+      font-size: 9.8px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .graph-canvas-wrap {
+      width: 100%;
+      height: 165px;
+      border: 1px solid #64748b;
+      position: relative;
+      background: #ffffff;
+    }
+    .graph-axis-svg {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 화면 상단 인쇄 안내 툴바 -->
+  <div class="no-print-bar">
+    <span>💡 <b>IB MYP 과학 기준 B·C 탐구 보고서 (모범 답안 포함)</b> [A4 2쪽 완벽 규격 / 정밀 작도]</span>
+    <button class="print-btn" onclick="window.print()">📄 인쇄 / PDF로 저장하기</button>
+  </div>
+
+  <!-- ==================== 1페이지: Criterion B ==================== -->
+  <div class="page page-break">
+    <div>
+      <!-- 문서 헤더 -->
+      <div class="doc-header">
+        <h1 class="main-title">빛 합성 전기 회로 탐구 보고서 (IB MYP 기준 B & C) - 모범 답안</h1>
+        <table class="info-table">
+          <tr>
+            <th style="width: 10%;">학 번</th>
+            <td style="width: 23%;" class="ans">20201</td>
+            <th style="width: 10%;">이 름</th>
+            <td style="width: 23%;" class="ans">김탐구</td>
+            <th style="width: 15%; font-size: 10.5px;">지도교사 확인</th>
+            <td style="width: 19%; font-weight: bold; color: #16a34a;">확인 완료 (A)</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 탐구 상황 -->
+      <div class="scenario-box">
+        <b>[탐구 상황]</b> 스마트폰 화면은 빨강, 초록, 파랑 전구 회로의 <b>저항 크기</b>를 조절하여 <b>흐르는 전류</b>와 <b>빛의 세기 수치</b>를 바꾸고, 빛을 섞어서 수만 가지 색을 표현합니다. [빛 합성 전기 회로 실험실] 프로그램을 활용하여 전기 회로의 규칙과 빛의 합성 조건을 탐구하고 보고서를 완성하시오.
+      </div>
+
+      <!-- Criterion B 본문 -->
+      <div class="criterion-section">
+        <div class="criterion-title">■ Criterion B: 탐구 및 설계하기 (Inquiring and Designing)</div>
+
+        <!-- 1. 탐구 문제 (B.i) -->
+        <div class="item-group">
+          <div class="item-label">
+            1. 과학적 연구로 검증할 탐구 문제 서술하기 (B.i)
+            <span class="hint-tag">평서문(~해야 한다, ~를 밝혀내고자 한다) 형태로 작성</span>
+          </div>
+          <div style="font-size: 9.3px; margin-bottom: 1px;">
+            <b>• 탐구 질문 1 (전기 회로)</b> <span style="color:#64748b;">[힌트: 저항 크기, 흐르는 전류, 빛의 세기 수치 관계 서술]</span>
+          </div>
+          <div class="write-box solid ans">
+            건전지 전압(6.0V)이 일정할 때 전구 회로의 저항 크기가 흐르는 전류와 빛의 세기 수치에 미치는 영향을 밝혀내고자 한다.
+          </div>
+          <div style="font-size: 9.3px; margin-bottom: 1px; margin-top: 1px;">
+            <b>• 탐구 질문 2 (빛의 합성)</b> <span style="color:#64748b;">[힌트: 전구별 저항 크기 조절을 통한 주황색·보라색·흰색 빛 합성 조건 서술]</span>
+          </div>
+          <div class="write-box solid ans">
+            빨강, 초록, 파랑 전구 회로의 저항 크기를 각각 조절하여 주황색, 보라색, 순수 흰색을 합성하는 회로 조건을 규명해야 한다.
+          </div>
+        </div>
+
+        <!-- 2. 가설 요약 및 추론 (B.ii) -->
+        <div class="item-group">
+          <div class="item-label">
+            2. 검증 가능한 가설 요약 및 과학적 추론으로 설명하기 (B.ii)
+            <span class="hint-tag">빨강/초록/파랑 중 필요한 색에 동그라미 치고 밝기를 어떻게 조절할지 서술</span>
+          </div>
+          <!-- 가설 1 -->
+          <div style="font-size: 9.3px; margin-bottom: 1px;">
+            <b>• 가설 1 (전기 회로)</b>
+          </div>
+          <div class="write-box">
+            만약 저항 크기를 <span class="ans" style="margin: 0 8px;">작게(감소)</span>하면, 흐르는 전류와 빛의 세기는 <span class="ans" style="margin: 0 8px;">증가(더 밝아짐)</span>할 것이다.
+          </div>
+          <div class="write-box" style="margin-bottom: 2px;">
+            (과학적 설명) 왜냐하면 <span class="ans" style="margin-left: 6px;">전압이 일정할 때 저항이 작을수록 전류 흐름 방해가 줄어 전류가 많이 흐르고 빛 에너지(세기)가 커지기</span> 때문이다.
+          </div>
+          <!-- 가설 2 (3가지 색 분리) -->
+          <div style="font-size: 9.3px; margin-bottom: 1px;">
+            <b>• 가설 2 (빛의 합성 - 주황색, 보라색, 흰색)</b>
+          </div>
+          <div class="write-box">
+            ① 주황색: 만약 ( <span class="ans-circle">빨강</span> / <span class="ans-circle">초록</span> / 파랑 ) 전구를 켜고 <span class="ans" style="margin: 0 4px;">빨강 전구는 최대 밝기(5.0Ω), 초록 전구는 절반 밝기(10.0Ω)로</span> 전구의 밝기를 조절하면, 주황색 빛이 합성될 것이다.
+          </div>
+          <div class="write-box">
+            ② 보라색: 만약 ( <span class="ans-circle">빨강</span> / 초록 / <span class="ans-circle">파랑</span> ) 전구를 켜고 <span class="ans" style="margin: 0 4px;">파랑 전구는 최대 밝기(5.0Ω), 빨강 전구는 절반 밝기(10.0Ω)로</span> 전구의 밝기를 조절하면, 보라색 빛이 합성될 것이다.
+          </div>
+          <div class="write-box">
+            ③ 흰&nbsp;&nbsp;&nbsp;색: 만약 ( <span class="ans-circle">빨강</span> / <span class="ans-circle">초록</span> / <span class="ans-circle">파랑</span> ) 전구를 켜고 <span class="ans" style="margin: 0 4px;">세 전구의 저항을 모두 최소(5.0Ω)로 같게 하여 모두 최대 밝기로</span> 전구의 밝기를 조절하면, 흰색 빛이 합성될 것이다.
+          </div>
+          <div class="write-box">
+            (과학적 설명) 왜냐하면 <span class="ans" style="margin-left: 6px;">빛의 삼원색(RGB)이 1:1:1로 합성되면 흰색, 빨강:초록이 2:1이면 주황색, 파랑:빨강이 2:1이면 보라색이 되기</span> 때문이다.
+          </div>
+        </div>
+
+        <!-- 3. 변수 조작 및 데이터 수집 (B.iii) -->
+        <div class="item-group">
+          <div class="item-label">
+            3. 변수 조작 방법과 데이터 수집 방법 서술하기 (B.iii)
+          </div>
+          <div style="border: 1px solid #cbd5e1; padding: 3.5px 6px; border-radius: 3px; font-size: 9.2px; margin-bottom: 2px;">
+            <b>[탐구 1: 전기 회로 변수]</b><br>
+            • 다르게 할 조건 (조작 변수): <span class="ans">빨강 전구 회로의 저항 크기 (5.0Ω ~ 30.0Ω 단계별 조절)</span><br>
+            • 측정할 값 (종속 변수): <span class="ans">회로에 흐르는 전류(A), 빨강 빛의 세기 수치(0~255)</span><br>
+            • 같게 할 조건 (통제 변수 2가지): <span class="ans">건전지 전압(6.0V 고정), 초록 및 파랑 전구 회로 스위치 꺼짐 상태 유지</span>
+          </div>
+          <div style="border: 1px solid #cbd5e1; padding: 3.5px 6px; border-radius: 3px; font-size: 9.2px; margin-bottom: 2px;">
+            <b>[탐구 2: 빛의 합성 변수]</b><br>
+            • 다르게 할 조건 (조작 변수): <span class="ans">빨강·초록·파랑 각 전구의 스위치 켜짐/꺼짐 상태 및 저항 크기(밝기 비율) 조합</span><br>
+            • 측정할 값 (종속 변수): <span class="ans">합성된 빛의 색상 이름 및 각 전구의 빛의 세기 수치 비율</span><br>
+            • 같게 할 조건 (통제 변수): <span class="ans">건전지 전압(6.0V 고정)</span>
+          </div>
+          <div style="font-size: 9.3px; margin-bottom: 1px;">
+            <b>• 데이터 수집 방법 서술</b> <span style="color:#64748b;">[프로그램의 '분석표 탭'과 '표에 기록' 버튼 활용법 서술]</span>
+          </div>
+          <div class="write-box-line ans">슬라이더로 각 전구의 저항 크기를 맞추고 스위치를 조작한 뒤, 화면의 '표에 기록' 버튼을 눌러 측정값을 등록한다.</div>
+          <div class="write-box-line ans">프로그램 하단의 '분석표 탭(전체 요약, 빨강/초록/파랑 분석표)'을 전환하며 저항, 전류, 빛의 세기 수치를 체계적으로 읽어 기록한다.</div>
+          <div class="write-box-line ans">탐구 1은 빨강 전구의 5개 저항 구간 데이터를 수집하고, 탐구 2는 목표 색상(흰색, 주황색, 보라색) 조건의 수치를 수집한다.</div>
+          <div class="write-box-line ans" style="border-bottom: 1px solid #94a3b8;">수집된 측정값을 보고서의 [표 1]과 [표 2]에 정확한 단위와 유효숫자를 지켜 누락 없이 작성한다.</div>
+        </div>
+
+        <!-- 4. 과학적 연구 설계하기 (B.iv) -->
+        <div class="item-group">
+          <div class="item-label">
+            4. 과학적 연구 설계하기 (단계별 실험 절차 8단계) (B.iv)
+            <span class="hint-tag">탐구 1 & 탐구 2의 수행 절차를 구체적으로 서술</span>
+          </div>
+          <div class="write-box-line"><span style="color:#0f172a; margin-right:4px;">1.</span><span class="ans">가상 실험실을 실행하고 건전지 전압(6.0V) 확인 후, 초록·파랑 전구는 끄고 빨강 전구 스위치만 켠다.</span></div>
+          <div class="write-box-line"><span style="color:#0f172a; margin-right:4px;">2.</span><span class="ans">빨강 전구 저항을 5.0Ω으로 설정하고 흐르는 전류와 빛의 세기를 확인한 뒤 '표에 기록' 버튼을 누른다.</span></div>
+          <div class="write-box-line"><span style="color:#0f172a; margin-right:4px;">3.</span><span class="ans">저항을 10.0Ω, 15.0Ω, 20.0Ω, 30.0Ω으로 변경하며 전류와 빛의 세기를 측정하여 [표 1]을 완성한다.</span></div>
+          <div class="write-box-line"><span style="color:#0f172a; margin-right:4px;">4.</span><span class="ans">[표 1]의 수치를 바탕으로 저항 크기(X축)-흐르는 전류(Y축) 모눈 그래프에 점을 찍고 곡선으로 작도한다.</span></div>
+          <div class="write-box-line"><span style="color:#0f172a; margin-right:4px;">5.</span><span class="ans">[흰색 합성] 빨강·초록·파랑 스위치를 모두 켜고 저항을 모두 5.0Ω(최대 밝기 255)으로 설정하여 [표 2]에 기록한다.</span></div>
+          <div class="write-box-line"><span style="color:#0f172a; margin-right:4px;">6.</span><span class="ans">[주황색 합성] 파랑을 끄고 빨강 저항을 5.0Ω(255), 초록 저항을 10.0Ω(128)으로 설정하여 합성색을 [표 2]에 기록한다.</span></div>
+          <div class="write-box-line"><span style="color:#0f172a; margin-right:4px;">7.</span><span class="ans">[보라색 합성] 초록을 끄고 파랑 저항을 5.0Ω(255), 빨강 저항을 10.0Ω(128)으로 설정하여 합성색을 [표 2]에 기록한다.</span></div>
+          <div class="write-box-line" style="border-bottom: 1px solid #94a3b8;"><span style="color:#0f172a; margin-right:4px;">8.</span><span class="ans">수집된 데이터와 그래프를 옴의 법칙 및 빛 합성 원리로 해석하고 가설의 타당성을 평가한다.</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="text-align: center; font-size: 9px; color: #64748b;">- 1 / 2 -</div>
+  </div>
+
+  <!-- ==================== 2페이지: Criterion C ==================== -->
+  <div class="page">
+    <div>
+      <div class="criterion-section" style="margin-top: 0;">
+        <div class="criterion-title">■ Criterion C: 처리 및 평가하기 (Processing and Evaluating)</div>
+
+        <!-- 1. 데이터 제시 (C.i) -->
+        <div class="item-group">
+          <div class="item-label">1. 수집하고 변형한 데이터 제시하기 (C.i)</div>
+          
+          <div class="two-col-grid" style="gap: 8px; margin-bottom: 2px;">
+            <!-- 표 1 -->
+            <div>
+              <div style="font-size: 8.8px; font-weight: bold; margin-bottom: 1px;">[표 1] 탐구 1: 빨강 전구 저항 크기별 측정값</div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>번호</th>
+                    <th>저항 크기(Ω)</th>
+                    <th>흐르는 전류(A)</th>
+                    <th>빛의 세기(0~255)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>1</td><td>5.0</td><td class="ans">1.20</td><td class="ans">255</td></tr>
+                  <tr><td>2</td><td>10.0</td><td class="ans">0.60</td><td class="ans">128</td></tr>
+                  <tr><td>3</td><td>15.0</td><td class="ans">0.40</td><td class="ans">85</td></tr>
+                  <tr><td>4</td><td>20.0</td><td class="ans">0.30</td><td class="ans">64</td></tr>
+                  <tr><td>5</td><td>30.0</td><td class="ans">0.20</td><td class="ans">43</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 표 2 -->
+            <div>
+              <div style="font-size: 8.8px; font-weight: bold; margin-bottom: 1px;">[표 2] 탐구 2: 목표 색상별 회로 조건 및 결과</div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>목표 색상</th>
+                    <th>빨강 저항</th>
+                    <th>초록 저항</th>
+                    <th>파랑 저항</th>
+                    <th>합성된 빛의 색</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td style="font-weight:bold;">순수 흰색</td><td class="ans">5.0 Ω</td><td class="ans">5.0 Ω</td><td class="ans">5.0 Ω</td><td class="ans" style="font-weight:bold;">흰색</td></tr>
+                  <tr><td style="font-weight:bold;">주황색</td><td class="ans">5.0 Ω</td><td class="ans">10.0 Ω</td><td>스위치 꺼짐</td><td class="ans" style="font-weight:bold;">주황색</td></tr>
+                  <tr><td style="font-weight:bold;">보라색</td><td class="ans">10.0 Ω</td><td>스위치 꺼짐</td><td class="ans">5.0 Ω</td><td class="ans" style="font-weight:bold;">보라색</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 대형 자율 작도 모눈 그래프 틀 (모범 답안 작도 완성) -->
+          <div class="graph-outer">
+            <div class="graph-title-row">
+              <span><b>[그래프]</b> 저항 크기에 따른 흐르는 전류 변화</span>
+              <span style="font-size: 8.5px; font-weight: bold; color: #0284c7;"><b>* 모범 작도: 가로축-저항 크기(Ω), 세로축-흐르는 전류(A), 데이터 5점 플롯 및 반비례 곡선($I = 6.0/R$) 피팅</b></span>
+            </div>
+            <div class="graph-canvas-wrap">
+              <svg class="graph-axis-svg" viewBox="0 0 540 165">
+                <defs>
+                  <!-- 1mm 세부 모눈 (5px 단위) -->
+                  <pattern id="fineGrid" width="5" height="5" patternUnits="userSpaceOnUse">
+                    <path d="M 5 0 L 0 0 0 5" fill="none" stroke="#f1f5f9" stroke-width="0.75" />
+                  </pattern>
+                  <!-- 5mm 굵은 주요 모눈 (25px 단위) -->
+                  <pattern id="blockGrid" width="25" height="25" patternUnits="userSpaceOnUse">
+                    <rect width="25" height="25" fill="url(#fineGrid)" />
+                    <path d="M 25 0 L 0 0 0 25" fill="none" stroke="#cbd5e1" stroke-width="1.2" />
+                  </pattern>
+                </defs>
+
+                <!-- 플롯 내부 격자 배경 -->
+                <rect x="50" y="10" width="470" height="137.5" fill="url(#blockGrid)" stroke="#94a3b8" stroke-width="1" />
+
+                <!-- X축, Y축 메인 라인 -->
+                <line x1="50" y1="10" x2="50" y2="147.5" stroke="#0f172a" stroke-width="2" />
+                <line x1="50" y1="147.5" x2="525" y2="147.5" stroke="#0f172a" stroke-width="2" />
+                
+                <!-- Y축 눈금 및 레이블 (0 ~ 1.5A) -->
+                <text x="44" y="151" font-size="8.5" font-weight="bold" text-anchor="end" fill="#334155">0</text>
+                <line x1="46" y1="120" x2="50" y2="120" stroke="#0f172a" stroke-width="1.5" />
+                <text x="44" y="123" font-size="8.5" font-weight="bold" text-anchor="end" fill="#334155">0.3</text>
+                <line x1="46" y1="92.5" x2="50" y2="92.5" stroke="#0f172a" stroke-width="1.5" />
+                <text x="44" y="95.5" font-size="8.5" font-weight="bold" text-anchor="end" fill="#334155">0.6</text>
+                <line x1="46" y1="65" x2="50" y2="65" stroke="#0f172a" stroke-width="1.5" />
+                <text x="44" y="68" font-size="8.5" font-weight="bold" text-anchor="end" fill="#334155">0.9</text>
+                <line x1="46" y1="37.5" x2="50" y2="37.5" stroke="#0f172a" stroke-width="1.5" />
+                <text x="44" y="40.5" font-size="8.5" font-weight="bold" text-anchor="end" fill="#334155">1.2</text>
+                <line x1="46" y1="10" x2="50" y2="10" stroke="#0f172a" stroke-width="1.5" />
+                <text x="44" y="13" font-size="8.5" font-weight="bold" text-anchor="end" fill="#334155">1.5</text>
+                <text x="14" y="78" font-size="9" font-weight="800" fill="#0f172a" transform="rotate(-90 14,78)" text-anchor="middle">흐르는 전류 (A)</text>
+
+                <!-- X축 눈금 및 레이블 (0 ~ 30Ω) -->
+                <line x1="128.3" y1="147.5" x2="128.3" y2="152" stroke="#0f172a" stroke-width="1.5" />
+                <text x="128.3" y="160" font-size="8.5" font-weight="bold" text-anchor="middle" fill="#334155">5</text>
+                <line x1="206.7" y1="147.5" x2="206.7" y2="152" stroke="#0f172a" stroke-width="1.5" />
+                <text x="206.7" y="160" font-size="8.5" font-weight="bold" text-anchor="middle" fill="#334155">10</text>
+                <line x1="285.0" y1="147.5" x2="285.0" y2="152" stroke="#0f172a" stroke-width="1.5" />
+                <text x="285.0" y="160" font-size="8.5" font-weight="bold" text-anchor="middle" fill="#334155">15</text>
+                <line x1="363.3" y1="147.5" x2="363.3" y2="152" stroke="#0f172a" stroke-width="1.5" />
+                <text x="363.3" y="160" font-size="8.5" font-weight="bold" text-anchor="middle" fill="#334155">20</text>
+                <line x1="441.7" y1="147.5" x2="441.7" y2="152" stroke="#0f172a" stroke-width="1.5" />
+                <text x="441.7" y="160" font-size="8.5" font-weight="bold" text-anchor="middle" fill="#334155">25</text>
+                <line x1="520.0" y1="147.5" x2="520.0" y2="152" stroke="#0f172a" stroke-width="1.5" />
+                <text x="520.0" y="160" font-size="8.5" font-weight="bold" text-anchor="middle" fill="#334155">30</text>
+                <text x="285" y="163" font-size="9" font-weight="800" fill="#0f172a" text-anchor="middle">저항 크기 (Ω)</text>
+
+                <!-- 반비례 곡선 추세선 (I = 6.0/R) -->
+                <path d="M 120.5 25.6 Q 160 72 206.7 92.5 T 285.0 110.8 T 363.3 120.0 T 520.0 129.2" fill="none" stroke="#0284c7" stroke-width="2.5" />
+
+                <!-- 데이터 포인트 5점 (빨강 원형 플롯) -->
+                <!-- P1: (5Ω, 1.20A) -> (128.3, 37.5) -->
+                <circle cx="128.3" cy="37.5" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+                <text x="128.3" y="30" font-size="8" font-weight="bold" fill="#0284c7" text-anchor="middle">(5.0Ω, 1.20A)</text>
+
+                <!-- P2: (10Ω, 0.60A) -> (206.7, 92.5) -->
+                <circle cx="206.7" cy="92.5" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+                <text x="206.7" y="85" font-size="8" font-weight="bold" fill="#0284c7" text-anchor="middle">(10.0Ω, 0.60A)</text>
+
+                <!-- P3: (15Ω, 0.40A) -> (285.0, 110.8) -->
+                <circle cx="285.0" cy="110.8" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+                <text x="285.0" y="103" font-size="8" font-weight="bold" fill="#0284c7" text-anchor="middle">(15.0Ω, 0.40A)</text>
+
+                <!-- P4: (20Ω, 0.30A) -> (363.3, 120.0) -->
+                <circle cx="363.3" cy="120.0" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+                <text x="363.3" y="113" font-size="8" font-weight="bold" fill="#0284c7" text-anchor="middle">(20.0Ω, 0.30A)</text>
+
+                <!-- P5: (30Ω, 0.20A) -> (520.0, 129.2) -->
+                <circle cx="520.0" cy="129.2" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" />
+                <text x="488" y="124" font-size="8" font-weight="bold" fill="#0284c7" text-anchor="middle">(30.0Ω, 0.20A)</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 데이터 해석 및 결론 (C.ii) -->
+        <div class="item-group">
+          <div class="item-label">2. 데이터 해석 및 과학적 추론을 사용해 결론 서술하기 (C.ii)</div>
+          <div style="font-size: 9.2px; margin-bottom: 1px;">
+            <b>• 탐구 1 결론 (전기 회로)</b> <span style="color:#64748b;">[저항 크기와 흐르는 전류의 규칙을 옴의 법칙으로 서술]</span>
+          </div>
+          <div class="write-box-line ans">전압이 6.0V로 일정할 때, 저항 크기가 5.0Ω에서 30.0Ω으로 증가할수록 흐르는 전류는 1.20A에서 0.20A로 반비례하여 감소한다.</div>
+          <div class="write-box-line ans">이는 옴의 법칙($I=V/R$)과 일치하며, 전류가 감소함에 따라 전구의 빛의 세기 수치도 255에서 43으로 정비례하여 감소한다.</div>
+          <div class="write-box-line ans">따라서 전구의 밝기를 조절하기 위해서는 회로의 저항 크기를 제어하여 흐르는 전류의 양을 조절해야 함을 알 수 있다.</div>
+          <div class="write-box-line ans" style="border-bottom: 1px solid #94a3b8;">결론적으로 가변 저항은 회로의 전류량을 제어하여 빛의 세기를 0~255단계로 정밀하게 변환시키는 제어 장치이다.</div>
+
+          <div style="font-size: 9.2px; margin-bottom: 1px; margin-top: 1.5px;">
+            <b>• 탐구 2 결론 (빛의 합성)</b> <span style="color:#64748b;">[주황색, 보라색, 흰색을 만들기 위한 전구별 저항 및 전류 조건 서술]</span>
+          </div>
+          <div class="write-box-line ans">순수 흰색은 세 전구의 저항을 모두 5.0Ω(전류 1.20A, 세기 255)으로 동일하게 맞춰 RGB 빛의 세기 비율을 1:1:1로 합성할 때 생성된다.</div>
+          <div class="write-box-line ans">주황색은 파랑을 끈 상태에서 빨강 저항을 5.0Ω(1.20A, 세기 255), 초록 저항을 10.0Ω(0.60A, 세기 128)으로 맞춰 2:1 비율로 합성할 때 생성된다.</div>
+          <div class="write-box-line ans">보라색은 초록을 끈 상태에서 파랑 저항을 5.0Ω(1.20A, 세기 255), 빨강 저항을 10.0Ω(0.60A, 세기 128)으로 맞춰 2:1 비율로 합성할 때 생성된다.</div>
+          <div class="write-box-line ans" style="border-bottom: 1px solid #94a3b8;">결론적으로 디스플레이는 RGB 3개 전구의 저항을 독립적으로 조절하여 전류와 밝기 비율을 제어함으로써 다양한 색을 표현한다.</div>
+        </div>
+
+        <!-- 3. 가설의 타당성 논하기 (C.iii) -->
+        <div class="item-group">
+          <div class="item-label">
+            3. 과학적 연구 결과를 토대로 가설의 타당성에 관해 논하기 (C.iii)
+            <span class="hint-tag">측정한 수치(저항, 전류)를 근거로 서술</span>
+          </div>
+          <div style="font-size: 9.2px; font-weight: bold; margin-bottom: 1px;">• 가설 1 평가:</div>
+          <div class="write-box-line ans">저항을 5.0Ω에서 30.0Ω으로 6배 증가시켰을 때 전류가 1.20A에서 0.20A로 정확히 1/6배 감소하고 세기도 255에서 43으로 줄었다.</div>
+          <div class="write-box-line ans">저항을 작게 할수록 전류와 밝기가 증가할 것이라는 가설 1의 예측이 수치적으로 정확히 증명되었으므로 가설 1은 완전히 타당하다.</div>
+          
+          <div style="font-size: 9.2px; font-weight: bold; margin-bottom: 1px; margin-top: 1px;">• 가설 2 평가:</div>
+          <div class="write-box-line ans">빨강(5.0Ω, 1.20A)과 초록(10.0Ω, 0.60A)의 2:1 조합에서 주황색, 파랑(5.0Ω)과 빨강(10.0Ω) 조합에서 보라색, 세 저항이 모두 5.0Ω일 때 흰색이 합성되었다.</div>
+          <div class="write-box-line ans" style="border-bottom: 1px solid #94a3b8;">목표 색상 3가지 모두 설계한 저항 비율과 전류 조건에 따라 정확히 구현되었으므로 가설 2는 매우 타당하다.</div>
+        </div>
+
+        <!-- 4. 연구 방법의 타당성 (C.iv) -->
+        <div class="item-group">
+          <div class="item-label">4. 연구 방법의 타당성에 관해 논하기 (가상 실험의 한계점 2가지) (C.iv)</div>
+          <div style="font-size: 9.2px; margin-bottom: 1px;">① 한계점 1:</div>
+          <div class="write-box-line ans">가상 실험실에서는 실제 회로에 1.20A의 큰 전류가 흐를 때 발생하는 저항체의 발열(줄열)과 이로 인한 저항값 변동 및 화재·파손 위험이 시뮬레이션되지 않는다.</div>
+          <div class="write-box-line ans">따라서 실제 회로 제작 시 필요한 한계 전류 및 안전 허용 전력 기준을 검증하는 데 한계가 있다.</div>
+
+          <div style="font-size: 9.2px; margin-bottom: 1px; margin-top: 1px;">② 한계점 2:</div>
+          <div class="write-box-line ans">실제 LED 소자는 문턱 전압 및 비선형 전압-전류 특성을 가지나, 본 프로그램은 이상적인 옴의 법칙($I=V/R$) 선형 모델로 단순화되어 있다.</div>
+          <div class="write-box-line ans" style="border-bottom: 1px solid #94a3b8;">이로 인해 실제 디스플레이 소자가 가진 고유한 물리적 비선형 특성과 미세한 색상 왜곡 현상을 완벽히 재현하지 못한다.</div>
+        </div>
+
+        <!-- 5. 개선 및 확장 방안 (C.v) -->
+        <div class="item-group">
+          <div class="item-label">5. 연구 방법의 개선 또는 확장 방안 서술하기 (C.v)</div>
+          <div class="write-box-line ans">실제 회로 구현 시 과전류로 인한 소자 파손을 방지하기 위해 최소 5.0Ω 이상의 고정 보호 저항 및 안전 퓨즈를 직렬로 추가 설계한다.</div>
+          <div class="write-box-line ans">아두이노와 같은 마이크로컨트롤러의 PWM 신호 제어 방식을 도입하여 0~255단계의 밝기를 디지털 전류 펄스로 정밀하게 자동 제어한다.</div>
+          <div class="write-box-line ans">확장 탐구로 노란색(R+G), 청록색(G+B), 자홍색(R+B)의 1:1 합성 조건 및 명도·채도 변화에 따른 수만 가지 자연색 조합 조건을 추가 탐구한다.</div>
+          <div class="write-box-line ans" style="border-bottom: 1px solid #94a3b8;">실제 조도 센서와 분광기를 연결하여 가상 실험의 밝기 수치(0~255)와 실제 물리적 조도(Lux) 간의 정량적 변환 관계를 검증한다.</div>
+        </div>
+
+      </div>
+    </div>
+    <div style="text-align: center; font-size: 9px; color: #64748b;">- 2 / 2 -</div>
+  </div>
+
+</body>
+</html>
