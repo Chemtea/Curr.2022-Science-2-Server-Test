@@ -1379,7 +1379,7 @@
             background: #334155;
             color: #cbd5e1;
         }
-    
+
 
         /* ===== 계정 회원가입 / 승인 관리 추가 UI ===== */
         .auth-secondary-action {
@@ -2862,16 +2862,16 @@
                 <div class="header-top-row">
                     <span class="header-tag">중학교 2학년 과학 디지털 탐구 플랫폼</span>
                     <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:#7f1d1d;border:1px solid #f59e0b;color:#fde68a;font-size:.78rem;font-weight:950;">🧪 테스트 서버</span>
-                    
+
                     <div id="userAuthDisplayArea">
                         <button class="btn-auth-login-main" onclick="openStudentLoginModal()">🔑 로그인 (학생/교사)</button>
                     </div>
                 </div>
-                
+
                 <h1 id="headerMainTitle">🔬 중2 과학 디지털 탐구 포털</h1>
                 <p class="subtitle" id="headerSubTitle">학습할 단원을 선택하면 해당 단원의 탐구 활동들만 집중해서 학습할 수 있습니다.</p>
             </div>
-            
+
             <div class="qr-header-card" onclick="openQrModal()" title="클릭하여 대형 QR코드로 확대">
                 <div class="qr-thumb-box">
                     <img src="assets/test-qr.svg" alt="웹사이트 접속 QR코드">
@@ -3031,7 +3031,7 @@
         <div class="modal-box">
             <h3 id="studentLoginTitle">🔑 로그인</h3>
             <p class="modal-desc-sub" id="studentLoginDesc">본인의 학번(4자리) 또는 관리자 ID를 입력하세요.<br><span style="font-size:0.75rem; color:#64748b;">* 비밀번호는 8자리 이상이며, 최초 접속 시 사용할 비밀번호를 바로 설정합니다.</span></p>
-            
+
             <div class="modal-form-group">
                 <div class="modal-form-row">
                     <label>학번 (예: 2314) 또는 관리자 ID</label>
@@ -3107,7 +3107,7 @@
         <div class="modal-box">
             <h3>🔑 비밀번호 변경</h3>
             <p class="modal-desc-sub">현재 비밀번호와 변경할 새 비밀번호를 입력해주세요.</p>
-            
+
             <div class="modal-form-group">
                 <div class="modal-form-row">
                     <label>현재 비밀번호</label>
@@ -3134,7 +3134,7 @@
         <div class="modal-box">
             <h3 id="modalTitle">🔑 관리자 비밀번호 인증</h3>
             <p class="modal-desc-sub" id="modalDesc">관리자 비밀번호를 입력해주세요.</p>
-            
+
             <div class="modal-form-group">
                 <input type="password" id="modalPwInput" class="modal-input" placeholder="비밀번호 입력" autocomplete="off">
             </div>
@@ -5019,7 +5019,7 @@ window.addEventListener('storage',event=>{
             })();
             return academicYearConfigPromise;
         }
-        
+
         let isAdminMode = false;
         let currentUnitKey = null;
         let isAssessmentViewOpen = false;
@@ -9486,7 +9486,7 @@ window.addEventListener('storage',event=>{
             const visibleLessonCount = unit.lessons.filter(l => isAdminMode || l.adminOnly !== true).length;
             card.className = `unit-entry-card ${unit.themeClass} ${isLocked ? 'is-locked' : ''}`;
 
-            const badgeHtml = isLocked 
+            const badgeHtml = isLocked
                 ? `<span class="unit-entry-badge badge-locked">🔒 잠김 (비공개)</span>`
                 : `<span class="unit-entry-badge ${unit.badgeClass}">${unit.title.split('.')[0]} · ${visibleLessonCount}개 항목</span>`;
 
@@ -9581,7 +9581,7 @@ window.addEventListener('storage',event=>{
                 card.className = `lesson-card ${unit.cardClass} ${isLocked ? 'is-locked' : ''}`;
 
                 const tagElements = l.tags.map(t => `<span class="tag">${t}</span>`).join('');
-                const badgeHtml = isLocked 
+                const badgeHtml = isLocked
                     ? `<span class="card-badge badge-locked">🔒 잠김</span>`
                     : `<span class="card-badge ${unit.badgeClass}">${l.chasi}</span>`;
 
@@ -9701,7 +9701,7 @@ window.addEventListener('storage',event=>{
                 if (unit.items && unit.items.length > 0) {
                     itemsHtml = unit.items.map(item => {
                         const isItemLocked = !worksheetCloudReady || isUnitLocked || item.isLocked || worksheetCurriculum.isLocked;
-                        
+
                         let actionBtnHtml = '';
                         if (isAdminMode) {
                             actionBtnHtml = `
@@ -10209,7 +10209,7 @@ window.addEventListener('storage',event=>{
             renderUnitHub();
             if (ok) openRequestedUnitFromUrl();
         });
-    
+
         document.addEventListener('keydown', function(e){
             if(e.key !== 'Escape') return;
             const ann=document.getElementById('announcementModal'); if(ann && ann.style.display==='flex') closeAnnouncementModal();

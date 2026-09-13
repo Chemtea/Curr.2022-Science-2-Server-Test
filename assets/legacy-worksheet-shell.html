@@ -1,0 +1,1648 @@
+<!doctype html><html lang="ko" class="ctw-worksheet-only"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>학습지</title>
+<!-- Only the original worksheet drawer is reused here. No lesson/quiz/answer content. -->
+<style>html,body{margin:0;background:#0b0e14;color:#e2e8f0;font-family:system-ui,sans-serif}</style>
+<script>
+const THIS_UNIT_KEY = "unit3";
+const THIS_LESSON_KEY = "u3_l1";
+let cachedAdminKey = window.platformSessionStorage.getItem('current_admin_key') || '';
+let isAdminActive = !!window.ScienceContentClient.auth().adminSessionToken;
+if (!isAdminActive) cachedAdminKey = '';
+</script>
+<style id="ctw-style">
+/* Slide-out lesson worksheet; all visual styles are isolated from lesson controls. */
+#ctw-root {
+  --ctw-bg: #101b2d;
+  --ctw-card: #19283f;
+  --ctw-line: #354862;
+  --ctw-accent: #67e8f9;
+  color: #edf5ff;
+  font: 14px/1.45 'Pretendard', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  text-align: left;
+}
+#ctw-root *, #ctw-root *::before, #ctw-root *::after { box-sizing: border-box; }
+#ctw-root [hidden] { display: none !important; }
+#ctw-root button, #ctw-root input, #ctw-root select, #ctw-root textarea { font: inherit; }
+#ctw-root button, #ctw-root .ctw-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--ctw-line);
+  border-radius: 8px;
+  background: var(--ctw-card);
+  color: #edf5ff;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+#ctw-root button:hover:not(:disabled), #ctw-root .ctw-button:hover {
+  background: #263d59;
+  border-color: #8acddf;
+}
+#ctw-root button[aria-pressed="true"], #ctw-root button.ctw-active {
+  border-color: #67e8f9;
+  background: #164e63;
+  color: #ecfeff;
+  box-shadow: inset 0 0 0 1px #67e8f9;
+}
+#ctw-root button:disabled, #ctw-root input:disabled, #ctw-root select:disabled {
+  opacity: .46;
+  cursor: not-allowed;
+}
+#ctw-root :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #a5f3fc;
+  outline-offset: 3px;
+}
+#ctw-root input, #ctw-root select, #ctw-root textarea {
+  min-width: 0;
+  min-height: 32px;
+  margin: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--ctw-line);
+  border-radius: 7px;
+  background: #0b1423;
+  color: #edf5ff;
+  font-size: 12px;
+  line-height: 1.4;
+}
+#ctw-root input::placeholder, #ctw-root textarea::placeholder { color: #a4b5ca; opacity: 1; }
+#ctw-root input[type="number"] { width: 64px; }
+#ctw-root input[type="color"] { width: 34px; padding: 3px; cursor: pointer; }
+#ctw-root input[type="range"] { width: 75px; padding: 0; accent-color: #67e8f9; }
+#ctw-root input[type="checkbox"] { width: 16px; min-height: 16px; accent-color: #67e8f9; }
+#ctw-root label { display: inline-flex; align-items: center; gap: 5px; color: #d7e5f5; font-size: 12px; }
+#ctw-root a { color: #a5f3fc; text-underline-offset: 3px; }
+#ctw-root .ctw-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  width: var(--ctw-width, 480px);
+  max-width: calc(100vw - 40px);
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid #4b637f;
+  background: var(--ctw-bg);
+  box-shadow: -12px 0 36px rgb(0 0 0 / 24%);
+  transform: translateX(100%);
+  transition: transform .24s ease;
+}
+#ctw-root.ctw-open .ctw-panel { transform: translateX(0); }
+#ctw-root .ctw-toggle {
+  position: fixed;
+  top: 42%;
+  right: 0;
+  z-index: 1410;
+  flex-direction: column;
+  gap: 7px;
+  width: 38px;
+  min-height: 108px;
+  padding: 12px 8px;
+  border: 1px solid #67e8f9;
+  border-right: 0;
+  border-radius: 13px 0 0 13px;
+  background: #164e63;
+  color: #ecfeff;
+  box-shadow: -3px 3px 15px rgb(0 0 0 / 22%);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  transition: right .24s ease, background-color .15s ease;
+}
+#ctw-root.ctw-open .ctw-toggle { right: min(var(--ctw-width, 480px), calc(100vw - 40px)); }
+#ctw-root .ctw-toggle:hover:not(:disabled) { background: #0e7490; }
+#ctw-root .ctw-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -6px;
+  z-index: 2;
+  width: 12px;
+  min-width: 12px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+#ctw-root .ctw-resizer::after {
+  position: absolute;
+  top: 46%;
+  left: 4px;
+  width: 3px;
+  height: 38px;
+  border-radius: 4px;
+  background: #67e8f9;
+  content: '';
+  opacity: .65;
+}
+#ctw-root .ctw-resizer:hover, #ctw-root .ctw-resizer:focus-visible { background: rgb(103 232 249 / 15%); }
+#ctw-root .ctw-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 15px 12px;
+  border-bottom: 1px solid var(--ctw-line);
+  background: linear-gradient(125deg, #17334c, #14263d);
+}
+#ctw-root .ctw-head > div { min-width: 0; }
+#ctw-root .ctw-eyebrow, #ctw-root .ctw-head .eyebrow {
+  margin: 0 0 3px;
+  color: #8ee8f6;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  line-height: 1.3;
+}
+#ctw-root .ctw-head h2 {
+  margin: 0;
+  padding: 0;
+  color: #f2f8ff;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+#ctw-root .ctw-close { flex: 0 0 auto; font-size: 15px; }
+#ctw-root .ctw-controls { flex: 0 0 auto; min-width: 0; }
+#ctw-root.ctw-tools-collapsed .ctw-head { display: none; }
+#ctw-root.ctw-tools-collapsed .ctw-eyebrow,
+#ctw-root.ctw-tools-collapsed .ctw-status,
+#ctw-root.ctw-tools-collapsed .ctw-foot:not(.ctw-save-error) { display: none; }
+#ctw-root .ctw-view-shell { position: relative; display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; min-height: 0; }
+#ctw-root .ctw-zoom-toast {
+  position: absolute; top: 12px; right: 18px; z-index: 4;
+  pointer-events: none; padding: 6px 11px; border-radius: 20px;
+  background: rgb(15 23 42 / 84%); border: 1px solid rgb(165 243 252 / 45%);
+  color: #ecfeff; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 18%); opacity: 0; transform: translateY(-4px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+#ctw-root .ctw-zoom-toast.ctw-visible { opacity: 1; transform: translateY(0); }
+#ctw-root .ctw-toolbar, #ctw-root .ctw-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+  gap: 6px;
+  margin: 0;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--ctw-line);
+  background: #142138;
+}
+#ctw-root .ctw-tools { background: #101d31; }
+#ctw-root .ctw-quickbar {
+  position:relative; display:flex; flex-wrap:nowrap; flex:0 0 auto;
+  align-items:center; gap:3px; min-width:0; margin:0; padding:5px 6px;
+  background:#101d31; border-bottom:1px solid var(--ctw-line);
+}
+#ctw-root .ctw-quickbar .ctw-tools {
+  display:flex; flex-wrap:nowrap; flex:1 1 auto; align-items:center; min-width:0;
+  gap:3px; margin:0; padding:0; border:0; overflow-x:auto; overflow-y:hidden;
+  scrollbar-width:thin; overscroll-behavior-x:contain; touch-action:pan-x;
+}
+#ctw-root .ctw-quickbar button { flex:0 0 auto; min-height:34px; padding:5px; font-size:12px; white-space:nowrap; }
+#ctw-root .ctw-quickbar .ctw-color-label { flex:0 0 auto; gap:2px; margin:0; font-size:11px; white-space:nowrap; }
+#ctw-root .ctw-quickbar input[type="color"] { width:27px; min-height:32px; padding:2px; }
+#ctw-root .ctw-quickbar .ctw-close { position:static; min-width:26px; padding:4px; }
+#ctw-root .ctw-quick-page { min-width:26px; padding:3px !important; font-size:22px !important; line-height:1; }
+#ctw-root #ctw-undo { min-width:27px; font-size:19px; line-height:1; }
+#ctw-root .ctw-toolbar > *, #ctw-root .ctw-tools > * { max-width: 100%; }
+#ctw-root .ctw-page-label { color: #dbeafe; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#ctw-root .ctw-source {
+  display: block;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 7px 13px;
+  overflow: hidden;
+  color: #bdd0e6;
+  background: #111e31;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#ctw-root .ctw-status {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 7px 13px;
+  border-bottom: 1px solid #334862;
+  background: #162940;
+  color: #ccecf5;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+#ctw-root .ctw-status:empty { display: none; }
+#ctw-root .ctw-status[data-state="error"], #ctw-root .ctw-status.ctw-error {
+  background: #3c2930;
+  color: #ffe4dd;
+  border-bottom-color: #82544f;
+}
+#ctw-root .ctw-view {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 16px 12px 24px;
+  overflow-x: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  background: #263348;
+  scrollbar-width: thin;
+  scrollbar-color: #68839f #172337;
+  touch-action: none;
+}
+#ctw-root .ctw-stage {
+  position: relative;
+  flex: none;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 25%);
+  isolation: isolate;
+}
+#ctw-root #ctw-pdf, #ctw-root #ctw-ink {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+  vertical-align: top;
+}
+#ctw-root #ctw-pdf { z-index: 0; background: #fff; pointer-events: none; touch-action: auto; }
+#ctw-root #ctw-ink { z-index: 1; background: transparent; touch-action: none; cursor: crosshair; }
+#ctw-root #ctw-ink:active { cursor: crosshair; }
+#ctw-root .ctw-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 190px;
+  margin: 10px 0;
+  padding: 24px 18px;
+  border: 1px dashed #7890aa;
+  border-radius: 12px;
+  color: #edf5ff;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+#ctw-root .ctw-empty p { margin: 0; color: #cad8e9; font-size: 13px; line-height: 1.65; }
+#ctw-root .ctw-empty strong { color: #f1f8ff; }
+#ctw-root .ctw-text-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid #58758f;
+  background: #1a334a;
+}
+#ctw-root .ctw-text-form textarea {
+  display: block;
+  flex: 1 1 100%;
+  width: 100%;
+  min-height: 52px;
+  max-height: 100px;
+  resize: vertical;
+}
+#ctw-root .ctw-text-form input { flex: 1 1 140px; }
+#ctw-root .ctw-text-actions { display:flex; flex-wrap:wrap; align-items:center; gap:6px; width:100%; }
+#ctw-root .ctw-text-size-label { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+#ctw-root #ctw-text-size { flex:0 0 64px; width:64px; min-width:0; padding:5px 6px; font-size:16px; text-align:center; }
+#ctw-root .ctw-text-help { font-size: 11px; color: #b8d9ed; }
+#ctw-root .ctw-foot {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--ctw-line);
+  background: #101b2d;
+  color: #bdcde0;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+#ctw-root .ctw-foot small { font-size: inherit; color: inherit; }
+@media (min-width: 960px) {
+  body.ctw-docked { padding-right: var(--ctw-width, 480px); }
+  body.ctw-docked .admin-float-btn { right: calc(var(--ctw-width, 480px) + 20px); }
+}
+@media (max-width: 959px) {
+  #ctw-root .ctw-resizer { display: none; }
+  #ctw-root .ctw-head { padding: 10px 10px 9px; gap: 7px; }
+  #ctw-root .ctw-head h2 { font-size: 15px; }
+  #ctw-root .ctw-toolbar, #ctw-root .ctw-tools { gap: 5px; padding: 7px 9px; }
+  #ctw-root button, #ctw-root .ctw-button, #ctw-root input, #ctw-root select { min-height: 36px; }
+  #ctw-root button, #ctw-root .ctw-button { padding: 6px 7px; }
+  #ctw-root input[type="checkbox"] { min-height: 16px; }
+  #ctw-root input[type="color"] { width: 36px; }
+  #ctw-root .ctw-toggle { width: 38px; min-height: 108px; padding: 12px 8px; }
+  #ctw-root .ctw-view { padding: 12px 8px 18px; }
+  #ctw-root .ctw-source, #ctw-root .ctw-status, #ctw-root .ctw-foot { padding-left: 10px; padding-right: 10px; }
+}
+@media (max-height: 580px) {
+  #ctw-root .ctw-panel { overflow-y: auto; }
+  #ctw-root .ctw-view-shell { flex: 1 0 200px; }
+  #ctw-root .ctw-view { flex: 1 0 200px; }
+  #ctw-root .ctw-head { padding-top: 7px; padding-bottom: 7px; }
+  #ctw-root .ctw-toolbar, #ctw-root .ctw-tools { padding-top: 5px; padding-bottom: 5px; }
+  #ctw-root .ctw-eyebrow, #ctw-root .ctw-head .eyebrow { display: none; }
+  #ctw-root .ctw-source, #ctw-root .ctw-foot { padding-top: 4px; padding-bottom: 4px; }
+  #ctw-root .ctw-text-form textarea { min-height: 36px; max-height: 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #ctw-root .ctw-panel, #ctw-root .ctw-toggle, #ctw-root button, #ctw-root .ctw-button, #ctw-root .ctw-zoom-toast { transition: none; }
+}
+@media print {
+  #ctw-root { display: none !important; }
+  body.ctw-docked { padding-right: 0 !important; }
+  body.ctw-docked .admin-float-btn { right: 20px; }
+}
+
+/* Stable text editor overlay: typing never moves or resizes the PDF. */
+#ctw-root .ctw-text-form { position:absolute; left:10px; right:10px; bottom:14px; z-index:8; border:1px solid #58758f; border-radius:10px; box-shadow:0 5px 22px #0006; }
+#ctw-root .ctw-lock-status { flex:0 0 auto; padding:8px 12px; font-size:12px; color:#fde68a; background:#30283a; }
+#ctw-root .ctw-lock-admin { display:flex; flex-wrap:wrap; flex:0 0 auto; gap:5px; padding:6px 10px; background:#17334c; }
+#ctw-root .ctw-lock-admin button { font-size:11px; }
+html.ctw-worksheet-only body > :not(#ctw-root):not(script):not(style) { display:none !important; }
+html.ctw-worksheet-only body { padding:0 !important; }
+html.ctw-worksheet-only #ctw-root .ctw-panel { width:100vw; max-width:100vw; border:0; }
+html.ctw-worksheet-only #ctw-toggle, html.ctw-worksheet-only #ctw-resizer { display:none !important; }
+
+@media (pointer:coarse) {
+  #ctw-root .ctw-quickbar button { min-height:38px; }
+  #ctw-root .ctw-quickbar input[type="color"] { min-height:36px; }
+  #ctw-root .ctw-text-form textarea { font-size:16px; }
+}
+</style></head><body><!-- LESSON_WORKSHEET_DRAWER_START -->
+<div id="ctw-root" data-worksheet-version="2026-09-13.3" class="ctw-tools-collapsed" data-lesson="u3_l1" data-pdf="worksheets/3_01_light_reflection.pdf">
+  <button id="ctw-toggle" class="ctw-toggle" type="button" aria-controls="ctw-panel" aria-expanded="false" title="이 차시 학습지 펼치기">▤ <span>학습지</span></button>
+  <aside id="ctw-panel" class="ctw-panel" aria-labelledby="ctw-title" aria-hidden="true" inert hidden>
+    <div id="ctw-resizer" class="ctw-resizer" role="separator" aria-label="학습지 패널 너비" aria-orientation="vertical" aria-valuemin="340" aria-valuemax="800" aria-valuenow="480" tabindex="0"></div>
+    <div class="ctw-head">
+      <div><div class="ctw-eyebrow">수업과 함께 보는 학습지</div><h2 id="ctw-title">3단원 1차시 · 빛의 반사와 거울</h2></div>
+    </div>
+    <div class="ctw-quickbar" role="group" aria-label="학습지 빠른 도구">
+      <button id="ctw-controls-toggle" type="button" aria-controls="ctw-controls" aria-expanded="false" aria-label="도구 펼치기" title="파일·페이지 도구 펼치기">도구 ▾</button>
+    <div class="ctw-tools" role="group" aria-label="학습지 필기 도구">
+      <button type="button" data-tool="move" aria-pressed="true" data-pdf-control disabled>이동</button>
+      <button type="button" data-tool="pen" aria-pressed="false" data-pdf-control disabled>펜</button>
+      <button type="button" data-tool="highlight" aria-pressed="false" data-pdf-control disabled>형광펜</button>
+      <button type="button" data-tool="text" aria-pressed="false" data-pdf-control disabled>글자</button>
+      <label class="ctw-color-label">색 <input id="ctw-color" type="color" value="#dc2626" aria-label="펜·형광펜·글자 색" data-pdf-control disabled></label>
+      <button id="ctw-undo" type="button" aria-label="되돌리기" title="이 페이지의 마지막 필기 지우기" data-pdf-control disabled>↶</button>
+      <button id="ctw-clear" type="button" data-pdf-control disabled>쪽 지우기</button>
+    </div>
+      <button id="ctw-quick-prev" class="ctw-quick-page" type="button" aria-label="이전 페이지" title="이전 페이지" data-pdf-control disabled>‹</button>
+      <button id="ctw-quick-next" class="ctw-quick-page" type="button" aria-label="다음 페이지" title="다음 페이지" data-pdf-control disabled>›</button>
+      <button id="ctw-close" class="ctw-close" type="button" aria-label="학습지 접기" title="학습지 접기 (Esc)">✕</button>
+    </div>
+    <div id="ctw-controls" class="ctw-controls" hidden>
+    <div id="ctw-lock-status" class="ctw-lock-status" role="status" aria-live="polite">학습지 공개 상태 확인 중</div>
+    <div id="ctw-lock-admin" class="ctw-lock-admin" role="group" aria-label="관리자 학습지 잠금" hidden>
+      <button id="ctw-lock-item" type="button" disabled>이 학습지 잠금</button>
+      <button id="ctw-lock-unit" type="button" disabled>단원 잠금</button>
+      <button id="ctw-lock-archive" type="button" disabled>보관함 전체 잠금</button>
+    </div>
+    <div class="ctw-toolbar" aria-label="학습지 파일">
+      <button id="ctw-default" type="button" title="이 차시의 등록된 학습지 다시 열기">차시 학습지</button>
+      <button id="ctw-local" type="button">내 PDF 열기</button>
+      <button id="ctw-print" type="button" disabled>필기 포함 인쇄</button>
+      <input id="ctw-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+    <div id="ctw-source" class="ctw-source"></div>
+    <div class="ctw-toolbar" aria-label="학습지 페이지와 확대">
+      <button id="ctw-prev" type="button" aria-label="이전 페이지" data-pdf-control disabled>‹</button>
+      <label class="ctw-page-label"><input id="ctw-page" type="number" min="1" value="1" aria-label="학습지 페이지" data-pdf-control disabled> <span id="ctw-pages">/ — 쪽</span></label>
+      <button id="ctw-next" type="button" aria-label="다음 페이지" data-pdf-control disabled>›</button>
+      <label>확대 <select id="ctw-zoom" aria-label="학습지 확대" data-pdf-control disabled><option value="1">100% · 너비 맞춤</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+    </div>
+
+    </div>
+    <form id="ctw-text-form" class="ctw-text-form" hidden>
+      <label for="ctw-text">누른 위치에 넣을 글자</label><span id="ctw-text-help" class="ctw-text-help">Enter 넣기 · Shift+Enter 줄바꿈</span>
+      <textarea id="ctw-text" aria-describedby="ctw-text-help" rows="2" maxlength="500" placeholder="함께 정리할 내용을 입력하세요"></textarea>
+      <div class="ctw-text-actions">
+        <label class="ctw-text-size-label" for="ctw-text-size">글자 크기 <input id="ctw-text-size" type="number" min="50" max="300" step="1" value="100" inputmode="numeric" aria-label="글자 크기, 기존 크기의 백분율">%</label>
+        <button id="ctw-text-size-reset" type="button" title="기존 글자 크기 100%로 되돌리기">기본</button>
+        <button type="submit">넣기</button><button id="ctw-text-cancel" type="button">취소</button>
+      </div>
+    </form>
+    <div id="ctw-status" class="ctw-status" role="status" aria-live="polite">학습지를 펼치면 이 차시의 PDF를 불러옵니다.</div>
+    <div class="ctw-view-shell">
+    <div id="ctw-zoom-toast" class="ctw-zoom-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="ctw-view" class="ctw-view" tabindex="0" aria-label="학습지 보기 영역">
+      <div id="ctw-empty" class="ctw-empty"><p id="ctw-empty-message">학습지를 준비하고 있습니다.</p><button id="ctw-lock-retry" type="button">다시 확인</button></div>
+      <div id="ctw-stage" class="ctw-stage" hidden>
+        <canvas id="ctw-pdf" role="img" aria-label="학습지 PDF 페이지"></canvas>
+        <canvas id="ctw-ink" aria-label="학습지 필기 영역"></canvas>
+      </div>
+    </div>
+    </div>
+    <div class="ctw-foot"><span id="ctw-save-note">필기: 이 기기·브라우저에 저장 (아이디별 아님, 자동 만료 없음). 사이트 데이터 삭제 시 사라집니다.</span></div>
+  </aside>
+</div>
+<!-- LESSON_WORKSHEET_DRAWER_END --><script id="ctw-script">
+/* Lesson worksheet drawer: PDF.js 5.6.205 (Apache-2.0), loaded on first use. */
+(() => {
+  'use strict';
+  const root = document.getElementById('ctw-root');
+  if (!root || root.dataset.ready) return;
+  root.dataset.ready = 'true';
+  const worksheetPreview = !!(window.MasterLessonRuntime && window.MasterLessonRuntime.preview);
+  const $ = id => root.querySelector('#ctw-' + id);
+  const panel = $('panel'), toggle = $('toggle'), view = $('view');
+  const paper = $('pdf'), ink = $('ink'), stage = $('stage');
+  const publishedBase = 'https://chemtea.github.io/Curr.2022-Science-2/';
+  const defaultPath = worksheetPreview ? '' : (root.dataset.pdf || '');
+  const defaultURL = defaultPath ? new URL(defaultPath, location.protocol === 'file:' ? publishedBase : location.href).href : '';
+  const pdfjsBase = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/';
+  let libraryPromise, pdf = null, loadingTask = null, renderTask = null;
+  let open = false, loading = false, rendering = false, nativeMode = false, disposed = false;
+  let renderVersion = 0, loadVersion = 0, closeTimer, resizeTimer, zoomToastTimer;
+  let pageNumber = 1, zoom = 1, pageWidth = 1, pageHeight = 1;
+  let pendingZoomAnchor = null;
+  let tool = 'move', stroke = null, pointerID = null, textPosition = null;
+  let textComposing = false;
+  let notes = {}, noteKey = '', sourceURL = defaultURL, localObjectURL = null;
+  let sourceName = root.dataset.pdf.split('/').pop(), sourceFile = null;
+  let preferredWidth = Math.min(560, Math.max(360, innerWidth * 0.4));
+  const viewPositions = new Map();
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const live = () => !disposed && root.isConnected;
+  const status = message => { if (live()) $('status').textContent = message; };
+  const reducedMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function storageRead(key) {
+    try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+  }
+  const widthPreference = Number(storageRead('ctw:panel-width'));
+  if (widthPreference >= 340 && widthPreference <= 1000) preferredWidth = widthPreference;
+  function persist() {
+    if (!noteKey) return;
+    try {
+      localStorage.setItem(noteKey, JSON.stringify({v:1, page:pageNumber, zoom, notes}));
+      $('save-note').textContent = '필기: 이 기기·브라우저에 저장 (아이디별 아님, 자동 만료 없음). 사이트 데이터 삭제 시 사라집니다.';
+      $('save-note').parentElement.classList.remove('ctw-save-error');
+    } catch {
+      $('save-note').textContent = '브라우저 저장 공간을 사용할 수 없어 이번에 연 화면에서만 필기가 유지됩니다.';
+      $('save-note').parentElement.classList.add('ctw-save-error');
+    }
+  }
+  function restore() {
+    const saved = storageRead(noteKey);
+    notes = {}; pageNumber = 1; zoom = 1;
+    if (saved && saved.v === 1) {
+      pageNumber = clamp(Number.parseInt(saved.page, 10) || 1, 1, pdf.numPages);
+      zoom = Number.isFinite(saved.zoom) && saved.zoom >= 1 && saved.zoom <= 2 ? Math.round(saved.zoom * 100) / 100 : 1;
+      if (saved.notes && typeof saved.notes === 'object') {
+        for (const [key, value] of Object.entries(saved.notes)) {
+          if (!/^\d+$/.test(key) || Number(key) < 1 || Number(key) > pdf.numPages || !Array.isArray(value)) continue;
+          notes[key] = value.filter(item => item && ['pen','highlight','text'].includes(item.kind)
+            && /^#[0-9a-f]{6}$/i.test(item.color || '') && Number.isFinite(item.size) && item.size > 0 && item.size < 0.2
+            && (item.kind === 'text' ? typeof item.text === 'string' && item.text.length <= 500 && validPoint(item.at)
+              : Array.isArray(item.points) && item.points.length > 0 && item.points.length <= 4000 && item.points.every(validPoint))).slice(-1000);
+        }
+      }
+    }
+    syncZoomControl();
+  }
+  function syncZoomControl() {
+    const select = $('zoom'), value = String(zoom);
+    const previous = $('custom-zoom');
+    if (previous) previous.remove();
+    if (![...select.options].some(option => option.value === value)) {
+      const option = document.createElement('option');
+      option.id = 'ctw-custom-zoom'; option.value = value;
+      option.textContent = Math.round(zoom * 100) + '%'; select.appendChild(option);
+    }
+    select.value = value;
+  }
+  function showZoom() {
+    const toast = $('zoom-toast');
+    clearTimeout(zoomToastTimer);
+    toast.textContent = Math.round(zoom * 100) + '%'; toast.classList.add('ctw-visible');
+    zoomToastTimer = setTimeout(() => {
+      if (live()) { toast.classList.remove('ctw-visible'); toast.textContent = ''; }
+    }, 1000);
+  }
+  function setControlsOpen(expanded) {
+    if (!expanded && $('controls').contains(document.activeElement)) $('controls-toggle').focus({preventScroll:true});
+    $('controls').hidden = !expanded;
+    $('controls-toggle').setAttribute('aria-expanded', String(expanded));
+    $('controls-toggle').textContent = expanded ? '도구 ▴' : '도구 ▾';
+    root.classList.toggle('ctw-tools-collapsed', !expanded);
+    $('controls-toggle').title = expanded ? '도구 감추기' : '도구 펼치기';
+    $('controls-toggle').setAttribute('aria-label', expanded ? '도구 감추기' : '도구 펼치기');
+  }
+  function applyZoomAnchor() {
+    if (!pendingZoomAnchor || pendingZoomAnchor.page !== pageNumber) return false;
+    const point = pendingZoomAnchor, rect = stage.getBoundingClientRect();
+    view.scrollLeft += rect.left + point.x * pageWidth - point.clientX;
+    view.scrollTop += rect.top + point.y * pageHeight - point.clientY;
+    return true;
+  }
+  function setZoom(value, event = null) {
+    if (!pdf || loading || nativeMode || !worksheetAllowed() || !Number.isFinite(value)) return;
+    cancelTouchInteraction();
+    const next = clamp(Math.round(value * 100), 100, 200) / 100;
+    if (next === zoom) { showZoom(); return; }
+    finishStroke();
+    if (!pendingZoomAnchor) {
+      rememberScroll();
+      if (event) {
+        const rect = stage.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) pendingZoomAnchor = {page:pageNumber,
+          x:clamp((event.clientX - rect.left) / rect.width, 0, 1),
+          y:clamp((event.clientY - rect.top) / rect.height, 0, 1),clientX:event.clientX,clientY:event.clientY};
+      }
+    }
+    zoom = next; syncZoomControl(); showZoom(); persist();
+    // Coalesce wheel bursts and invalidate any render that used an older scale.
+    ++renderVersion;
+    if (renderTask) renderTask.cancel();
+    rendering = true; controls(); clearTimeout(resizeTimer);
+    if (event) resizeTimer = setTimeout(renderPage, 60);
+    else renderPage();
+  }
+  function validPoint(point) {
+    return Array.isArray(point) && point.length === 2 && point.every(n => Number.isFinite(n) && n >= 0 && n <= 1);
+  }
+  function currentNotes() { return notes[pageNumber] || (notes[pageNumber] = []); }
+  function controls() {
+    const disabled = !pdf || loading || rendering || !worksheetAllowed();
+    root.querySelectorAll('[data-pdf-control]').forEach(el => { el.disabled = disabled; });
+    $('prev').disabled = disabled || pageNumber <= 1;
+    $('next').disabled = disabled || pageNumber >= (pdf ? pdf.numPages : 0);
+    $('quick-prev').disabled = $('prev').disabled; $('quick-next').disabled = $('next').disabled;
+    $('undo').disabled = $('clear').disabled = disabled || !currentNotes().length;
+    $('page').value = String(pageNumber);
+    $('page').max = String(pdf ? pdf.numPages : 1);
+    $('pages').textContent = '/ ' + (pdf ? pdf.numPages : '—') + ' 쪽';
+    $('local').disabled = loading || !worksheetAllowed();
+    $('default').disabled = loading || !defaultURL || !worksheetAllowed();
+    $('print').disabled = disabled;
+    ink.style.pointerEvents = disabled || tool === 'move' ? 'none' : 'auto';
+    ink.style.touchAction = tool === 'move' ? 'auto' : 'none';
+    ink.style.cursor = tool === 'text' ? 'text' : 'crosshair';
+    stage.style.cursor = tool === 'move' ? 'grab' : '';
+  }
+  function dimensions() {
+    const desktop = innerWidth >= 960;
+    const maximum = Math.max(340, Math.min(900, innerWidth - 600));
+    const width = desktop ? clamp(preferredWidth, 340, maximum) : Math.max(220, innerWidth - 40);
+    document.documentElement.style.setProperty('--ctw-width', width + 'px');
+    document.body.classList.toggle('ctw-docked', open && desktop);
+    $('resizer').setAttribute('aria-valuenow', String(Math.round(width)));
+    $('resizer').setAttribute('aria-valuemax', String(Math.round(maximum)));
+  }
+  function rememberScroll() {
+    if (!pdf) return;
+    viewPositions.set(pageNumber, {x:view.scrollLeft / Math.max(1, pageWidth), y:view.scrollTop / Math.max(1, pageHeight)});
+  }
+  function restoreScroll() {
+    const position = viewPositions.get(pageNumber) || {x:0, y:0};
+    view.scrollLeft = position.x * pageWidth;
+    view.scrollTop = position.y * pageHeight;
+  }
+  function setOpen(value) {
+    if (!live()) return;
+    clearTimeout(closeTimer);
+    open = value;
+    if (open) {
+      panel.hidden = false;
+      panel.inert = false;
+      panel.setAttribute('aria-hidden', 'false');
+      void panel.offsetWidth;
+      root.classList.add('ctw-open');
+      toggle.setAttribute('aria-expanded', 'true');
+      toggle.title = '학습지 접기';
+      dimensions();
+      $('close').focus({preventScroll:true});
+      invalidateWorksheetLocks();
+      refreshWorksheetLocks().then(allowed => { if (allowed && open && !loading) loadPDF(sourceFile); });
+    } else {
+      cancelTouchInteraction();
+      finishStroke(); rememberScroll(); persist(); cancelText();
+      clearTimeout(zoomToastTimer); $('zoom-toast').classList.remove('ctw-visible');
+      root.classList.remove('ctw-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.title = '이 차시 학습지 펼치기';
+      toggle.focus({preventScroll:true});
+      panel.inert = true;
+      panel.setAttribute('aria-hidden', 'true');
+      dimensions();
+      closeTimer = setTimeout(() => { if (!open) panel.hidden = true; }, reducedMotion() ? 0 : 240);
+    }
+  }
+  function loadLibrary() {
+    if (!libraryPromise) {
+      libraryPromise = import(pdfjsBase + 'build/pdf.min.mjs').then(lib => {
+        lib.GlobalWorkerOptions.workerSrc = pdfjsBase + 'build/pdf.worker.min.mjs';
+        return lib;
+      }).catch(error => { libraryPromise = null; throw error; });
+    }
+    return libraryPromise;
+  }
+  async function loadPDF(file = null) {
+    if (!live() || loading) return;
+    cancelTouchInteraction();
+    loading = true; controls();
+    if (!await refreshWorksheetLocks() || !live() || !open) { loading = false; if (live()) controls(); return; }
+    cancelWorksheetPrint();
+    if (!file && !defaultURL) {
+      const message = '아직 연결된 학습지가 없습니다. ‘도구 펼치기’에서 ‘내 PDF 열기’로 선생님의 PDF를 선택해 주세요.';
+      $('empty-message').textContent = message;
+      $('source').textContent = '연결된 차시 학습지 없음';
+      loading = false; status(message); controls(); return;
+    }
+    persist(); finishStroke(); cancelText();
+    loading = true; controls();
+    const token = ++loadVersion;
+    pendingZoomAnchor = null;
+    ++renderVersion;
+    if (renderTask) renderTask.cancel();
+    if (pdf) { try { await pdf.destroy(); } catch {} pdf = null; }
+    if (!live() || token !== loadVersion) return;
+    if (localObjectURL) URL.revokeObjectURL(localObjectURL);
+    sourceFile = file;
+    localObjectURL = file ? URL.createObjectURL(file) : null;
+    sourceURL = localObjectURL || defaultURL;
+    sourceName = file ? file.name : root.dataset.pdf.split('/').pop();
+    $('source').textContent = (file ? '내 PDF · ' : '차시 학습지 · ') + sourceName;
+    $('source').title = sourceName;
+    nativeMode = false; rendering = false;
+    stage.hidden = true; $('empty').hidden = false;
+    $('empty-message').textContent = '학습지를 불러오고 있습니다…';
+    status('학습지를 불러오는 중입니다.'); controls();
+    let timeoutID, loadAbandoned = false;
+    try {
+      const work = (async () => {
+        const lib = await loadLibrary();
+        if (loadAbandoned || !live() || token !== loadVersion) throw new Error('cancelled');
+        const input = file ? {data:new Uint8Array(await file.arrayBuffer())} : {url:defaultURL};
+        if (loadAbandoned || !live() || token !== loadVersion) throw new Error('cancelled');
+        loadingTask = lib.getDocument({...input, isEvalSupported:false,
+          cMapUrl:pdfjsBase + 'cmaps/', cMapPacked:true,
+          standardFontDataUrl:pdfjsBase + 'standard_fonts/', wasmUrl:pdfjsBase + 'wasm/'});
+        return loadingTask.promise;
+      })();
+      const loaded = await Promise.race([work, new Promise((_, reject) => {
+        timeoutID = setTimeout(() => reject(new Error('load-timeout')), 30000);
+      })]);
+      if (!live() || token !== loadVersion) { loaded.destroy(); return; }
+      pdf = loaded; noteKey = 'ctw:notes:v1:' + root.dataset.lesson + ':' + (pdf.fingerprints[0] || sourceName);
+      viewPositions.clear(); restore();
+      status(file ? '내 PDF를 열었습니다. 새로고침 후에는 같은 파일을 다시 선택해 주세요.' : '필기할 도구를 고르세요. 이동 도구에서는 학습지를 스크롤할 수 있습니다.');
+    } catch (error) {
+      loadAbandoned = true;
+      if (!live() || token !== loadVersion) return;
+      if (loadingTask) { try { await loadingTask.destroy(); } catch {} }
+      const missing = error.status === 404 || error.name === 'MissingPDFException' || /\b404\b/.test(error.message || '');
+      const message = missing
+        ? '이 차시의 학습지 PDF가 아직 등록되어 있지 않습니다. 상단 ‘도구 펼치기’에서 ‘내 PDF 열기’로 파일을 선택해 주세요.'
+        : '학습지를 불러오지 못했습니다. 상단 ‘도구 펼치기’에서 다시 열거나 ‘내 PDF 열기’를 이용해 주세요.';
+      $('empty-message').textContent = message;
+      status(missing ? '학습지 파일이 없습니다: ' + sourceName : 'PDF 불러오기 실패 · 차시 학습지를 다시 열어 주세요.');
+    } finally {
+      clearTimeout(timeoutID);
+      if (token === loadVersion) loadingTask = null;
+      if (live() && token === loadVersion) {
+        loading = false; controls();
+        if (pdf && open) queueRender();
+      }
+    }
+  }
+  function queueRender() {
+    clearTimeout(resizeTimer);
+    if (!live() || !open || !pdf || !worksheetAllowed() || (touchGesture && touchGesture.mode === 'pinch')) return;
+    finishStroke(); if (!pendingZoomAnchor) rememberScroll();
+    resizeTimer = setTimeout(renderPage, 100);
+  }
+  async function renderPage() {
+    if (!live() || !open || !pdf || !worksheetAllowed()) return;
+    const version = ++renderVersion, documentPDF = pdf, requestedPage = pageNumber;
+    const previousTask = renderTask;
+    if (previousTask) {
+      previousTask.cancel();
+      try { await previousTask.promise; } catch {}
+    }
+    if (!live() || version !== renderVersion) return;
+    rendering = true; controls();
+    try {
+      const page = await documentPDF.getPage(requestedPage);
+      if (!live() || version !== renderVersion || documentPDF !== pdf) return;
+      const original = page.getViewport({scale:1});
+      const inset = getComputedStyle(view);
+      const fitWidth = Math.max(1, Math.floor(view.clientWidth - (parseFloat(inset.paddingLeft) || 0) - (parseFloat(inset.paddingRight) || 0)));
+      const viewport = page.getViewport({scale:fitWidth / original.width * zoom});
+      stage.style.transform = ''; stage.style.transformOrigin = '';
+      pageWidth = viewport.width; pageHeight = viewport.height;
+      const density = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(10000000 / (pageWidth * pageHeight)));
+      stage.style.width = pageWidth + 'px'; stage.style.height = pageHeight + 'px';
+      for (const canvas of [paper, ink]) {
+        canvas.width = Math.ceil(pageWidth * density); canvas.height = Math.ceil(pageHeight * density);
+        canvas.style.width = pageWidth + 'px'; canvas.style.height = pageHeight + 'px';
+      }
+      stage.hidden = false; $('empty').hidden = true;
+      const renderAnchor = pendingZoomAnchor;
+      if (!applyZoomAnchor()) restoreScroll();
+      renderTask = page.render({canvasContext:paper.getContext('2d'), viewport,
+        transform:[density,0,0,density,0,0]});
+      await renderTask.promise;
+      if (!live() || version !== renderVersion) return;
+      paper.setAttribute('aria-label', $('title').textContent + ' 학습지 ' + pageNumber + ' / ' + pdf.numPages + '쪽');
+      drawNotes();
+      if (renderAnchor && pendingZoomAnchor === renderAnchor) pendingZoomAnchor = null;
+      rememberScroll(); persist();
+    } catch (error) {
+      if (!live() || version !== renderVersion || error.name === 'RenderingCancelledException') return;
+      stage.hidden = true; $('empty').hidden = false;
+      $('empty-message').textContent = '이 페이지를 표시하지 못했습니다. 차시 학습지를 다시 열어 주세요.';
+      status('학습지 표시 오류 · 다시 열어 주세요.');
+    } finally {
+      if (live() && version === renderVersion) { renderTask = null; rendering = false; controls(); }
+    }
+  }
+  // New text is left-aligned and vertically centered on the first line's visible glyphs.
+  // Keep legacy anchors unchanged so saved annotations do not jump after an update.
+  function worksheetTextLayout(ctx, item, pageWidth, pageHeight) {
+    const size = item.size * pageWidth;
+    const lines = item.text.split('\n');
+    let x = item.at[0] * pageWidth, y = item.at[1] * pageHeight;
+    ctx.font = '600 ' + size + 'px sans-serif';
+    if (item.anchor === 'glyph-center' || item.anchor === 'glyph') {
+      ctx.textBaseline = 'alphabetic';
+      const metrics = ctx.measureText(lines[0] || '가');
+      const left = Number.isFinite(metrics.actualBoundingBoxLeft) ? metrics.actualBoundingBoxLeft : 0;
+      const ascent = Number.isFinite(metrics.actualBoundingBoxAscent) ? metrics.actualBoundingBoxAscent : size * .8;
+      const descent = Number.isFinite(metrics.actualBoundingBoxDescent) ? metrics.actualBoundingBoxDescent : size * .2;
+      x += left;
+      y += item.anchor === 'glyph-center' ? (ascent - descent) / 2 : ascent;
+    } else {
+      ctx.textBaseline = 'top';
+    }
+    return {x, y, lines, lineHeight: size * 1.35};
+  }
+  function worksheetTextSize() {
+    const field = $('text-size');
+    const percent = field.value.trim() === '' ? 100 : Number(field.value);
+    return 0.028 * (clamp(Math.round(Number.isFinite(percent) ? percent : 100),50,300) / 100);
+  }
+  function normalizeWorksheetTextSize() {
+    $('text-size').value = String(Math.round(worksheetTextSize() / 0.028 * 100));
+  }
+  function draftTextNote() {
+    const text = $('text').value.trim();
+    if (!textPosition || $('text-form').hidden || !text) return null;
+    return {kind:'text',color:$('color').value,size:worksheetTextSize(),at:textPosition,anchor:'glyph-center',text};
+  }
+  function drawNotes() {
+    const ctx = ink.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,ink.width,ink.height);
+    ctx.setTransform(ink.width / pageWidth,0,0,ink.height / pageHeight,0,0);
+    const draft = draftTextNote();
+    paintNotes(ctx, currentNotes().concat(stroke ? [stroke] : [], draft ? [draft] : []), pageWidth, pageHeight);
+  }
+  function paintNotes(ctx, items, pageWidth, pageHeight) {
+    for (const item of items) {
+      ctx.save(); ctx.fillStyle = ctx.strokeStyle = item.color;
+      if (item.kind === 'text') {
+        const layout = worksheetTextLayout(ctx, item, pageWidth, pageHeight);
+        layout.lines.forEach((line,index) => ctx.fillText(line,layout.x,layout.y + index * layout.lineHeight));
+      } else {
+        ctx.globalAlpha = item.kind === 'highlight' ? 0.3 : 1;
+        ctx.lineWidth = item.size * pageWidth; ctx.lineCap = ctx.lineJoin = 'round';
+        ctx.beginPath();
+        item.points.forEach((point, index) => {
+          if (!index) ctx.moveTo(point[0] * pageWidth, point[1] * pageHeight);
+          else ctx.lineTo(point[0] * pageWidth, point[1] * pageHeight);
+        });
+        if (item.points.length === 1) {
+          ctx.arc(item.points[0][0] * pageWidth, item.points[0][1] * pageHeight, ctx.lineWidth / 2, 0, Math.PI * 2); ctx.fill();
+        } else ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+  function pointAt(event) {
+    const rect = ink.getBoundingClientRect();
+    return [clamp((event.clientX - rect.left) / rect.width,0,1), clamp((event.clientY - rect.top) / rect.height,0,1)];
+  }
+  function finishStroke() {
+    if (!stroke) return;
+    currentNotes().push(stroke); stroke = null;
+    if (pointerID !== null && ink.hasPointerCapture && ink.hasPointerCapture(pointerID)) ink.releasePointerCapture(pointerID);
+    pointerID = null; drawNotes(); persist(); controls();
+  }
+  function cancelText() {
+    textPosition = null; textComposing = false; $('text-form').hidden = true; $('text').value = '';
+    if (pdf && pageWidth > 0 && pageHeight > 0) drawNotes();
+  }
+  function changePage(number) {
+    if (!pdf || loading || rendering || nativeMode || !worksheetAllowed()) return;
+    cancelTouchInteraction();
+    const next = clamp(Number.parseInt(number, 10) || pageNumber, 1, pdf.numPages);
+    if (next === pageNumber) { controls(); return; }
+    finishStroke(); cancelText(); rememberScroll(); pendingZoomAnchor = null; pageNumber = next;
+    controls(); persist(); renderPage();
+  }
+
+  toggle.addEventListener('click', () => setOpen(!open));
+  $('close').addEventListener('click', () => { if (new URLSearchParams(location.search).get('worksheet') === '1') location.href = 'index.html'; else setOpen(false); });
+  $('controls-toggle').addEventListener('click', () => setControlsOpen($('controls').hidden));
+  root.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && open) {
+      event.preventDefault();
+      if (!$('text-form').hidden) { cancelText(); view.focus({preventScroll:true}); }
+      else setOpen(false);
+    }
+    event.stopPropagation();
+  });
+  $('default').addEventListener('click', () => loadPDF());
+  $('local').addEventListener('click', () => { if (!worksheetAllowed()) return; $('file').value = ''; $('file').click(); });
+  $('file').addEventListener('change', () => {
+    const file = $('file').files[0];
+    if (!file) return;
+    if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { status('PDF 파일을 선택해 주세요.'); return; }
+    loadPDF(file);
+  });
+  $('prev').addEventListener('click', () => changePage(pageNumber - 1));
+  $('next').addEventListener('click', () => changePage(pageNumber + 1));
+  $('quick-prev').addEventListener('click', () => changePage(pageNumber - 1));
+  $('quick-next').addEventListener('click', () => changePage(pageNumber + 1));
+  $('page').addEventListener('change', () => changePage($('page').value));
+  $('page').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); changePage($('page').value); } });
+  $('zoom').addEventListener('change', () => setZoom(Number($('zoom').value)));
+  view.addEventListener('wheel', event => {
+    if (!event.ctrlKey || !live() || !open) return;
+    // Cancel browser zoom even during loading/rendering; plain wheel still scrolls.
+    event.preventDefault(); event.stopPropagation();
+    if (!Number.isFinite(event.deltaY) || event.deltaY === 0) return;
+    // One percent per event, independent of wheel delta units (pixel/line/page).
+    setZoom((Math.round(zoom * 100) + (event.deltaY < 0 ? 1 : -1)) / 100, event);
+  }, {passive:false});
+  root.querySelectorAll('[data-tool]').forEach(button => button.addEventListener('click', () => {
+    cancelTouchInteraction(); finishStroke(); cancelText(); tool = button.dataset.tool;
+    root.querySelectorAll('[data-tool]').forEach(el => el.setAttribute('aria-pressed', String(el === button)));
+    status({move:'학습지를 스크롤하거나 끌어서 이동하세요.',pen:'학습지 위에 펜으로 써 보세요.',highlight:'지금 함께 볼 부분에 형광펜으로 표시하세요.',text:'학습지에서 글자를 넣을 위치를 누르세요.'}[tool]);
+    controls();
+  }));
+  ink.addEventListener('pointerdown', event => {
+    if (!worksheetAllowed() || !pdf || rendering || loading || tool === 'move' || event.button !== 0 || pointerID !== null) return;
+    event.preventDefault();
+    if (tool === 'text') {
+      textPosition = pointAt(event); $('text-form').hidden = false; drawNotes(); $('text').focus({preventScroll:true}); return;
+    }
+    pointerID = event.pointerId;
+    stroke = {kind:tool, color:$('color').value,
+      size:tool === 'highlight' ? 0.027 : 0.004, points:[pointAt(event)]};
+    ink.setPointerCapture(event.pointerId); drawNotes();
+  });
+  ink.addEventListener('pointermove', event => {
+    if (!stroke || event.pointerId !== pointerID) return;
+    event.preventDefault();
+    if (stroke.points.length < 4000) stroke.points.push(pointAt(event));
+    drawNotes();
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(name => ink.addEventListener(name, event => {
+    if (event.pointerId === pointerID) finishStroke();
+  }));
+  $('text-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const draft = draftTextNote();
+    if (!worksheetAllowed() || !draft || !pdf || rendering) return;
+    currentNotes().push(draft);
+    cancelText(); persist(); controls(); view.focus({preventScroll:true});
+  });
+  function previewTextNote() { if (worksheetAllowed() && pdf && !rendering) drawNotes(); }
+  $('text').addEventListener('input', previewTextNote);
+  $('text-size').addEventListener('input', previewTextNote);
+  $('text-size').addEventListener('change', () => { normalizeWorksheetTextSize(); previewTextNote(); });
+  $('text-size-reset').addEventListener('click', () => { $('text-size').value = '100'; previewTextNote(); });
+  $('text-size').addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229) return;
+    event.preventDefault();
+    normalizeWorksheetTextSize();
+    if (!event.repeat) $('text-form').requestSubmit();
+  });
+  $('color').addEventListener('input', previewTextNote);
+  $('color').addEventListener('change', previewTextNote);
+  $('text').addEventListener('compositionstart', () => { textComposing = true; });
+  $('text').addEventListener('compositionend', () => { textComposing = false; });
+  $('text').addEventListener('keydown', event => {
+    // Enter used to finish Korean input must commit the syllable, not submit it.
+    if (event.key !== 'Enter' || event.isComposing || textComposing || event.keyCode === 229 || event.shiftKey) return;
+    event.preventDefault();
+    if (!event.repeat) $('text-form').requestSubmit();
+  });
+  $('text-cancel').addEventListener('click', cancelText);
+  $('undo').addEventListener('click', () => { currentNotes().pop(); drawNotes(); persist(); controls(); });
+  $('clear').addEventListener('click', () => {
+    if (!currentNotes().length || !window.confirm('현재 ' + pageNumber + '쪽의 필기를 모두 지울까요? 다른 쪽의 필기는 유지됩니다.')) return;
+    notes[pageNumber] = []; drawNotes(); persist(); controls();
+  });
+  let pan = null;
+  stage.addEventListener('pointerdown', event => {
+    if (tool !== 'move' || event.pointerType === 'touch' || event.button !== 0) return;
+    event.preventDefault(); pan = {id:event.pointerId,x:event.clientX,y:event.clientY,left:view.scrollLeft,top:view.scrollTop};
+    stage.setPointerCapture(event.pointerId); stage.style.cursor = 'grabbing';
+  });
+  stage.addEventListener('pointermove', event => {
+    if (!pan || pan.id !== event.pointerId) return;
+    view.scrollLeft = pan.left + pan.x - event.clientX; view.scrollTop = pan.top + pan.y - event.clientY;
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(name => stage.addEventListener(name, () => { pan = null; if (tool === 'move') stage.style.cursor = 'grab'; }));
+  let resizing = null;
+  $('resizer').addEventListener('pointerdown', event => {
+    if (event.button !== 0 || innerWidth < 960) return;
+    event.preventDefault(); finishStroke(); rememberScroll();
+    resizing = {id:event.pointerId}; $('resizer').setPointerCapture(event.pointerId);
+  });
+  $('resizer').addEventListener('pointermove', event => {
+    if (!resizing || resizing.id !== event.pointerId) return;
+    preferredWidth = clamp(innerWidth - event.clientX,340,Math.min(900,innerWidth - 600)); dimensions();
+  });
+  function endResize() {
+    if (!resizing) return;
+    resizing = null;
+    try { localStorage.setItem('ctw:panel-width', JSON.stringify(preferredWidth)); } catch {}
+    queueRender();
+  }
+  ['pointerup','pointercancel','lostpointercapture'].forEach(name => $('resizer').addEventListener(name,endResize));
+  $('resizer').addEventListener('keydown', event => {
+    if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key) || innerWidth < 960) return;
+    event.preventDefault();
+    preferredWidth = event.key === 'Home' ? 340 : event.key === 'End' ? Math.min(900,innerWidth - 600)
+      : clamp(preferredWidth + (event.key === 'ArrowLeft' ? 30 : -30),340,Math.min(900,innerWidth - 600));
+    dimensions(); queueRender();
+    try { localStorage.setItem('ctw:panel-width', JSON.stringify(preferredWidth)); } catch {}
+  });
+  function onResize() { if (live()) { cancelTouchInteraction(); dimensions(); queueRender(); } }
+  window.addEventListener('resize', onResize);
+  let resizeObserver;
+  if (typeof ResizeObserver !== 'undefined') {
+    let lastWidth = 0;
+    resizeObserver = new ResizeObserver(entries => {
+      const width = Math.round(entries[0].contentRect.width);
+      if (width !== lastWidth) { lastWidth = width; if (!resizing) queueRender(); }
+    });
+    resizeObserver.observe(panel); // Observe outside the PDF/scrollbar layout feedback loop.
+  }
+  function cleanup() {
+    if (disposed) return;
+    persist(); cleanupWorksheetTouch(); cleanupWorksheetLocks(); cancelWorksheetPrint(); disposed = true; ++loadVersion; ++renderVersion;
+    clearTimeout(closeTimer); clearTimeout(resizeTimer); clearTimeout(zoomToastTimer);
+    if (renderTask) renderTask.cancel();
+    if (loadingTask) loadingTask.destroy().catch(() => {});
+    if (pdf) pdf.destroy().catch(() => {});
+    if (localObjectURL) URL.revokeObjectURL(localObjectURL);
+    if (resizeObserver) resizeObserver.disconnect();
+    removalObserver.disconnect(); window.removeEventListener('resize', onResize);
+    if (document.body) document.body.classList.remove('ctw-docked');
+  }
+  // The original lesson's lock guard may replace the document. Never remount over it.
+  const removalObserver = new MutationObserver(() => { if (!root.isConnected) cleanup(); });
+  removalObserver.observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('pagehide', () => { finishStroke(); persist(); cancelWorksheetPrint(); invalidateWorksheetLocks(); });
+  $('source').textContent = sourceName || '연결된 차시 학습지 없음';
+
+  // Worksheet availability uses the SAME lock record as the portal archive.
+  const worksheetUnit = (/^u(\d+)_l\d+$/.exec(root.dataset.lesson || '') || [])[1];
+  const worksheetID = 'ws_' + root.dataset.lesson;
+  let lockSnapshot = null, lockKnown = false, lockGeneration = 0, lockRequest = null;
+  let lockWriteBusy = false, lockWriteQueue = Promise.resolve(), lastLockSuccess = 0;
+  const lockEndpoint = () => (window.PLATFORM_CONFIG || {}).LOCK_API || (window.PLATFORM_CONFIG || {}).PLATFORM_API;
+  function worksheetAdminKey() {
+    if (worksheetPreview) return '';
+    try { return typeof isAdminActive !== 'undefined' && isAdminActive && /^adm_/.test(cachedAdminKey || '') ? cachedAdminKey : ''; }
+    catch { return ''; }
+  }
+  function worksheetLockState() {
+    const archive = lockSnapshot && lockSnapshot.worksheetCurriculum;
+    const unit = archive && archive.units && archive.units[worksheetUnit];
+    const item = unit && unit.items && unit.items[worksheetID];
+    return {archive: !!(archive && archive.isLocked), unit: !!(unit && unit.isLocked),
+      item: item !== false, registered: typeof item === 'boolean',
+      valid: !!(archive && typeof archive.isLocked === 'boolean' && unit && typeof unit.isLocked === 'boolean')};
+  }
+  function worksheetAllowed() {
+    if (!live()) return false;
+    if (worksheetPreview) return true;
+    if (!lockKnown || navigator.onLine === false) return false;
+    const state = worksheetLockState();
+    return !!worksheetAdminKey() || (state.valid && state.registered && !state.archive && !state.unit && !state.item);
+  }
+  function updateWorksheetLockUI() {
+    if (!live()) return;
+    if (worksheetPreview) {
+      $('lock-admin').hidden = true; $('lock-status').hidden = true; controls(); return;
+    }
+    const admin = !!worksheetAdminKey(), state = worksheetLockState();
+    $('lock-admin').hidden = !admin;
+    for (const [id, value, name] of [['lock-item',state.item,'이 학습지'],['lock-unit',state.unit,'단원'],['lock-archive',state.archive,'보관함 전체']]) {
+      const button = $(id);
+      button.textContent = name + (value ? ' 잠금 해제' : ' 잠그기');
+      button.disabled = !lockKnown || lockWriteBusy || !worksheetUnit;
+    }
+    let message = !lockKnown ? '학습지 공개 상태를 확인 중입니다.'
+      : !state.valid || !state.registered ? '보관함에 공개 상태가 등록되지 않은 학습지입니다.'
+      : state.archive ? '학습지 보관함 전체가 잠겨 있습니다.'
+      : state.unit ? '이 단원의 학습지가 잠겨 있습니다.'
+      : state.item ? '선생님이 이 학습지를 잠갔습니다.' : '공개된 학습지';
+    if (admin && lockKnown && (state.archive || state.unit || state.item)) message += ' · 관리자 열람';
+    $('lock-status').textContent = message;
+    $('lock-status').hidden = worksheetAllowed() && !admin;
+    if (!worksheetAllowed()) {
+      $('empty').hidden = false;
+      $('empty-message').textContent = lockKnown ? message : '공개 상태를 확인할 수 있을 때까지 학습지를 표시하지 않습니다. 연결을 확인하고 다시 확인해 주세요.';
+    }
+    controls();
+  }
+  function revokeWorksheet() {
+    cancelTouchInteraction();
+    finishStroke(); persist(); cancelText(); cancelWorksheetPrint();
+    ++loadVersion; ++renderVersion;
+    clearTimeout(resizeTimer);
+    if (renderTask) { try { renderTask.cancel(); } catch {} renderTask = null; }
+    if (loadingTask) { try { Promise.resolve(loadingTask.destroy()).catch(() => {}); } catch {} loadingTask = null; }
+    if (pdf) { try { Promise.resolve(pdf.destroy()).catch(() => {}); } catch {} pdf = null; }
+    for (const canvas of [paper, ink]) { canvas.width = 1; canvas.height = 1; }
+    stage.hidden = true; $('empty').hidden = false;
+    loading = rendering = false; stroke = null; pointerID = null; pendingZoomAnchor = null;
+    // Preserve the saved annotation key/data; locking never deletes the teacher's work.
+    if (localObjectURL) URL.revokeObjectURL(localObjectURL);
+    localObjectURL = null;
+  }
+  function invalidateWorksheetLocks() {
+    if (worksheetPreview) return;
+    ++lockGeneration; lockKnown = false; lockRequest = null;
+    if (live()) { revokeWorksheet(); updateWorksheetLockUI(); }
+  }
+  function acceptWorksheetLocks(data) {
+    if (!live() || !data || typeof data !== 'object' || Array.isArray(data) || data.success === false || data.status === 'error') return false;
+    lockSnapshot = data; lockKnown = true; lastLockSuccess = Date.now();
+    if (!worksheetAllowed()) revokeWorksheet();
+    updateWorksheetLockUI();
+    return worksheetAllowed();
+  }
+  async function requestWorksheetLocks(body) {
+    if (worksheetPreview) throw new Error('마스터 미리보기에서는 운영 서버에 접근하지 않습니다.');
+    const endpoint = lockEndpoint();
+    if (!endpoint || navigator.onLine === false) throw new Error('잠금 서버에 연결할 수 없습니다.');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    try {
+      const response = await fetch(endpoint, {method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify(body), cache:'no-store', signal:controller.signal});
+      if (!response.ok) throw new Error('잠금 서버 응답 오류');
+      const data = await response.json();
+      if (!data || typeof data !== 'object' || Array.isArray(data) || data.success === false || data.status === 'error') throw new Error(data && data.message || '잠금 상태 확인 실패');
+      return data;
+    } finally { clearTimeout(timer); }
+  }
+  async function refreshWorksheetLocks() {
+    if (!live()) return false;
+    if (worksheetPreview) return true;
+    if (lockRequest) return lockRequest;
+    const generation = lockGeneration;
+    const request = (async () => {
+      try {
+        const data = await requestWorksheetLocks({action:'get_locks'});
+        if (!live()) return false;
+        if (generation !== lockGeneration) return worksheetAllowed();
+        return acceptWorksheetLocks(data);
+      } catch {
+        if (live() && generation === lockGeneration) invalidateWorksheetLocks();
+        return false;
+      }
+    })();
+    lockRequest = request;
+    try { return await request; } finally { if (lockRequest === request) lockRequest = null; }
+  }
+  // Read the latest complete record and modify only the selected leaf. The existing
+  // server replaces this record, so sending only worksheetCurriculum would erase others.
+  function updateWorksheetCloudLock(path, value) {
+    const run = async () => {
+      const adminKey = worksheetAdminKey();
+      if (!adminKey || !live()) throw new Error('관리자 모드를 먼저 켜 주세요.');
+      lockWriteBusy = true; updateWorksheetLockUI();
+      try {
+        const locks = await requestWorksheetLocks({action:'get_locks'});
+        let branch = locks;
+        for (const key of path.slice(0,-1)) {
+          if (!branch[key] || typeof branch[key] !== 'object') branch[key] = {};
+          branch = branch[key];
+        }
+        branch[path[path.length - 1]] = value === true;
+        const result = await requestWorksheetLocks({action:'save_locks',adminKey,locks});
+        if (result.success !== true && result.status !== 'success') throw new Error(result.message || '잠금 저장 실패');
+        const verificationGeneration = ++lockGeneration; lockRequest = null;
+        const saved = await requestWorksheetLocks({action:'get_locks'});
+        if (verificationGeneration === lockGeneration) acceptWorksheetLocks(saved);
+        else await refreshWorksheetLocks();
+        if (lockKnown && window.handleStepLocksSync) window.handleStepLocksSync(lockSnapshot);
+        let check = lockSnapshot; for (const key of path) check = check && check[key];
+        if (check !== value) throw new Error('다른 창에서 잠금이 변경되었습니다. 현재 상태를 확인해 주세요.');
+        status('학습지 보관함과 잠금 상태를 동기화했습니다.');
+        if (open && !pdf && !loading && worksheetAllowed() && (sourceFile || defaultURL)) loadPDF(sourceFile);
+        return saved;
+      } catch (error) {
+        await refreshWorksheetLocks();
+        throw error;
+      } finally { lockWriteBusy = false; updateWorksheetLockUI(); }
+    };
+    const exclusive = () => navigator.locks && navigator.locks.request
+      ? navigator.locks.request('chemtea-cloud-lock-write', run) : run();
+    const next = lockWriteQueue.then(exclusive, exclusive);
+    lockWriteQueue = next.catch(() => {});
+    return next;
+  }
+  // The lesson's step-lock buttons use this same serial, fresh-read writer.
+  window.CTWorksheetLockUpdate = updateWorksheetCloudLock;
+  for (const [id, path, property] of [
+    ['lock-item',['worksheetCurriculum','units',worksheetUnit,'items',worksheetID],'item'],
+    ['lock-unit',['worksheetCurriculum','units',worksheetUnit,'isLocked'],'unit'],
+    ['lock-archive',['worksheetCurriculum','isLocked'],'archive']]) {
+    $(id).addEventListener('click', async () => {
+      if (lockWriteBusy || !lockKnown) return;
+      const next = !worksheetLockState()[property];
+      try { await updateWorksheetCloudLock(path,next); }
+      catch (error) { status(error.message || '잠금 저장 실패'); $('lock-status').hidden = false; $('lock-status').textContent = error.message || '잠금 저장 실패'; }
+    });
+  }
+  $('lock-retry').addEventListener('click', async () => {
+    if (await refreshWorksheetLocks()) { if (open && !pdf && !loading) loadPDF(sourceFile); }
+  });
+  function onWorksheetLockData(event) {
+    ++lockGeneration; lockRequest = null;
+    const archive = event.detail && event.detail.worksheetCurriculum;
+    const unit = archive && archive.units && archive.units[worksheetUnit];
+    if (archive && (archive.isLocked === true || (unit && (unit.isLocked === true || (unit.items && unit.items[worksheetID] === true))))) invalidateWorksheetLocks();
+    // An older lesson-guard request may finish after a broadcast. Treat its result
+    // as a resync signal; only our generation-checked fresh request grants access.
+    refreshWorksheetLocks().then(allowed => { if (allowed && open && !pdf && !loading && (sourceFile || defaultURL)) loadPDF(sourceFile); });
+  }
+  function onWorksheetConnection(event) {
+    if (!event.detail || !event.detail.connected) invalidateWorksheetLocks();
+    else refreshWorksheetLocks().then(allowed => { if (allowed && open && !pdf && !loading && (sourceFile || defaultURL)) loadPDF(sourceFile); });
+  }
+  function onWorksheetAdminChange() {
+    if (!worksheetAllowed()) revokeWorksheet();
+    updateWorksheetLockUI();
+  }
+  function onWorksheetVisible() {
+    if (document.visibilityState !== 'visible') return;
+    invalidateWorksheetLocks();
+    refreshWorksheetLocks().then(allowed => { if (allowed && open && !pdf && !loading && (sourceFile || defaultURL)) loadPDF(sourceFile); });
+  }
+  window.addEventListener('ctw-lock-state', onWorksheetLockData);
+  window.addEventListener('ctw-lock-pending', invalidateWorksheetLocks);
+  window.addEventListener('ctw-lock-connection', onWorksheetConnection);
+  window.addEventListener('ctw-admin-change', onWorksheetAdminChange);
+  window.addEventListener('offline', invalidateWorksheetLocks);
+  window.addEventListener('online', onWorksheetVisible);
+  window.addEventListener('pageshow', onWorksheetVisible);
+  document.addEventListener('visibilitychange', onWorksheetVisible);
+  // Backup resync while a worksheet/preview is in use, including silent stream loss.
+  const worksheetPoll = worksheetPreview ? null : setInterval(() => {
+    if (!live() || (!open && !worksheetPrintSession) || document.visibilityState === 'hidden') return;
+    if (Date.now() - lastLockSuccess > 15000) invalidateWorksheetLocks();
+    refreshWorksheetLocks().then(allowed => { if (allowed && open && !pdf && !loading && (sourceFile || defaultURL)) loadPDF(sourceFile); });
+  }, 10000);
+  function cleanupWorksheetLocks() {
+    clearInterval(worksheetPoll); ++lockGeneration;
+    window.removeEventListener('ctw-lock-state',onWorksheetLockData);
+    window.removeEventListener('ctw-lock-pending',invalidateWorksheetLocks);
+    window.removeEventListener('ctw-lock-connection',onWorksheetConnection);
+    window.removeEventListener('ctw-admin-change',onWorksheetAdminChange);
+    window.removeEventListener('offline',invalidateWorksheetLocks);
+    window.removeEventListener('online',onWorksheetVisible);
+    window.removeEventListener('pageshow',onWorksheetVisible);
+    document.removeEventListener('visibilitychange',onWorksheetVisible);
+    if (window.CTWorksheetLockUpdate === updateWorksheetCloudLock) delete window.CTWorksheetLockUpdate;
+  }
+
+  // Print a rendered copy with annotations. Never navigate to the source PDF.
+  // The caller must cancel this session whenever access, source, or lesson changes.
+  let worksheetPrintSession = null;
+  let worksheetPrintVersion = 0;
+
+  function cancelWorksheetPrint() {
+    ++worksheetPrintVersion;
+    const session = worksheetPrintSession;
+    worksheetPrintSession = null;
+    if (!session) return;
+    clearInterval(session.closeWatch);
+    if (session.task) { try { session.task.cancel(); } catch {} }
+    for (const rejectWait of [...session.waiters]) rejectWait();
+    session.waiters.clear();
+    for (const canvas of session.canvases) { canvas.width = 0; canvas.height = 0; }
+    session.canvases.clear();
+    for (const url of session.urls) URL.revokeObjectURL(url);
+    session.urls.clear();
+    try {
+      const preview = session.preview;
+      preview.removeEventListener('beforeprint', session.beforePrint);
+      preview.removeEventListener('afterprint', session.afterPrint);
+      preview.removeEventListener('pagehide', session.onPageHide);
+      if (!preview.closed) {
+        preview.document.body.replaceChildren();
+        preview.close();
+      }
+    } catch {}
+  }
+
+  function worksheetPrintCancelled() {
+    const error = new Error('worksheet-print-cancelled');
+    error.name = 'WorksheetPrintCancelled';
+    return error;
+  }
+
+  function worksheetPrintCurrent(session) {
+    if (!session || worksheetPrintSession !== session || session.version !== worksheetPrintVersion
+      || !live() || session.documentPDF !== pdf || !worksheetAllowed()) return false;
+    try { return !session.preview.closed; } catch { return false; }
+  }
+
+  function worksheetPrintBlob(canvas, session) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const done = (blob, error) => {
+        if (settled) return;
+        settled = true; clearTimeout(timer); session.waiters.delete(cancel);
+        if (error) reject(error);
+        else if (!worksheetPrintCurrent(session)) reject(worksheetPrintCancelled());
+        else if (blob) resolve(blob);
+        else reject(new Error('worksheet-print-image'));
+      };
+      const cancel = () => done(null, worksheetPrintCancelled());
+      const timer = setTimeout(() => done(null, new Error('worksheet-print-image-timeout')), 20000);
+      session.waiters.add(cancel);
+      try { canvas.toBlob(blob => done(blob), 'image/png'); }
+      catch (error) { done(null, error); }
+    });
+  }
+
+  function worksheetPrintLoadImage(img, url, session) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const done = error => {
+        if (settled) return;
+        settled = true; clearTimeout(timer); session.waiters.delete(cancel);
+        img.removeEventListener('load', onLoad); img.removeEventListener('error', onError);
+        if (error) reject(error);
+        else if (!worksheetPrintCurrent(session)) reject(worksheetPrintCancelled());
+        else resolve();
+      };
+      const onLoad = () => done();
+      const onError = () => done(new Error('worksheet-print-image'));
+      const cancel = () => done(worksheetPrintCancelled());
+      const timer = setTimeout(() => done(new Error('worksheet-print-image-timeout')), 20000);
+      session.waiters.add(cancel);
+      img.addEventListener('load', onLoad); img.addEventListener('error', onError);
+      img.src = url;
+      if (img.complete && img.naturalWidth > 0) done();
+    });
+  }
+
+  async function printWorksheet() {
+    if (!live() || !pdf || loading || rendering || !worksheetAllowed()) {
+      status('학습지를 연 뒤 인쇄해 주세요. 잠긴 학습지는 인쇄할 수 없습니다.');
+      return;
+    }
+    finishStroke();
+    cancelWorksheetPrint();
+    // Keep this synchronous with the click so ordinary popup controls allow it.
+    let preview;
+    try { preview = window.open('', '_blank', 'popup,width=900,height=900'); } catch {}
+    if (!preview) { status('인쇄 미리보기 창이 차단되었습니다. 이 사이트의 팝업을 허용한 뒤 다시 눌러 주세요.'); return; }
+    try { preview.opener = null; } catch {}
+    const session = {
+      preview, version:worksheetPrintVersion, documentPDF:pdf,
+      urls:new Set(), canvases:new Set(), waiters:new Set(),
+      task:null, closeWatch:null, ready:false, printPermit:false
+    };
+    worksheetPrintSession = session;
+    const snapshot = JSON.parse(JSON.stringify(notes));
+    const doc = preview.document;
+    const make = (tag, className, text) => {
+      const node = doc.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    };
+    doc.documentElement.lang = 'ko';
+    const printTitle = ($('title').textContent || '학습지') + ' · 필기 포함 인쇄';
+    doc.head.replaceChildren(); doc.body.replaceChildren();
+    const charset = doc.createElement('meta'); charset.setAttribute('charset', 'utf-8');
+    const viewport = doc.createElement('meta'); viewport.name = 'viewport'; viewport.content = 'width=device-width, initial-scale=1';
+    const css = make('style', '', `
+      * { box-sizing:border-box; }
+      body { margin:0; color:#172033; background:#e8edf3; font:15px/1.5 system-ui,sans-serif; }
+      .ctwp-toolbar { position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+        padding:14px 20px; background:#fff; border-bottom:1px solid #cbd5e1; }
+      .ctwp-toolbar strong { flex:1 1 240px; }
+      button { padding:10px 16px; border:0; border-radius:8px; font:inherit; font-weight:700; cursor:pointer;
+        color:#fff; background:#2563eb; }
+      button:disabled { opacity:.45; cursor:wait; }
+      .ctwp-close { background:#475569; }
+      .ctwp-status { width:100%; margin:0; color:#475569; font-size:13px; }
+      .ctwp-pages { padding:20px; }
+      .ctwp-page { display:flex; justify-content:center; margin:0 auto 20px; max-width:850px; background:white;
+        box-shadow:0 2px 10px #17203322; }
+      .ctwp-page img { display:block; width:100%; height:auto; object-fit:contain; }
+      .ctwp-print-notice { display:none; }
+      @page { size:auto; margin:10mm; }
+      @media print {
+        html,body { margin:0; padding:0; background:white; }
+        .ctwp-toolbar { display:none !important; }
+        .ctwp-pages { padding:0; }
+        .ctwp-page { display:block; width:100%; max-width:none; margin:0; box-shadow:none;
+          break-inside:avoid; page-break-inside:avoid; break-after:page; page-break-after:always; }
+        .ctwp-page:last-child { break-after:auto; page-break-after:auto; }
+        .ctwp-page img { width:100%; height:auto; max-height:270mm; object-fit:contain; }
+        .ctwp-print-blocked .ctwp-pages { display:none !important; }
+        .ctwp-print-blocked .ctwp-print-notice { display:block; }
+      }
+    `);
+    doc.head.append(charset, viewport, css);
+    doc.title = printTitle;
+    const toolbar = make('header', 'ctwp-toolbar');
+    const title = make('strong', '', printTitle);
+    const printButton = make('button', '', '인쇄'); printButton.type = 'button'; printButton.disabled = true;
+    const closeButton = make('button', 'ctwp-close', '닫기'); closeButton.type = 'button';
+    const message = make('p', 'ctwp-status', '학습지 잠금 상태를 확인하고 있습니다…');
+    message.setAttribute('role', 'status');
+    const pages = make('main', 'ctwp-pages');
+    const notice = make('p', 'ctwp-print-notice', '미리보기 창의 인쇄 버튼을 눌러 학습지 잠금 상태를 확인한 뒤 인쇄해 주세요.');
+    toolbar.append(title, printButton, closeButton, message);
+    doc.body.classList.add('ctwp-print-blocked');
+    doc.body.append(toolbar, pages, notice);
+    closeButton.addEventListener('click', () => {
+      if (worksheetPrintSession === session) cancelWorksheetPrint();
+    });
+    session.beforePrint = () => {
+      const permitted = session.ready && session.printPermit && worksheetPrintCurrent(session);
+      session.printPermit = false;
+      doc.body.classList.toggle('ctwp-print-blocked', !permitted);
+    };
+    session.afterPrint = () => { session.printPermit = false; doc.body.classList.add('ctwp-print-blocked'); };
+    session.onPageHide = () => { if (worksheetPrintSession === session) cancelWorksheetPrint(); };
+    preview.addEventListener('beforeprint', session.beforePrint);
+    preview.addEventListener('afterprint', session.afterPrint);
+    preview.addEventListener('pagehide', session.onPageHide);
+    session.closeWatch = setInterval(() => {
+      if (worksheetPrintSession === session && !worksheetPrintCurrent(session)) cancelWorksheetPrint();
+    }, 500);
+    printButton.addEventListener('click', async () => {
+      if (!session.ready || printButton.disabled || !worksheetPrintCurrent(session)) return;
+      printButton.disabled = true; message.textContent = '인쇄 전 잠금 상태를 확인하고 있습니다…';
+      try {
+        const allowed = await refreshWorksheetLocks();
+        if (!allowed || !worksheetPrintCurrent(session)) {
+          if (worksheetPrintSession === session) cancelWorksheetPrint();
+          status('잠금 상태가 바뀌었거나 확인할 수 없어 인쇄를 중단했습니다.');
+          return;
+        }
+        message.textContent = '필기와 표시가 포함됩니다. 인쇄 창에서 용지와 방향을 선택해 주세요.';
+        session.printPermit = true;
+        doc.body.classList.remove('ctwp-print-blocked');
+        preview.focus(); preview.print();
+      } catch {
+        session.printPermit = false;
+        if (worksheetPrintSession === session) {
+          doc.body.classList.add('ctwp-print-blocked');
+          message.textContent = '인쇄를 시작하지 못했습니다. 잠금 상태와 브라우저 설정을 확인한 뒤 다시 눌러 주세요.';
+        }
+      } finally {
+        if (worksheetPrintCurrent(session)) printButton.disabled = false;
+      }
+    });
+    try {
+      const allowed = await refreshWorksheetLocks();
+      if (!allowed || !worksheetPrintCurrent(session)) throw worksheetPrintCancelled();
+      status('필기가 포함된 인쇄 미리보기를 준비하고 있습니다.');
+      for (let number = 1; number <= session.documentPDF.numPages; number++) {
+        if (!worksheetPrintCurrent(session)) throw worksheetPrintCancelled();
+        message.textContent = number + ' / ' + session.documentPDF.numPages + '쪽을 준비하고 있습니다…';
+        const page = await session.documentPDF.getPage(number);
+        if (!worksheetPrintCurrent(session)) throw worksheetPrintCancelled();
+        const original = page.getViewport({scale:1});
+        const printViewport = page.getViewport({scale:1600 / Math.max(original.width, original.height)});
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.ceil(printViewport.width); canvas.height = Math.ceil(printViewport.height);
+        session.canvases.add(canvas);
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('worksheet-print-canvas');
+        context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
+        session.task = page.render({canvasContext:context, viewport:printViewport});
+        await session.task.promise;
+        session.task = null;
+        if (!worksheetPrintCurrent(session)) throw worksheetPrintCancelled();
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        paintNotes(context, snapshot[number] || [], printViewport.width, printViewport.height);
+        const blob = await worksheetPrintBlob(canvas, session);
+        if (!worksheetPrintCurrent(session)) throw worksheetPrintCancelled();
+        canvas.width = 0; canvas.height = 0; session.canvases.delete(canvas);
+        const url = URL.createObjectURL(blob); session.urls.add(url);
+        const pageBox = make('section', 'ctwp-page');
+        pageBox.setAttribute('aria-label', number + '쪽');
+        const img = make('img'); img.alt = '필기가 포함된 학습지 ' + number + '쪽';
+        // Wait for decoding before enabling print; a fast click must not print blank images.
+        const imageReady = worksheetPrintLoadImage(img, url, session);
+        pageBox.appendChild(img); pages.appendChild(pageBox);
+        await imageReady;
+        if (!worksheetPrintCurrent(session)) throw worksheetPrintCancelled();
+      }
+      session.ready = true; printButton.disabled = false;
+      message.textContent = '총 ' + session.documentPDF.numPages + '쪽 · 필기와 표시가 포함됩니다. 위의 인쇄 버튼을 눌러 주세요.';
+      status('필기 포함 인쇄 미리보기를 열었습니다.');
+      preview.focus();
+    } catch (error) {
+      const isCurrent = worksheetPrintSession === session;
+      if (isCurrent) cancelWorksheetPrint();
+      if (isCurrent && live()) status(error.name === 'WorksheetPrintCancelled' || error.name === 'RenderingCancelledException'
+        ? '학습지 상태가 바뀌었거나 미리보기가 닫혀 인쇄 준비를 중단했습니다.'
+        : '인쇄 미리보기를 만들지 못했습니다. 학습지를 다시 연 뒤 시도해 주세요.');
+    }
+  }
+  $('print').addEventListener('click', printWorksheet);
+
+  // CTW_PINCH_ZOOM 2026-09-13.1 — PDF-local gesture, never whole-page zoom.
+  // Pointer Events + a predeclared touch-action:none keep ownership from the
+  // first contact; changing touch-action after a second finger arrives is too late.
+  const worksheetTouches = new Map();
+  let touchGesture = null;
+  const touchPair = gesture => gesture.ids.map(id => worksheetTouches.get(id));
+  const touchDistance = (a,b) => Math.hypot(b.x-a.x,b.y-a.y);
+  const touchCenter = (a,b) => ({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+  function releaseWorksheetTouch(id) {
+    try { if (view.hasPointerCapture && view.hasPointerCapture(id)) view.releasePointerCapture(id); } catch {}
+  }
+  function discardTouchStroke() {
+    if (touchGesture && touchGesture.drawing && stroke) {
+      stroke = null; pointerID = null; drawNotes();
+    }
+  }
+  function cancelTouchInteraction() {
+    discardTouchStroke();
+    const ids = [...worksheetTouches.keys()];
+    worksheetTouches.clear(); touchGesture = null;
+    stage.style.transform = ''; stage.style.transformOrigin = '';
+    ids.forEach(releaseWorksheetTouch);
+  }
+  function beginWorksheetPinch() {
+    discardTouchStroke(); cancelText(); finishStroke(); rememberScroll();
+    const ids = [...worksheetTouches.keys()].slice(0,2), [a,b] = ids.map(id => worksheetTouches.get(id));
+    const distance = touchDistance(a,b), center = touchCenter(a,b), rect = stage.getBoundingClientRect();
+    if (distance < 2 || rect.width <= 0 || rect.height <= 0) { touchGesture = {mode:'blocked'}; return; }
+    clearTimeout(resizeTimer); ++renderVersion;
+    if (renderTask) renderTask.cancel();
+    touchGesture = {mode:'pinch',ids,distance,startZoom:zoom,width:pageWidth,height:pageHeight,
+      left:rect.left,top:rect.top,center,
+      anchorX:clamp((center.x-rect.left)/rect.width,0,1),anchorY:clamp((center.y-rect.top)/rect.height,0,1)};
+    rendering = true; controls();
+    stage.style.transformOrigin = '0 0';
+  }
+  function moveWorksheetPinch() {
+    const gesture = touchGesture;
+    if (!gesture || gesture.mode !== 'pinch') return;
+    const [a,b] = touchPair(gesture); if (!a || !b) return;
+    const distance = touchDistance(a,b), center = touchCenter(a,b);
+    zoom = clamp(Math.round(gesture.startZoom * distance / gesture.distance * 100),100,200) / 100;
+    gesture.center = center;
+    const ratio = zoom / gesture.startZoom;
+    const x = center.x - gesture.left - gesture.anchorX * gesture.width * ratio;
+    const y = center.y - gesture.top - gesture.anchorY * gesture.height * ratio;
+    // Fast raster preview while moving. PDF.js rerenders once the fingers lift.
+    stage.style.transform = `translate(${x}px, ${y}px) scale(${ratio})`;
+    syncZoomControl(); showZoom();
+  }
+  function finishWorksheetPinch() {
+    const gesture = touchGesture;
+    if (!gesture || gesture.mode !== 'pinch') return;
+    pendingZoomAnchor = {page:pageNumber,x:gesture.anchorX,y:gesture.anchorY,
+      clientX:gesture.center.x,clientY:gesture.center.y};
+    touchGesture = {mode:'blocked'};
+    // Keep the visual preview until renderPage commits the new canvas geometry.
+    persist(); renderPage();
+  }
+  function worksheetTouchDown(event) {
+    if (event.pointerType !== 'touch') return;
+    if (!worksheetAllowed() || !open || !pdf || loading || stage.hidden) return;
+    // Interactive status/retry elements must retain their native click handling.
+    if (event.target.closest && event.target.closest('button,input,select,textarea,a')) return;
+    event.preventDefault(); event.stopPropagation();
+    if (rendering && (!touchGesture || touchGesture.mode !== 'pinch')) return;
+    worksheetTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    try { view.setPointerCapture(event.pointerId); } catch {}
+    if (worksheetTouches.size >= 2) {
+      if (!touchGesture || touchGesture.mode === 'single') beginWorksheetPinch();
+      return;
+    }
+    const rect = ink.getBoundingClientRect();
+    const onPaper = event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
+    touchGesture = {mode:'single',id:event.pointerId,x:event.clientX,y:event.clientY,
+      left:view.scrollLeft,top:view.scrollTop,moved:0,tool,onPaper,drawing:false,at:pointAt(event)};
+    if (onPaper && (tool === 'pen' || tool === 'highlight')) {
+      finishStroke(); pointerID = event.pointerId;
+      stroke = {kind:tool,color:$('color').value,size:tool === 'highlight' ? .027 : .004,points:[touchGesture.at]};
+      touchGesture.drawing = true; drawNotes();
+    }
+    // Text waits for a one-finger tap to end; adding a second finger never opens an editor.
+  }
+  function worksheetTouchMove(event) {
+    if (event.pointerType !== 'touch' || !worksheetTouches.has(event.pointerId)) return;
+    event.preventDefault(); event.stopPropagation();
+    if (!worksheetAllowed() || !pdf || !open) { cancelTouchInteraction(); return; }
+    worksheetTouches.set(event.pointerId,{x:event.clientX,y:event.clientY});
+    if (!touchGesture) return;
+    if (touchGesture.mode === 'pinch') { moveWorksheetPinch(); return; }
+    if (touchGesture.mode !== 'single' || touchGesture.id !== event.pointerId) return;
+    touchGesture.moved = Math.max(touchGesture.moved,Math.hypot(event.clientX-touchGesture.x,event.clientY-touchGesture.y));
+    if (touchGesture.tool === 'move' || !touchGesture.onPaper) {
+      view.scrollLeft = touchGesture.left + touchGesture.x - event.clientX;
+      view.scrollTop = touchGesture.top + touchGesture.y - event.clientY;
+    } else if (touchGesture.drawing && stroke && stroke.points.length < 4000) {
+      stroke.points.push(pointAt(event)); drawNotes();
+    }
+  }
+  function worksheetTouchEnd(event) {
+    if (event.pointerType !== 'touch' || !worksheetTouches.has(event.pointerId)) return;
+    event.preventDefault(); event.stopPropagation();
+    const gesture = touchGesture, cancelled = event.type !== 'pointerup';
+    if (gesture && gesture.mode === 'pinch' && gesture.ids.includes(event.pointerId)) finishWorksheetPinch();
+    else if (gesture && gesture.mode === 'single' && gesture.id === event.pointerId) {
+      if (cancelled) discardTouchStroke();
+      else if (gesture.drawing) finishStroke();
+      else if (gesture.onPaper && gesture.tool === 'text' && gesture.moved < 10 && worksheetAllowed()) {
+        textPosition = gesture.at; $('text-form').hidden = false; drawNotes(); $('text').focus({preventScroll:true});
+      }
+      rememberScroll();
+    }
+    worksheetTouches.delete(event.pointerId); releaseWorksheetTouch(event.pointerId);
+    if (!worksheetTouches.size) touchGesture = null;
+    // Any finger remaining after a pinch stays blocked until every finger lifts.
+  }
+  view.addEventListener('pointerdown',worksheetTouchDown,{capture:true,passive:false});
+  view.addEventListener('pointermove',worksheetTouchMove,{capture:true,passive:false});
+  for (const name of ['pointerup','pointercancel','lostpointercapture']) view.addEventListener(name,worksheetTouchEnd,{capture:true,passive:false});
+  function cleanupWorksheetTouch() {
+    cancelTouchInteraction();
+    view.removeEventListener('pointerdown',worksheetTouchDown,true);
+    view.removeEventListener('pointermove',worksheetTouchMove,true);
+    for (const name of ['pointerup','pointercancel','lostpointercapture']) view.removeEventListener(name,worksheetTouchEnd,true);
+  }
+
+  dimensions(); updateWorksheetLockUI();
+  if (new URLSearchParams(location.search).get('worksheet') === '1') setOpen(true);
+  else refreshWorksheetLocks();
+})();
+</script></body></html>
