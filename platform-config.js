@@ -18,10 +18,10 @@
   });
   Object.defineProperty(window, 'platformSessionStorage', {value: scopedStorage(window.sessionStorage)});
   Object.defineProperty(window, 'platformLocalStorage', {value: scopedStorage(window.localStorage)});
-  const config = {environment: 'test', projectRef, baseUrl, SESSION_NAMESPACE: namespace,
+  const config = {resourceContentIds: Object.freeze({collectionCenter: '1d8c1730-ab65-48a6-9bdb-8df5a73584ab', selfStudy: 'a9d66a4e-09b4-4898-a2b1-d2383e840f37'}), environment: 'test', projectRef, baseUrl, SESSION_NAMESPACE: namespace,
     // Custom-session APIs do not need a browser service key. Never use the production key.
     SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_gj5c2milVlOVAPnPNaQAgg_omeaIJhs', REALTIME_LOCK_TOPIC: 'science-platform-locks',
-    PLATFORM_BUILD: '2026-09-13-common-engine.3'};
+    PLATFORM_BUILD: '2026-09-13-html-index.3'};
   for (const name of ['platform', 'point', 'question', 'announcement', 'account',
     'submission', 'academic-year', 'lock-realtime', 'content', 'activation', 'assessment']) {
     const key = name === 'lock-realtime' ? 'LOCK_API' : name.toUpperCase().replaceAll('-', '_') + '_API';

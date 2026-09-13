@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const {createHash} = require('node:crypto');
 const adapterPath = path.join(__dirname, '../assets/legacy-html-adapter.js');
 const adapter = require(adapterPath);
-const sources = path.join(__dirname, '../../production-source');
+const sources = process.env.SCIENCE_SOURCE_FIXTURES || path.join(__dirname, '../../production-source');
 const item = {id:'11111111-1111-4111-8111-111111111111', kind:'lesson',format:'html',unit_id:'unit8',lesson_id:'u8_l9',title:'8단원 9차시 — 시험 수업'};
 const worksheet = {id:'22222222-2222-4222-8222-222222222222',kind:'worksheet',format:'pdf',unit_id:'unit8',lesson_id:'u8_l9',title:'차시 관찰 학습지'};
 const names = fs.readdirSync(sources).filter(name => /^\d\d_/.test(name) && name.endsWith('.html') && !/(assessment|formative|summative)/.test(name));

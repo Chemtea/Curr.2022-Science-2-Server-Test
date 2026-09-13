@@ -14,6 +14,43 @@ for (const script of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))
   }
 }
 const ids = {collectionCenter: '1d8c1730-ab65-48a6-9bdb-8df5a73584ab', selfStudy: 'a9d66a4e-09b4-4898-a2b1-d2383e840f37'};
+
+test('deployed index references existing HTML catalog assets and the hardened shared realtime client', () => {
+  const assets = [...source.matchAll(/<(?:script|link)\b[^>]*(?:src|href)=["']([^"']+)/gi)]
+    .map(match => match[1]).filter(value => !/^(?:https?:)?\/\//.test(value));
+  for (const asset of assets) assert.ok(fs.existsSync(path.join(__dirname, '..', asset.split('?')[0])), asset);
+  for (const required of ['assets/html-catalog.js', 'assets/unit-appearance.js', 'assets/unit-banner-integration.js', 'lock-realtime-client.js']) {
+    assert.ok(assets.some(value => value.split('?')[0].replace(/^\.\//, '') === required), required);
+  }
+  assert.equal(functions.has('createLockRealtimeClient'), false, 'an older inline client must not shadow the shared client');
+  assert.match(source, /window\.createLockRealtimeClient\(/);
+  assert.doesNotMatch(source, /\b(?:sessionStorage|localStorage)\./);
+  assert.doesNotMatch(fs.readFileSync(path.join(__dirname, '../admin-quick-points.js'), 'utf8'), /\b(?:sessionStorage|localStorage)\./);
+});
+
+test('realtime disconnection closes stale worksheet access and reconnection requests a fresh read', () => {
+  const body = source.match(/window\.addEventListener\('ctw-lock-connection', event => \{([\s\S]*?)\n        \}\);/)?.[1];
+  assert.ok(body);
+  let renders = 0, resync = null;
+  const context = vm.createContext({worksheetCloudReady: true, document: {getElementById: () => ({style: {display: 'block'}})},
+    renderWorksheetList() {renders++;}, scheduleLockStateResync(reason, delay) {resync = {reason, delay};}});
+  vm.runInContext('function connectionEvent(event) {' + body + '}', context);
+  context.connectionEvent({detail: {connected: false}});
+  assert.equal(context.worksheetCloudReady, false); assert.equal(renders, 1);
+  context.connectionEvent({detail: {connected: true}});
+  assert.deepEqual(resync, {reason: 'connected', delay: 40});
+  assert.equal(context.worksheetCloudReady, false, 'a socket reconnect cannot itself authorize worksheet access');
+});
+
+test('shared content URLs send both HTML and PDF to an existing authenticated loader', () => {
+  const context = vm.createContext({window: {}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../assets/content-client.js'), 'utf8'), context);
+  for (const format of ['html', 'pdf']) {
+    assert.equal(context.window.ScienceContentClient.contentUrl({id: ids.selfStudy, format}), 'html-lesson.html?id=' + ids.selfStudy);
+  }
+  assert.throws(() => context.window.ScienceContentClient.contentUrl({id: ids.selfStudy, format: 'unknown'}));
+});
+
 const metadata = key => ({id: ids[key], kind: 'answer', format: 'html', archived_at: null});
 function navigation({token = 'teacher', role = 'admin', items = Object.keys(ids).map(metadata)} = {}) {
   let activeToken = token, requestCount = 0;

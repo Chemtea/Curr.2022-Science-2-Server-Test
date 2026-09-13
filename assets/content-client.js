@@ -1,4 +1,4 @@
-/* Shared authenticated content transport. No session is passed to uploaded documents. */
+/* Authenticated TEST-only catalog transport for trusted teacher-authored HTML. */
 (() => {
   'use strict';
   function auth() {
@@ -41,7 +41,8 @@
     } finally { clearTimeout(timeout); }
   }
   function contentUrl(item) {
-    return (item.kind === 'assessment' ? 'assessment.html' : item.format === 'lesson-pack' ? 'lesson.html' : 'content-viewer.html') + '?id=' + encodeURIComponent(item.id);
+    if (!item || !['html', 'pdf'].includes(item.format)) throw new Error('지원하는 HTML 또는 PDF 자료를 선택해 주세요.');
+    return 'html-lesson.html?id=' + encodeURIComponent(item.id);
   }
   window.ScienceContentClient = Object.freeze({auth, request, contentUrl});
 })();

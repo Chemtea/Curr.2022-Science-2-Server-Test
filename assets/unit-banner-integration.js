@@ -6,10 +6,15 @@
   createUnitCard = function (key, unit) {
     const card = originalCard(key, unit);
     const appearance = window.ScienceUnitAppearance;
-    appearance.decorateCard(card, key);
-    const icon = card.querySelector('.unit-entry-icon');
-    if (icon) icon.innerHTML = appearance.iconHTML(key);
-    const entry = card.querySelector('.unit-entry-btn');
+    // Keep production artwork until a teacher saves a customization.
+    // Newly created units have no production theme to preserve.
+    const customized = appearance.hasSaved(key) || unit.themeClass === 'theme-custom';
+    if (customized) {
+      appearance.decorateCard(card, key);
+      const icon = card.querySelector('.unit-entry-icon');
+      if (icon) icon.innerHTML = appearance.iconHTML(key);
+    }
+    const entry = customized && card.querySelector('.unit-entry-btn');
     if (entry && !unit.isLocked) {
       const image = document.createElement('span'); image.className = 'sua-inline-icon';
       image.innerHTML = appearance.iconHTML(key);

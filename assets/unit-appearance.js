@@ -36,6 +36,7 @@
     return {icon: value.icon, color_start: value.color_start.toLowerCase(), color_end: value.color_end.toLowerCase(), mode: value.mode, angle: value.angle};
   }
   function get(unitId) { return clone(cache.get(unitId) || defaults(unitId)); }
+  function hasSaved(unitId) { return cache.has(unitId); }
   function receiveCatalog(rows) {
     const next = new Map();
     for (const row of Array.isArray(rows) ? rows : []) {
@@ -225,5 +226,5 @@
   function configure(options = {}) {
     for (const key of ['getUnits', 'canManage', 'onSaved']) if (typeof options[key] === 'function') config[key] = options[key];
   }
-  window.ScienceUnitAppearance = Object.freeze({configure, receiveCatalog, clear, close: () => close(true), open, get, decorateCard, iconHTML, cssVariables});
+  window.ScienceUnitAppearance = Object.freeze({configure, receiveCatalog, clear, close: () => close(true), open, get, hasSaved, decorateCard, iconHTML, cssVariables});
 })();
