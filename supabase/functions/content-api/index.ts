@@ -228,18 +228,22 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       const db = deps.store ?? new RestStore(url, key, deps.fetch);
       if (body.action === 'health') {
         await db.request('content_items', { select: 'id', limit: 1 });
-        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 1, databaseReady: true, quizPointsEnabled: true });
+        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 2, databaseReady: true, quizPointsEnabled: true, archiveRestoreEnabled: true });
       }
-      if (!['catalog', 'get_content', 'save_content', 'set_publication', 'delete_content', 'submit_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
+      if (!['catalog', 'list_archived', 'get_content', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'submit_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
       const context = await authenticate(body, db, (deps.now ?? Date.now)());
-      const locksRow = await db.one('app_settings', { select: 'setting_value', setting_key: 'eq.lock_states' });
+      const mutation = ['save_content', 'set_publication', 'delete_content', 'restore_content'].includes(body.action);
+      if ((mutation || body.action === 'list_archived') && context.role !== 'admin') throw new HttpError('교사 관리자만 자료를 관리할 수 있습니다.', 403, 'PERMISSION_DENIED');
+      if (body.action === 'list_archived') {
+        const rows = await db.request('content_items', { select: metadataColumns, archived_at: 'not.is.null', order: 'archived_at.desc,id.asc', limit: 1000 });
+        return json({ success: true, role: 'admin', items: rows.filter((item: Row) => !!item.archived_at).map(metadata) });
+      }
+      const locksRow = mutation ? null : await db.one('app_settings', { select: 'setting_value', setting_key: 'eq.lock_states' });
       const locks = locksRow?.setting_value;
       if (body.action === 'catalog') {
         const rows = await db.request('content_items', { select: metadataColumns, archived_at: 'is.null', order: 'unit_id.asc,lesson_id.asc,created_at.asc', limit: 1000, ...(context.role === 'admin' ? {} : { published: 'eq.true', student_access: 'eq.true', kind: context.role === 'anonymous' ? 'in.(lesson,worksheet)' : 'neq.answer' }) });
         return json({ success: true, role: context.role, items: rows.filter((item: Row) => context.role === 'anonymous' || canRead(item, context.role, locks)).map(metadata) });
       }
-      const mutation = ['save_content', 'set_publication', 'delete_content'].includes(body.action);
-      if (mutation && context.role !== 'admin') throw new HttpError('교사 관리자만 자료를 변경할 수 있습니다.', 403, 'PERMISSION_DENIED');
       if (!mutation && context.role === 'anonymous') throw new HttpError('자료를 열려면 로그인해 주세요.', 401, 'SESSION_EXPIRED');
       const id = body.action === 'save_content' && body.id == null ? crypto.randomUUID() : body.id;
       if (typeof id !== 'string' || !UUID.test(id)) throw new HttpError('자료 번호가 올바르지 않습니다.');
@@ -262,6 +266,8 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
         return json({ success: true, ...result });
       }
       if (existing && body.expected_version !== existing.version) throw new HttpError('자료 목록을 새로고침한 뒤 다시 저장해 주세요.', 409, 'VERSION_CONFLICT');
+      if (existing?.archived_at && body.action !== 'restore_content') throw new HttpError('보관함에서 자료를 먼저 복원해 주세요.', 409, 'CONTENT_ARCHIVED');
+      if (body.action === 'restore_content' && !existing!.archived_at) throw new HttpError('이미 복원되었거나 보관 중인 자료가 아닙니다. 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
       let item: Row; let newPath: string | null = null;
       if (body.action === 'save_content') {
         const kind = body.kind, format = body.format;
@@ -291,6 +297,11 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       } else {
         item = { ...existing };
         if (body.action === 'delete_content') { item.archived_at = new Date((deps.now ?? Date.now)()).toISOString(); item.published = false; item.student_access = false; }
+        else if (body.action === 'restore_content') {
+          // Preserve the original identity, payload, PDF path and submission links.
+          // Restoration never republishes to students, regardless of client flags.
+          item.archived_at = null; item.published = true; item.student_access = false;
+        }
         else {
           if (typeof body.published !== 'boolean' || typeof body.student_access !== 'boolean') throw new HttpError('공개 상태를 확인해 주세요.');
           if (item.kind === 'answer' && body.student_access) throw new HttpError('모범답안은 학생에게 공개할 수 없습니다.', 403);
