@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const client = window.ScienceContentClient;
-  const state = {ready: false, loading: false, items: [], role: 'anonymous', error: '', filter: 'all', editing: null, newContentId: null, generation: 0,
+  const state = {ready: false, loading: false, items: [], appearances: [], role: 'anonymous', error: '', filter: 'all', editing: null, newContentId: null, generation: 0,
     managerView: 'active', archivedItems: [], archiveReady: false, archiveLoading: false, archiveError: '', archiveGeneration: 0, restoring: null};
   const labels = {lesson: '수업자료', worksheet: '학습지', assessment: '수행평가', answer: '교사용 답안'};
   const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text != null) node.textContent = text; return node; };
@@ -35,9 +35,15 @@
       tab.setAttribute('aria-label', state.loading ? '자료 관리 · 교사 권한 확인 중' : '자료 관리');
       tab.setAttribute('aria-expanded', String(!!byId('scmManager')?.open));
     }
+    const appearanceTab = byId('scmUnitAppearanceTab');
+    if (appearanceTab) {
+      appearanceTab.hidden = !canManage(); appearanceTab.disabled = state.loading;
+      appearanceTab.setAttribute('aria-busy', String(state.loading));
+    }
     if (!inTeacherMode() || (!state.loading && !canManage())) {
       clearArchive();
       byId('scmManager')?.close(); byId('scmLibrary')?.close();
+      window.ScienceUnitAppearance?.close();
       if (tab) tab.setAttribute('aria-expanded', 'false');
     }
   }
@@ -53,7 +59,8 @@
       if (!safeKey(key)) continue;
       if (managedUnits.has(key)) { defaultCurriculum[key].title = escapeHtml(unitTitle(item)); continue; }
       if (Object.prototype.hasOwnProperty.call(defaultCurriculum, key)) continue;
-      defaultCurriculum[key] = {...defaultCurriculum.unit7, id: key, title: escapeHtml(unitTitle(item)), category: 'regular', isLocked: false, lessons: [], desc: '서버에 등록된 수업자료입니다.'};
+      defaultCurriculum[key] = {id: key, title: escapeHtml(unitTitle(item)), category: 'regular', isLocked: false, lessons: [], desc: '서버에 등록된 수업자료입니다.',
+        icon: '📘', themeClass: 'theme-custom', barThemeClass: '', statusClass: '', bannerClass: '', badgeClass: '', cardClass: '', btnClass: ''};
       managedUnits.add(key);
     }
     for (const [key, unit] of Object.entries(defaultCurriculum)) {
@@ -90,11 +97,14 @@
       const response = await client.request('catalog');
       if (!current()) return false;
       state.items = Array.isArray(response.items) ? response.items.filter(item => item && /^[a-f0-9-]{36}$/i.test(item.id) && labels[item.kind]) : [];
+      state.appearances = response.unit_appearances || [];
+      window.ScienceUnitAppearance?.receiveCatalog(state.appearances);
       state.role = response.role || 'anonymous'; state.ready = true; syncUnits();
       return true;
     } catch (error) {
       if (!current()) return false;
-      state.error = error.message; state.role = 'anonymous'; state.ready = false; state.items = [];
+      state.error = error.message; state.role = 'anonymous'; state.ready = false; state.items = []; state.appearances = [];
+      window.ScienceUnitAppearance?.clear();
       syncUnits();
       return false;
     } finally {
@@ -118,7 +128,8 @@
     if (refreshTimer !== null) { clearTimeout(refreshTimer); refreshTimer = null; }
     refreshQueued = false;
     state.generation++; state.loading = false;
-    state.ready = false; state.items = []; state.role = 'anonymous'; clearArchive();
+    state.ready = false; state.items = []; state.appearances = []; state.role = 'anonymous'; clearArchive();
+    window.ScienceUnitAppearance?.clear();
     syncUnits();
     byId('scmManager')?.close(); resetEditor();
     // Clear an administrator's old catalog immediately when the session changes.
@@ -440,12 +451,49 @@
     try { await window.ScienceContentImporter.open(file); return true; }
     catch (error) { message(error.message || '수업자료 가져오기를 열지 못했습니다.', true); return false; }
   }
+  async function openUnitAppearance(unitId) {
+    if (!inTeacherMode() || state.loading) return false;
+    const identity = JSON.stringify(client.auth());
+    await appearanceReady;
+    if (!(await refresh())) return false;
+    if (identity !== JSON.stringify(client.auth()) || !canManage()) return false;
+    return window.ScienceUnitAppearance?.open(unitId) ?? false;
+  }
+  function appearanceUnits() {
+    if (typeof defaultCurriculum === 'undefined') return [];
+    return Object.entries(defaultCurriculum).filter(([, unit]) => unit.category !== 'eval').map(([id, unit]) => {
+      const item = state.items.find(item => item.kind === 'lesson' && unitKey(item) === id);
+      return {id, title: item ? unitTitle(item) : unit.title, category: 'regular'};
+    });
+  }
+  let appearanceReady = Promise.resolve();
+  async function loadUnitAppearance() {
+    if (!window.ScienceUnitAppearance) {
+      const style = el('link'); style.rel = 'stylesheet'; style.href = './assets/unit-appearance.css?v=20260913-style1'; document.head.append(style);
+      for (const file of ['unit-icons.js', 'unit-appearance.js', 'unit-banner-integration.js']) {
+        await new Promise((resolve, reject) => {
+          const script = el('script'); script.src = './assets/' + file + '?v=20260913-style1';
+          script.onload = resolve; script.onerror = () => reject(new Error('단원 꾸미기 화면을 불러오지 못했습니다. 새로고침해 주세요.'));
+          document.head.append(script);
+        });
+      }
+    }
+    window.ScienceUnitAppearance.configure({getUnits: appearanceUnits, canManage, onSaved: refresh});
+    window.ScienceUnitAppearance.receiveCatalog(state.appearances);
+    renderAll();
+  }
   function init() {
     const adminActions = document.querySelector('#adminModeBanner .admin-banner-actions');
     const adminTab = button('📚 자료 관리', openManager);
     adminTab.id = 'scmAdminTab'; adminTab.className = 'scm-admin-tab'; adminTab.hidden = true;
     adminTab.setAttribute('aria-haspopup', 'dialog'); adminTab.setAttribute('aria-controls', 'scmManager'); adminTab.setAttribute('aria-expanded', 'false');
     if (adminActions) adminActions.insertBefore(adminTab, byId('adminToolsBtn'));
+    const appearanceTab = button('🎨 단원 꾸미기', () => openUnitAppearance());
+    appearanceTab.id = 'scmUnitAppearanceTab'; appearanceTab.className = 'scm-admin-tab'; appearanceTab.hidden = true;
+    appearanceTab.setAttribute('aria-haspopup', 'dialog');
+    if (adminActions) adminActions.insertBefore(appearanceTab, byId('adminToolsBtn'));
+    window.ScienceUnitAppearance?.configure({getUnits: appearanceUnits, canManage, onSaved: refresh});
+    appearanceReady = loadUnitAppearance().catch(error => { message(error.message, true); return false; });
     const dialogs = el('div');
     dialogs.innerHTML = `<dialog class="scm-dialog" id="scmLibrary" aria-labelledby="scmLibraryTitle"><div class="scm-dialog-header"><div><h2 id="scmLibraryTitle">서버 자료실</h2><p>등록된 수업·학습지·평가 자료를 현재 권한에 맞게 보여 줍니다.</p></div><button class="scm-button" type="button" data-close="scmLibrary">닫기</button></div><div class="scm-filter" id="scmFilters"></div><div class="scm-grid" id="scmLibraryItems"></div></dialog>
       <dialog class="scm-dialog" id="scmManager" aria-labelledby="scmManagerTitle"><div class="scm-dialog-header"><div><h2 id="scmManagerTitle">교사 자료 관리</h2><p>파일을 올리고 미리 확인한 뒤 공개하세요. 공통 수업 화면은 그대로 유지됩니다.</p><p><a class="scm-button" href="device-check.html" target="_blank" rel="noopener">기기 점검</a></p><p class="scm-status" id="scmCatalogStatus" role="status" aria-live="polite"></p></div><button class="scm-button" type="button" data-close="scmManager">닫기</button></div>
@@ -466,7 +514,7 @@
     byId('scmManager').addEventListener('close', syncAdminUi);
     kindChanged(); authFingerprint = JSON.stringify(client.auth()); refresh();
   }
-  window.ScienceContentManager = {renderLessons, renderWorksheets, renderAssessments, authChanged, refresh, locksChanged, openManager, openLibrary};
+  window.ScienceContentManager = {renderLessons, renderWorksheets, renderAssessments, authChanged, refresh, locksChanged, openManager, openLibrary, openUnitAppearance, canManage};
   init();
   window.addEventListener('online', refresh);
   window.addEventListener('science-content-changed', locksChanged);

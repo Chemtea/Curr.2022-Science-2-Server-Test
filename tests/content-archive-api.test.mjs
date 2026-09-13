@@ -50,6 +50,7 @@ function fixture({ records = [archived, active], sessionChange = {}, beforeSave 
     },
     async request(path, query = {}, body, method) {
       calls.push({ method: method ?? (body === undefined ? 'GET' : 'POST'), table: path, query: clone(query), body: clone(body) });
+      if (path === 'unit_appearances') return [];
       if (path === 'content_items') {
         assert.equal(body, undefined, 'Catalog must not write content rows');
         let found = [...rows.values()];

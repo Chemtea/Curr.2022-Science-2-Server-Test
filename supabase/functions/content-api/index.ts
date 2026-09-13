@@ -16,12 +16,30 @@ const IDENTIFIER = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const RESERVED_IDS = new Set(['__proto__', 'prototype', 'constructor']);
 const BUILTIN = /^(u3_l[1235678]|u7_l[1-8])$/;
 const metadataColumns = 'id,kind,title,description,unit_id,unit_title,lesson_id,format,published,student_access,version,updated_at,created_at,archived_at,has_quiz';
+const appearanceColumns = 'unit_id,icon,color_start,color_end,mode,angle,version';
+export const UNIT_APPEARANCE_ICONS = Object.freeze(['car', 'element', 'flask', 'galaxy', 'sun', 'earth', 'lightning', 'light', 'star', 'space', 'compound', 'matter', 'flower', 'animal', 'cell', 'leaf', 'tree', 'computer', 'book', 'magnet', 'wave']);
 type BackendDiagnostic = { operation: string; kind: 'http' | 'network' | 'timeout' | 'invalid_response'; httpStatus: number; backendCode: string | null; retried: boolean };
 export class HttpError extends Error {
   status: number; code: string; diagnostic?: BackendDiagnostic;
   constructor(message: string, status = 400, code = 'INVALID_REQUEST', diagnostic?: BackendDiagnostic) { super(message); this.status = status; this.code = code; this.diagnostic = diagnostic; }
 }
 export const object = (v: unknown): v is Row => !!v && typeof v === 'object' && !Array.isArray(v);
+export function regularUnitId(value: unknown): value is string {
+  return typeof value === 'string' && IDENTIFIER.test(value) && !RESERVED_IDS.has(value) && !/_eval$/i.test(value) && !/^eval/i.test(value);
+}
+/** Appearance is structured data, never administrator-supplied CSS or SVG. */
+export function unitAppearance(value: unknown): Row {
+  if (!object(value) || Object.keys(value).length !== 5 || Object.keys(value).some(key => !['icon', 'color_start', 'color_end', 'mode', 'angle'].includes(key))) throw new HttpError('배너 표시 항목을 확인해 주세요.');
+  if (typeof value.icon !== 'string' || !UNIT_APPEARANCE_ICONS.includes(value.icon)) throw new HttpError('목록에서 배너 문양을 선택해 주세요.');
+  for (const key of ['color_start', 'color_end']) if (typeof value[key] !== 'string' || !/^#[0-9a-f]{6}$/i.test(value[key])) throw new HttpError('색상은 #RRGGBB 형식으로 지정해 주세요.');
+  if (!['solid', 'gradient'].includes(value.mode) || !Number.isInteger(value.angle) || value.angle < 0 || value.angle > 359) throw new HttpError('배너 색상 방식과 방향을 확인해 주세요.');
+  return { icon: value.icon, color_start: value.color_start.toUpperCase(), color_end: value.color_end.toUpperCase(), mode: value.mode, angle: value.angle };
+}
+function appearanceMetadata(row: unknown): Row {
+  if (!object(row) || !regularUnitId(row.unit_id) || !Number.isInteger(row.version) || row.version < 1) throw new HttpError('배너 설정의 서버 응답을 확인할 수 없습니다.', 503, 'BACKEND_UNAVAILABLE');
+  const appearance = unitAppearance(Object.fromEntries(['icon', 'color_start', 'color_end', 'mode', 'angle'].map(key => [key, row[key]])));
+  return { unit_id: row.unit_id, ...appearance, version: row.version };
+}
 export async function hash(value: string): Promise<string> {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
@@ -231,7 +249,7 @@ export class RestStore {
     // Retrying a read cannot repeat a submission, credit, publication or save.
     // Never retry RPCs or requests with a body, including a caller-supplied GET.
     const readOnly = method === 'GET' && body === undefined && !path.startsWith('rpc/');
-    const operations: Record<string, string> = { app_settings: 'settings_read', app_sessions: 'sessions_read', app_users: 'accounts_read', content_items: 'content_read', content_versions: 'versions_read', 'rpc/content_quiz_engine': 'quiz_rpc', 'rpc/content_record_quiz': 'quiz_rpc', 'rpc/content_save_atomic': 'content_save_rpc', 'rpc/content_restore_version': 'content_restore_rpc' };
+    const operations: Record<string, string> = { app_settings: 'settings_read', app_sessions: 'sessions_read', app_users: 'accounts_read', content_items: 'content_read', content_versions: 'versions_read', unit_appearances: 'unit_appearances_read', 'rpc/unit_appearance_save_atomic': 'unit_appearance_save_rpc', 'rpc/content_quiz_engine': 'quiz_rpc', 'rpc/content_record_quiz': 'quiz_rpc', 'rpc/content_save_atomic': 'content_save_rpc', 'rpc/content_restore_version': 'content_restore_rpc' };
     const operation = operations[path] ?? (readOnly ? 'rest_read' : 'rest_write');
     const deadline = Date.now() + this.requestBudgetMs;
     let response: Response | undefined, data: any, diagnostic: BackendDiagnostic | undefined;
@@ -285,6 +303,9 @@ export class RestStore {
         if (found) throw new HttpError(found[1], found[0], data.message);
       }
       if (data?.message === 'CONTENT_VERSION_CONFLICT') throw new HttpError('다른 작업에서 수정되었습니다. 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
+      if (data?.message === 'UNIT_APPEARANCE_VERSION_CONFLICT') throw new HttpError('다른 작업에서 배너가 수정되었습니다. 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
+      if (data?.message === 'UNIT_APPEARANCE_UNIT_NOT_FOUND') throw new HttpError('수업이 등록된 일반 단원을 선택해 주세요.', 404, 'UNIT_NOT_FOUND');
+      if (data?.message === 'UNIT_APPEARANCE_INVALID') throw new HttpError('배너 표시 설정을 확인해 주세요.');
       if (data?.message === 'CONTENT_ARCHIVED') throw new HttpError('보관함에서 자료를 먼저 복원해 주세요.', 409, 'CONTENT_ARCHIVED');
       if (['CONTENT_VERSION_NOT_FOUND', 'CONTENT_NOT_FOUND'].includes(data?.message)) throw new HttpError('해당 자료 또는 내용 버전을 찾을 수 없습니다.', 404, 'VERSION_NOT_FOUND');
       if (data?.message === 'CONTENT_VERSION_INVALID') throw new HttpError('버전 번호를 확인해 주세요.');
@@ -379,11 +400,22 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
         await db.request('content_items', { select: 'id', limit: 1 });
         return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 4, backendDiagnosticsVersion: 1, commonQuizEngineEnabled: true, learningImportVersion: 3, databaseReady: true, quizPointsEnabled: true, archiveRestoreEnabled: true, contentEditorEnabled: true, serverExperimentsEnabled: true });
       }
-      if (!['catalog', 'list_archived', 'get_content', 'get_editable', 'list_versions', 'get_version', 'restore_version', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'submit_quiz', 'begin_quiz', 'answer_quiz', 'review_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
+      if (!['catalog', 'set_unit_appearance', 'list_archived', 'get_content', 'get_editable', 'list_versions', 'get_version', 'restore_version', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'submit_quiz', 'begin_quiz', 'answer_quiz', 'review_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
       const context = await authenticate(body, db, (deps.now ?? Date.now)());
-      const mutation = ['save_content', 'set_publication', 'delete_content', 'restore_content', 'restore_version'].includes(body.action);
+      const mutation = ['set_unit_appearance', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'restore_version'].includes(body.action);
       const editorAction = ['get_editable', 'list_versions', 'get_version', 'restore_version'].includes(body.action);
       if ((mutation || editorAction || body.action === 'list_archived') && context.role !== 'admin') throw new HttpError('교사 관리자만 자료를 관리할 수 있습니다.', 403, 'PERMISSION_DENIED');
+      if (body.action === 'set_unit_appearance') {
+        if (!regularUnitId(body.unit_id)) throw new HttpError('일반 수업 단원을 선택해 주세요.');
+        const appearance = unitAppearance(body.appearance);
+        if (!Number.isInteger(body.expected_version) || body.expected_version < 0 || body.expected_version > 2147483646) throw new HttpError('배너 버전 번호를 확인해 주세요.');
+        if (!['unit3', 'unit7'].includes(body.unit_id)) {
+          const lesson = await db.one('content_items', { select: 'id', unit_id: `eq.${body.unit_id}`, kind: 'eq.lesson', archived_at: 'is.null' });
+          if (!lesson) throw new HttpError('수업이 등록된 일반 단원을 선택해 주세요.', 404, 'UNIT_NOT_FOUND');
+        }
+        const saved = await db.request('rpc/unit_appearance_save_atomic', {}, { p_unit_id: body.unit_id, p_appearance: appearance, p_expected_version: body.expected_version, p_actor: String(context.user!.login_id) });
+        return json({ success: true, appearance: appearanceMetadata(saved) });
+      }
       if (body.action === 'list_archived') {
         const rows = await db.request('content_items', { select: metadataColumns, archived_at: 'not.is.null', order: 'archived_at.desc,id.asc', limit: 1000 });
         return json({ success: true, role: 'admin', items: rows.filter((item: Row) => !!item.archived_at).map(metadata) });
@@ -392,7 +424,13 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       const locks = locksRow?.setting_value;
       if (body.action === 'catalog') {
         const rows = await db.request('content_items', { select: metadataColumns, archived_at: 'is.null', order: 'unit_id.asc,lesson_id.asc,created_at.asc', limit: 1000, ...(context.role === 'admin' ? {} : { published: 'eq.true', student_access: 'eq.true', kind: context.role === 'anonymous' ? 'in.(lesson,worksheet)' : 'neq.answer' }) });
-        return json({ success: true, role: context.role, items: rows.filter((item: Row) => context.role === 'anonymous' || canRead(item, context.role, locks)).map(metadata) });
+        const items = rows.filter((item: Row) => context.role === 'anonymous' || canRead(item, context.role, locks)).map(metadata);
+        const visibleUnits = new Set(items.filter((item: Row) => item.kind === 'lesson' && regularUnitId(item.unit_id)).map((item: Row) => item.unit_id));
+        // Do not silently substitute defaults when schema, grants or the network
+        // fail. Existing RestStore diagnostics identify a real read failure.
+        const appearances = await db.request('unit_appearances', { select: appearanceColumns, order: 'unit_id.asc', limit: 1000 });
+        if (!Array.isArray(appearances)) throw new HttpError('배너 설정의 서버 응답을 확인할 수 없습니다.', 503, 'BACKEND_UNAVAILABLE');
+        return json({ success: true, role: context.role, items, unit_appearances: appearances.filter((appearance: Row) => visibleUnits.has(appearance.unit_id)).map(appearanceMetadata) });
       }
       if (!mutation && context.role === 'anonymous') throw new HttpError('자료를 열려면 로그인해 주세요.', 401, 'SESSION_EXPIRED');
       const id = body.action === 'save_content' && body.id == null ? crypto.randomUUID() : body.id;
