@@ -12,6 +12,22 @@ const response = (status, body = { code: 'PGRST000', message: 'synthetic_private
 });
 const settingsQuery = { select: 'setting_value', setting_key: 'eq.lock_states' };
 
+test('restored production PDF paths are readable but cannot be upload targets', async () => {
+  const calls = [];
+  const db = new RestStore(projectUrl, fakeServiceKey, async (url, init) => {
+    calls.push({ url, init });
+    return new Response(new Uint8Array([37, 80, 68, 70]));
+  });
+  const path = 'production-reset-54d790f4/' + 'a'.repeat(64) + '.pdf';
+  assert.deepEqual(await db.storage(path), new Uint8Array([37, 80, 68, 70]));
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].url.endsWith('/authenticated/science-content-private/' + path));
+  await assert.rejects(db.storage(path, new Uint8Array([1])), HttpError);
+  await assert.rejects(db.storage('production-reset-other/' + 'a'.repeat(64) + '.pdf'), HttpError);
+  await assert.rejects(db.storage('production-reset-54d790f4/../secret.pdf'), HttpError);
+  assert.equal(calls.length, 1);
+});
+
 function safeDiagnostic(value, expected = {}) {
   assert.ok(value && typeof value === 'object', 'a safe diagnostic is available');
   assert.deepEqual(Object.keys(value).sort(), diagnosticFields);

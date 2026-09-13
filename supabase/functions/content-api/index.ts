@@ -9,7 +9,7 @@ type Context = { role: Role; user?: Row; session?: Row; tokenHash?: string };
 const PROJECT = 'rerykeslgwhamreoskgx';
 const BUCKET = 'science-content-private';
 const MAX_FILE = 10 * 1024 * 1024;
-const MAX_TEXT = 2 * 1024 * 1024;
+const MAX_TEXT = MAX_FILE;
 const MAX_BODY = 15 * 1024 * 1024;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const IDENTIFIER = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
@@ -68,19 +68,44 @@ export function canRead(item: Row, role: Role, locks: unknown): boolean {
   if (role === 'admin') return true;
   if (role !== 'student' || item.published !== true || item.student_access !== true || item.kind === 'answer') return false;
   if (item.kind === 'assessment') return assessmentOpen(item, locks);
-  // A new uploaded lesson uses its publication controls. Existing explicit locks still win.
   if (!object(locks)) return false;
+  // Worksheet publication has a separate lock tree. A lesson can stay locked
+  // while its worksheet is available in the library and worksheet-only panel.
+  if (item.kind === 'worksheet') return worksheetOpen(item, locks);
+  // A new uploaded lesson uses its publication controls. Existing explicit locks still win.
   const unit = locks[item.unit_id];
   const builtin = BUILTIN.test(String(item.lesson_id));
   if (builtin && (unit?.isLocked !== false || unit?.lessons?.[item.lesson_id] !== false)) return false;
   if (unit?.isLocked === true || unit?.lessons?.[item.lesson_id] === true) return false;
-  if (item.kind === 'worksheet') {
-    const ws = locks.worksheetCurriculum;
-    const number = String(item.unit_id).replace(/^unit/, '');
-    if (builtin && (ws?.isLocked !== false || ws?.units?.[number]?.isLocked !== false || ws?.units?.[number]?.items?.[`ws_${item.lesson_id}`] !== false)) return false;
-    if (ws?.isLocked === true || ws?.units?.[number]?.isLocked === true || ws?.units?.[number]?.items?.[`ws_${item.lesson_id}`] === true) return false;
-  }
   return true;
+}
+export function worksheetOpen(item: Row, locks: unknown): boolean {
+  if (!object(locks) || !item.lesson_id) return false;
+  const ws = locks.worksheetCurriculum;
+  const number = String(item.unit_id).replace(/^unit/, '');
+  // Fail closed even for new uploads until the worksheet lock entry exists.
+  return ws?.isLocked === false && ws?.units?.[number]?.isLocked === false &&
+    ws?.units?.[number]?.items?.[`ws_${item.lesson_id}`] === false;
+}
+/** Catalog visibility is deliberately distinct from permission to fetch source. */
+export function catalogVisible(item: Row, role: Role, locks: unknown): boolean {
+  if (item.archived_at) return false;
+  if (role === 'admin') return true;
+  if (item.published !== true || item.student_access !== true || item.kind === 'answer') return false;
+  if (item.kind === 'lesson' || item.kind === 'worksheet') return true;
+  return role === 'student' && item.kind === 'assessment' && assessmentOpen(item, locks);
+}
+export function canReadWorksheetLesson(lesson: Row, worksheet: Row | null, role: Role, locks: unknown): boolean {
+  if (role === 'admin') return canRead(lesson, role, locks);
+  return role === 'student' && !lesson.archived_at && lesson.kind === 'lesson' && lesson.format === 'html' &&
+    lesson.published === true && lesson.student_access === true && !!worksheet && worksheet.kind === 'worksheet' &&
+    worksheet.format === 'pdf' && worksheet.unit_id === lesson.unit_id && worksheet.lesson_id === lesson.lesson_id &&
+    canRead(worksheet, role, locks);
+}
+export function validateLessonIdentity(unit: string, lesson: string | null): void {
+  const number = /^unit([1-9][0-9]{0,2})$/.exec(unit)?.[1];
+  if (!number || !lesson || !new RegExp(`^u${number}_l[1-9][0-9]{0,2}$`).test(lesson))
+    throw new HttpError('단원 번호와 차시 번호를 확인해 주세요. 예: unit8 / u8_l1', 400, 'CONTENT_IDENTITY_INVALID');
 }
 export function metadata(item: Row): Row {
   const safe: Row = { source: 'server' };
@@ -90,138 +115,6 @@ export function metadata(item: Row): Row {
 function stringValue(value: unknown, label: string, max = 300): string {
   if (typeof value !== 'string' || !value.trim() || value.length > max || value.includes('\0')) throw new HttpError(`${label} 형식이 올바르지 않습니다.`);
   return value.trim();
-}
-export function quizData(value: unknown): Row[] {
-  if (value == null) return [];
-  if (!Array.isArray(value) || value.length > 5) throw new HttpError('퀴즈는 최대 5문항입니다.');
-  return value.map(q => {
-    if (!object(q) || !Number.isInteger(q.correct) || !Number.isInteger(q.choices) || q.choices < 2 || q.choices > 10 || q.correct < 1 || q.correct > q.choices) throw new HttpError('퀴즈 정답 형식이 올바르지 않습니다.');
-    if (typeof q.explanation !== 'string' || q.explanation.length > 10000) throw new HttpError('퀴즈 해설 형식이 올바르지 않습니다.');
-    const result: Row = { correct: q.correct, choices: q.choices, explanation: q.explanation };
-    if (q.questionId != null) {
-      if (typeof q.questionId !== 'string' || !IDENTIFIER.test(q.questionId) || RESERVED_IDS.has(q.questionId)) throw new HttpError('문항 ID를 확인해 주세요.');
-      result.questionId = q.questionId;
-      for (const field of ['correctTitleHtml', 'explanationHtml', 'wrongHintHtml']) result[field] = richHtml(q[field] ?? '', '피드백', 20000);
-      if (!object(q.wrongReasons) || Object.keys(q.wrongReasons).length > 10) throw new HttpError('선지별 오답 설명을 확인해 주세요.');
-      result.wrongReasons = {};
-      for (const [id, html] of Object.entries(q.wrongReasons)) {
-        if (!IDENTIFIER.test(id) || RESERVED_IDS.has(id)) throw new HttpError('선지 ID를 확인해 주세요.');
-        result.wrongReasons[id] = richHtml(html, '오답 설명', 20000);
-      }
-    }
-    return result;
-  });
-}
-/** Rich text outside the isolated experiment cannot carry executable markup. */
-export function richHtml(value: unknown, label: string, max = 20000): string {
-  if (typeof value !== 'string' || value.length > max || value.includes('\0')) throw new HttpError(`${label} 형식을 확인해 주세요.`);
-  if (/<\s*\/?\s*(script|iframe|object|embed|form|input|button|textarea|select|svg|math|link|meta|base|style)\b/i.test(value) || /\s(on[a-z]+|srcdoc)\s*=/i.test(value) || /(?:javascript|vbscript|data)\s*:/i.test(value) || /(?:expression\s*\(|@import|url\s*\()/i.test(value)) throw new HttpError(`${label}에는 실행 코드나 외부 삽입을 넣을 수 없습니다.`);
-  return value;
-}
-function onlyKeys(row: Row, keys: string[]): void {
-  if (Object.keys(row).some(key => !keys.includes(key))) throw new HttpError('수업 내용에 지원하지 않는 항목이 있습니다. 정답·해설은 별도 quiz_data에 넣어 주세요.');
-}
-function packV3(value: Row, questions: Row[]): Row {
-  onlyKeys(value, ['schema', 'title', 'display', 'steps', 'quiz', 'simulation']);
-  if (!object(value.display)) throw new HttpError('수업 표시 정보를 확인해 주세요.');
-  onlyKeys(value.display, ['titleHtml', 'headerTag', 'subtitleHtml', 'footerHtml', 'contentMaxWidth', 'tabs']);
-  const display: Row = {};
-  for (const key of ['titleHtml', 'subtitleHtml', 'footerHtml']) display[key] = richHtml(value.display[key] ?? '', '수업 표시', 20000);
-  display.headerTag = String(value.display.headerTag ?? '').slice(0, 300);
-  if (!Number.isInteger(value.display.contentMaxWidth) || value.display.contentMaxWidth < 700 || value.display.contentMaxWidth > 1400) throw new HttpError('수업 화면 폭은 700~1400으로 지정해 주세요.');
-  display.contentMaxWidth = value.display.contentMaxWidth;
-  if (value.display.tabs != null) {
-    if (!Array.isArray(value.display.tabs) || value.display.tabs.length !== 4) throw new HttpError('탭은 1~4단계로 작성해 주세요.');
-    display.tabs = value.display.tabs.map((tab: unknown, i: number) => {
-      if (typeof tab === 'string') return stringValue(tab, '탭 제목', 200);
-      if (!object(tab)) throw new HttpError('탭 형식을 확인해 주세요.');
-      onlyKeys(tab, ['id', 'title']);
-      if (tab.id !== `step${i + 1}`) throw new HttpError('탭 순서를 확인해 주세요.');
-      return { id: tab.id, title: stringValue(tab.title, '탭 제목', 200) };
-    });
-  }
-  if (!Array.isArray(value.steps) || value.steps.length !== 3) throw new HttpError('공통 수업은 학습 3단계와 형성평가로 구성합니다.');
-  const steps = value.steps.map((step: unknown, i: number) => {
-    if (!object(step)) throw new HttpError('수업 단계 형식을 확인해 주세요.');
-    onlyKeys(step, ['id', 'title', 'html']);
-    if (step.id !== `step${i + 1}` || typeof step.html !== 'string' || step.html.length > 400000) throw new HttpError('수업 단계 순서 또는 크기를 확인해 주세요.');
-    return { id: step.id, title: stringValue(step.title, '단계 제목', 200), html: step.html };
-  });
-  if (!Array.isArray(value.quiz) || value.quiz.length < 1 || value.quiz.length > 5 || value.quiz.length !== questions.length) throw new HttpError('공개 문항과 비공개 정답의 문항 수가 일치해야 합니다.');
-  const quiz = value.quiz.map((q: unknown, i: number) => {
-    if (!object(q)) throw new HttpError('문항 형식을 확인해 주세요.');
-    onlyKeys(q, ['id', 'promptHtml', 'contextHtml', 'choices', 'review']);
-    if (q.id !== `q${i + 1}` || questions[i].questionId !== q.id || !Array.isArray(q.choices) || q.choices.length < 2 || q.choices.length > 6 || q.choices.length !== questions[i].choices) throw new HttpError('문항·선지·정답의 연결을 확인해 주세요.');
-    const choices = q.choices.map((choice: unknown, n: number) => {
-      if (!object(choice)) throw new HttpError('선지 형식을 확인해 주세요.');
-      onlyKeys(choice, ['id', 'html']);
-      if (choice.id !== `${q.id}-c${n + 1}`) throw new HttpError('선지 순서를 확인해 주세요.');
-      return { id: choice.id, html: richHtml(choice.html, '선지', 8000) };
-    });
-    if (Object.keys(questions[i].wrongReasons).some(id => !choices.some((choice: Row) => choice.id === id))) throw new HttpError('오답 설명이 알 수 없는 선지를 가리킵니다.');
-    for (const field of ['correctTitleHtml', 'explanationHtml', 'wrongHintHtml']) if (!String(questions[i][field] ?? '').trim()) throw new HttpError('정답 해설·힌트·피드백 제목을 모두 작성해 주세요.');
-    for (const [index, choice] of choices.entries()) if (index + 1 !== questions[i].correct && !String(questions[i].wrongReasons[choice.id] ?? '').trim()) throw new HttpError('모든 오답 선지에 이유를 작성해 주세요.');
-    if (!object(q.review)) throw new HttpError('복습 단계를 지정해 주세요.');
-    onlyKeys(q.review, ['stepId', 'label']);
-    if (!['step1', 'step2', 'step3'].includes(q.review.stepId)) throw new HttpError('복습 단계는 1~3단계입니다.');
-    return { id: q.id, promptHtml: richHtml(q.promptHtml, '문제', 20000), contextHtml: richHtml(q.contextHtml ?? '', '보기', 20000), choices, review: { stepId: q.review.stepId, label: stringValue(q.review.label, '복습 안내', 200) } };
-  });
-  const sim = value.simulation;
-  if (!object(sim)) throw new HttpError('실험 구성을 확인해 주세요.');
-  onlyKeys(sim, ['html', 'css', 'js', 'dependencies', 'hostContract', 'microphone']);
-  if (sim.hostContract !== 'science-experiment-content/v1' || !Array.isArray(sim.dependencies) || sim.dependencies.length !== 0 || typeof sim.microphone !== 'boolean') throw new HttpError('공통 실험 계약을 확인해 주세요.');
-  for (const key of ['html', 'css', 'js']) if (typeof sim[key] !== 'string' || sim[key].length > 900000) throw new HttpError('실험 내용 형식 또는 크기를 확인해 주세요.');
-  return { schema: 'science-lesson/v3', title: stringValue(value.title, '수업 제목'), display, steps, quiz, simulation: { html: sim.html, css: sim.css, js: sim.js, dependencies: [], hostContract: sim.hostContract, microphone: sim.microphone } };
-}
-/** Public lesson payload has a strict schema; answer keys have a separate column. */
-export function publicPack(value: unknown, questions: Row[], lessonId: string | null): Row {
-  if (!object(value) || !['science-lesson/v1', 'science-lesson/v2', 'science-lesson/v3'].includes(value.schema)) throw new HttpError('수업 묶음 버전을 확인해 주세요.');
-  if (value.schema === 'science-lesson/v3') return packV3(value, questions);
-  const only = (row: Row, keys: string[]) => {
-    if (Object.keys(row).some(key => !keys.includes(key))) throw new HttpError('수업 내용에 지원하지 않는 항목이 있습니다. 정답·해설은 별도 quiz_data에 넣어 주세요.');
-  };
-  if (value.builtin_id != null) {
-    if (value.schema !== 'science-lesson/v1') throw new HttpError('실험 수업은 서버에 저장된 내용을 사용해야 합니다.');
-    only(value, ['schema', 'builtin_id', 'title']);
-    if (!BUILTIN.test(value.builtin_id) || value.builtin_id !== lessonId) throw new HttpError('기본 수업 식별자가 일치하지 않습니다.');
-    return { schema: value.schema, builtin_id: value.builtin_id };
-  }
-  only(value, value.schema === 'science-lesson/v2' ? ['schema', 'title', 'steps', 'quiz', 'simulation', 'originalLessonId'] : ['schema', 'title', 'steps', 'quiz']);
-  let simulation: Row | undefined;
-  if (value.schema === 'science-lesson/v2') {
-    if (!object(value.simulation)) throw new HttpError('실험 구성 내용을 확인해 주세요.');
-    only(value.simulation, ['html', 'css', 'js', 'dependencies', 'microphone']);
-    for (const field of ['html', 'css', 'js']) if (typeof value.simulation[field] !== 'string' || value.simulation[field].length > 900000) throw new HttpError('실험 내용의 크기 또는 형식을 확인해 주세요.');
-    // The migrated experiments are self-contained Canvas code. External scripts
-    // cannot be authorized by an uploaded content file.
-    if (!Array.isArray(value.simulation.dependencies) || value.simulation.dependencies.length !== 0) throw new HttpError('외부 실험 스크립트는 현재 지원하지 않습니다.');
-    if (value.simulation.microphone != null && typeof value.simulation.microphone !== 'boolean') throw new HttpError('마이크 설정 형식이 올바르지 않습니다.');
-    if (value.originalLessonId != null && (typeof value.originalLessonId !== 'string' || value.originalLessonId !== lessonId || !IDENTIFIER.test(value.originalLessonId))) throw new HttpError('원본 수업 ID가 일치하지 않습니다.');
-    simulation = {html: value.simulation.html, css: value.simulation.css, js: value.simulation.js, dependencies: [], ...(value.simulation.microphone != null ? {microphone: value.simulation.microphone} : {})};
-  }
-  if (!Array.isArray(value.steps) || value.steps.length < 1 || value.steps.length > 4 || !Array.isArray(value.quiz ?? [])) throw new HttpError('수업 단계는 1~4개로 작성해 주세요.');
-  const steps = value.steps.map((step: unknown) => {
-    if (!object(step)) throw new HttpError('수업 단계 형식을 확인해 주세요.');
-    only(step, ['title', 'html']);
-    if (typeof step.html !== 'string' || step.html.length > 400000) throw new HttpError('수업 단계 내용이 너무 큽니다.');
-    return { title: stringValue(step.title, '단계 제목', 200), html: step.html };
-  });
-  const quiz = (value.quiz ?? []).map((q: unknown, index: number) => {
-    if (!object(q)) throw new HttpError('공개 퀴즈 형식을 확인해 주세요.');
-    only(q, ['question', 'choices']);
-    if (!Array.isArray(q.choices) || q.choices.length < 2 || q.choices.length > 6 || q.choices.length !== questions[index]?.choices) throw new HttpError('공개 선택지와 비공개 정답의 문항 수가 일치해야 합니다.');
-    return { question: stringValue(q.question, '문항', 10000), choices: q.choices.map((choice: unknown) => stringValue(choice, '선택지', 4000)) };
-  });
-  if (quiz.length !== questions.length) throw new HttpError('공개 문항과 비공개 정답의 문항 수가 일치해야 합니다.');
-  return { schema: value.schema, ...(typeof value.title === 'string' ? { title: value.title.slice(0, 300) } : {}), steps, quiz, ...(simulation ? {simulation} : {}), ...(value.originalLessonId != null ? {originalLessonId: value.originalLessonId} : {}) };
-}
-export function grade(questions: Row[], answers: unknown): Row {
-  if (!questions.length || !Array.isArray(answers) || answers.length !== questions.length) throw new HttpError('모든 문항의 선택 번호를 제출해 주세요.');
-  const feedback = questions.map((q, i) => {
-    if (!Number.isInteger(answers[i]) || answers[i] < 1 || answers[i] > q.choices) throw new HttpError('선택 번호가 올바르지 않습니다.');
-    return { question: i + 1, selected: answers[i], correct: answers[i] === q.correct, correctChoice: q.correct, explanation: q.explanation };
-  });
-  return { score: feedback.filter(q => q.correct).length, total: questions.length, feedback };
 }
 export function decodePdf(value: unknown): Uint8Array {
   if (typeof value !== 'string' || !value || value.length > Math.ceil(MAX_FILE / 3) * 4 || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) throw new HttpError('PDF 파일은 10MB 이내로 올려 주세요.', 413);
@@ -249,7 +142,7 @@ export class RestStore {
     // Retrying a read cannot repeat a submission, credit, publication or save.
     // Never retry RPCs or requests with a body, including a caller-supplied GET.
     const readOnly = method === 'GET' && body === undefined && !path.startsWith('rpc/');
-    const operations: Record<string, string> = { app_settings: 'settings_read', app_sessions: 'sessions_read', app_users: 'accounts_read', content_items: 'content_read', content_versions: 'versions_read', unit_appearances: 'unit_appearances_read', 'rpc/unit_appearance_save_atomic': 'unit_appearance_save_rpc', 'rpc/content_quiz_engine': 'quiz_rpc', 'rpc/content_record_quiz': 'quiz_rpc', 'rpc/content_save_atomic': 'content_save_rpc', 'rpc/content_restore_version': 'content_restore_rpc' };
+    const operations: Record<string, string> = { app_settings: 'settings_read', app_sessions: 'sessions_read', app_users: 'accounts_read', content_items: 'content_read', content_versions: 'versions_read', unit_appearances: 'unit_appearances_read', 'rpc/unit_appearance_save_atomic': 'unit_appearance_save_rpc', 'rpc/content_save_atomic': 'content_save_rpc', 'rpc/content_restore_version': 'content_restore_rpc' };
     const operation = operations[path] ?? (readOnly ? 'rest_read' : 'rest_write');
     const deadline = Date.now() + this.requestBudgetMs;
     let response: Response | undefined, data: any, diagnostic: BackendDiagnostic | undefined;
@@ -289,34 +182,26 @@ export class RestStore {
     }
     if (!response) throw new HttpError('자료 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.', 503, 'BACKEND_UNAVAILABLE', diagnostic);
     if (!response.ok) {
-      if (String(data?.message ?? '').startsWith('QUIZ_')) {
-        const errors: Record<string, [number, string]> = {
-          QUIZ_STUDENT_REQUIRED: [403, '사용 가능한 학생 계정으로 로그인해 주세요.'], QUIZ_CONTENT_LOCKED: [403, '형성평가가 잠겨 있습니다.'],
-          QUIZ_ANSWER_LOCKED: [409, '처음 선택한 답은 제출 전에는 바꿀 수 없습니다.'], QUIZ_ALREADY_SUBMITTED: [409, '이미 제출했습니다. 복습 기능을 이용해 주세요.'],
-          QUIZ_ATTEMPT_REQUIRED: [409, '형성평가를 다시 열어 주세요.'], QUIZ_ATTEMPT_NOT_FOUND: [404, '본인의 형성평가 기록을 찾을 수 없습니다.'],
-          QUIZ_ATTEMPT_VERSION_CONFLICT: [409, '시작한 형성평가 버전과 다릅니다. 페이지를 다시 열어 주세요.'], QUIZ_INCOMPLETE: [400, '모든 문항을 선택한 뒤 제출해 주세요.'],
-          QUIZ_REVIEW_NOT_READY: [409, '최종 제출 후 자유롭게 복습할 수 있습니다.'], QUIZ_SCHEMA_REQUIRED: [400, '공통 수업 자료 형식이 필요합니다.'],
-          QUIZ_INVALID_REQUEST: [400, '형성평가 요청 형식을 확인해 주세요.'], QUIZ_INVALID_ANSWERS: [400, '선택 번호를 확인해 주세요.'],
-          QUIZ_INVALID_KEY: [409, '교사에게 문항 구성을 확인해 달라고 요청해 주세요.'], QUIZ_RETRY_CONFLICT: [409, '같은 요청 번호로 다른 답안을 보낼 수 없습니다.'],
-        };
-        const found = errors[data.message];
-        if (found) throw new HttpError(found[1], found[0], data.message);
-      }
       if (data?.message === 'CONTENT_VERSION_CONFLICT') throw new HttpError('다른 작업에서 수정되었습니다. 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
+      if (data?.message === 'CONTENT_IDENTITY_CONFLICT' || (data?.code === '23505' && String(data?.message).includes('content_active_lesson_identity'))) throw new HttpError('이 단원과 차시에 수업이 이미 있습니다. 기존 자료를 수정하거나 다른 차시 번호를 선택해 주세요.', 409, 'CONTENT_IDENTITY_CONFLICT');
+      if (data?.message === 'CONTENT_IDENTITY_INVALID') throw new HttpError('단원 번호와 차시 번호가 일치해야 합니다.', 400, 'CONTENT_IDENTITY_INVALID');
+      if (data?.message === 'UNIT_TITLE_CONFLICT') throw new HttpError('단원 이름이 다른 작업에서 변경되었습니다. 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
+      if (data?.message === 'UNIT_NOT_FOUND') throw new HttpError('등록된 단원을 선택해 주세요.', 404, 'UNIT_NOT_FOUND');
       if (data?.message === 'UNIT_APPEARANCE_VERSION_CONFLICT') throw new HttpError('다른 작업에서 배너가 수정되었습니다. 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
       if (data?.message === 'UNIT_APPEARANCE_UNIT_NOT_FOUND') throw new HttpError('수업이 등록된 일반 단원을 선택해 주세요.', 404, 'UNIT_NOT_FOUND');
       if (data?.message === 'UNIT_APPEARANCE_INVALID') throw new HttpError('배너 표시 설정을 확인해 주세요.');
       if (data?.message === 'CONTENT_ARCHIVED') throw new HttpError('보관함에서 자료를 먼저 복원해 주세요.', 409, 'CONTENT_ARCHIVED');
       if (['CONTENT_VERSION_NOT_FOUND', 'CONTENT_NOT_FOUND'].includes(data?.message)) throw new HttpError('해당 자료 또는 내용 버전을 찾을 수 없습니다.', 404, 'VERSION_NOT_FOUND');
       if (data?.message === 'CONTENT_VERSION_INVALID') throw new HttpError('버전 번호를 확인해 주세요.');
-      if (data?.message === 'QUIZ_RETRY_CONFLICT') throw new HttpError('같은 요청 번호로 다른 답안을 보낼 수 없습니다.', 409);
       throw new HttpError('자료 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.', 503, 'BACKEND_UNAVAILABLE', diagnostic);
     }
     return data;
   }
   async one(table: string, query: Row): Promise<Row | null> { return (await this.request(table, { ...query, limit: 1 }))?.[0] ?? null; }
   async storage(path: string, bytes?: Uint8Array): Promise<Uint8Array | void> {
-    if (!/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.pdf$/.test(path)) throw new HttpError('자료 경로가 올바르지 않습니다.', 500);
+    const uploadPath = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.pdf$/.test(path);
+    const restoredPath = !bytes && /^production-reset-54d790f4\/[0-9a-f]{64}\.pdf$/.test(path);
+    if (!uploadPath && !restoredPath) throw new HttpError('자료 경로가 올바르지 않습니다.', 500);
     const response = await this.transport(`${this.url}/storage/v1/object/${bytes ? '' : 'authenticated/'}${BUCKET}/${path}`, { method: bytes ? 'POST' : 'GET', headers: { apikey: this.key, Authorization: `Bearer ${this.key}`, ...(bytes ? { 'Content-Type': 'application/pdf', 'x-upsert': 'false' } : {}) }, ...(bytes ? { body: bytes } : {}) });
     if (!response.ok) throw new HttpError('파일 저장소를 사용할 수 없습니다.', 503, 'STORAGE_UNAVAILABLE');
     if (!bytes) {
@@ -398,13 +283,20 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       const db = deps.store ?? new RestStore(url, key, deps.fetch);
       if (body.action === 'health') {
         await db.request('content_items', { select: 'id', limit: 1 });
-        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 4, backendDiagnosticsVersion: 1, commonQuizEngineEnabled: true, learningImportVersion: 3, databaseReady: true, quizPointsEnabled: true, archiveRestoreEnabled: true, contentEditorEnabled: true, serverExperimentsEnabled: true });
+        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 11, mode: 'legacy-html-catalog', backendDiagnosticsVersion: 1, databaseReady: true, htmlUploadEnabled: true, privateWorksheetsEnabled: true, archiveRestoreEnabled: true, contentVersionsEnabled: true, unitAppearanceEnabled: true, maxFileBytes: MAX_FILE });
       }
-      if (!['catalog', 'set_unit_appearance', 'list_archived', 'get_content', 'get_editable', 'list_versions', 'get_version', 'restore_version', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'submit_quiz', 'begin_quiz', 'answer_quiz', 'review_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
+      if (!['catalog', 'rename_unit', 'set_unit_appearance', 'list_archived', 'get_content', 'get_editable', 'list_versions', 'get_version', 'restore_version', 'save_content', 'set_publication', 'delete_content', 'restore_content'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
       const context = await authenticate(body, db, (deps.now ?? Date.now)());
-      const mutation = ['set_unit_appearance', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'restore_version'].includes(body.action);
+      const mutation = ['rename_unit', 'set_unit_appearance', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'restore_version'].includes(body.action);
       const editorAction = ['get_editable', 'list_versions', 'get_version', 'restore_version'].includes(body.action);
       if ((mutation || editorAction || body.action === 'list_archived') && context.role !== 'admin') throw new HttpError('교사 관리자만 자료를 관리할 수 있습니다.', 403, 'PERMISSION_DENIED');
+      if (body.action === 'rename_unit') {
+        if (!/^unit[1-9][0-9]{0,2}$/.test(body.unit_id)) throw new HttpError('일반 수업 단원을 선택해 주세요.');
+        const title = stringValue(body.unit_title, '단원 이름', 200);
+        const expectedTitle = stringValue(body.expected_title, '기존 단원 이름', 200);
+        const renamed = await db.request('rpc/content_rename_unit', {}, { p_unit_id: body.unit_id, p_unit_title: title, p_expected_title: expectedTitle, p_actor: String(context.user!.login_id) });
+        return json({ success: true, ...renamed });
+      }
       if (body.action === 'set_unit_appearance') {
         if (!regularUnitId(body.unit_id)) throw new HttpError('일반 수업 단원을 선택해 주세요.');
         const appearance = unitAppearance(body.appearance);
@@ -424,7 +316,7 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       const locks = locksRow?.setting_value;
       if (body.action === 'catalog') {
         const rows = await db.request('content_items', { select: metadataColumns, archived_at: 'is.null', order: 'unit_id.asc,lesson_id.asc,created_at.asc', limit: 1000, ...(context.role === 'admin' ? {} : { published: 'eq.true', student_access: 'eq.true', kind: context.role === 'anonymous' ? 'in.(lesson,worksheet)' : 'neq.answer' }) });
-        const items = rows.filter((item: Row) => context.role === 'anonymous' || canRead(item, context.role, locks)).map(metadata);
+        const items = rows.filter((item: Row) => catalogVisible(item, context.role, locks)).map(metadata);
         const visibleUnits = new Set(items.filter((item: Row) => item.kind === 'lesson' && regularUnitId(item.unit_id)).map((item: Row) => item.unit_id));
         // Do not silently substitute defaults when schema, grants or the network
         // fail. Existing RestStore diagnostics identify a real read failure.
@@ -458,43 +350,15 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
         }
       }
       if (body.action === 'get_content') {
-        if (!canRead(existing!, context.role, locks)) throw new HttpError('공개되지 않았거나 접근할 수 없는 자료입니다.', 403, 'CONTENT_LOCKED');
-        if (existing!.format === 'pdf') return json({ success: true, item: metadata(existing!), file_base64: encode(await db.storage(existing!.storage_path) as Uint8Array), mime: 'application/pdf' });
-        if (context.role === 'student' && existing!.kind === 'lesson' && existing!.format === 'lesson-pack') {
-          // A teacher may restore a pre-v3 format while a learner has a frozen
-          // v3 attempt. Keep its public lesson/quiz paired with that attempt so
-          // the browser cannot silently fall back to mutable legacy answers.
-          // Deliberately do not select private_keys, answers or result here.
-          const frozen = await db.one('content_quiz_sessions', { select: 'public_snapshot,content_version', account_id: `eq.${context.user!.id}`, content_id: `eq.${id}` });
-          if (frozen?.public_snapshot?.schema === 'science-lesson/v3') return json({ success: true, item: metadata(existing!), content: frozen.public_snapshot, contentVersion: frozen.content_version, frozenQuizVersion: true, mime: 'application/json' });
+        let readable = canRead(existing!, context.role, locks);
+        if (body.worksheet_mode === true) {
+          if (typeof body.worksheet_id !== 'string' || !UUID.test(body.worksheet_id)) throw new HttpError('연결된 학습지를 선택해 주세요.', 400, 'WORKSHEET_REQUIRED');
+          const worksheet = await db.one('content_items', { select: '*', id: `eq.${body.worksheet_id}` });
+          readable = canReadWorksheetLesson(existing!, worksheet, context.role, locks);
         }
+        if (!readable) throw new HttpError('공개되지 않았거나 접근할 수 없는 자료입니다.', 403, 'CONTENT_LOCKED');
+        if (existing!.format === 'pdf') return json({ success: true, item: metadata(existing!), file_base64: encode(await db.storage(existing!.storage_path) as Uint8Array), mime: 'application/pdf' });
         return json({ success: true, item: metadata(existing!), content: existing!.content, mime: existing!.format === 'html' ? 'text/html' : 'application/json' });
-      }
-      if (['begin_quiz', 'answer_quiz', 'review_quiz'].includes(body.action) || (body.action === 'submit_quiz' && (existing!.content?.schema === 'science-lesson/v3' || body.attempt_id != null))) {
-        if (context.role !== 'student' || context.user?.account_type === 'manager' || existing!.kind !== 'lesson' || !canRead(existing!, context.role, locks)) throw new HttpError('학생에게 공개된 수업에서만 형성평가를 이용할 수 있습니다.', 403, 'QUIZ_STUDENT_REQUIRED');
-        const step4 = object(locks) ? locks.step_locks?.[existing!.lesson_id]?.['4'] : undefined;
-        if (step4 === true || (BUILTIN.test(String(existing!.lesson_id)) && step4 !== false)) throw new HttpError('형성평가가 잠겨 있습니다.', 403, 'QUIZ_CONTENT_LOCKED');
-        if (!Number.isInteger(body.version) || body.version < 1) throw new HttpError('불러온 자료 버전이 필요합니다.');
-        if (body.action !== 'begin_quiz' && (typeof body.attempt_id !== 'string' || !UUID.test(body.attempt_id))) throw new HttpError('형성평가를 먼저 시작해 주세요.', 409, 'QUIZ_ATTEMPT_REQUIRED');
-        if (body.attempt_id != null && (typeof body.attempt_id !== 'string' || !UUID.test(body.attempt_id))) throw new HttpError('형성평가 기록 번호를 확인해 주세요.');
-        if (['answer_quiz', 'review_quiz'].includes(body.action) && (!Number.isInteger(body.question) || body.question < 1 || body.question > 5 || !Number.isInteger(body.choice) || body.choice < 1 || body.choice > 6)) throw new HttpError('문항·선택 번호를 확인해 주세요.');
-        const requestId = body.request_id ?? body.requestId ?? crypto.randomUUID();
-        if (typeof requestId !== 'string' || !UUID.test(requestId)) throw new HttpError('요청 번호를 확인해 주세요.');
-        const result = await db.request('rpc/content_quiz_engine', {}, { p_action: body.action, p_content_id: id, p_account_id: context.user!.id, p_content_version: body.version, p_attempt_id: body.attempt_id ?? null, p_question: body.question ?? null, p_choice: body.choice ?? null, p_request_id: requestId });
-        return json({ success: true, ...result });
-      }
-      if (body.action === 'submit_quiz') {
-        if (context.role !== 'student' || context.user?.account_type === 'manager' || existing!.kind !== 'lesson' || !canRead(existing!, context.role, locks)) throw new HttpError('학생에게 공개된 수업에서만 제출할 수 있습니다.', 403);
-        const step4 = object(locks) ? locks.step_locks?.[existing!.lesson_id]?.['4'] : undefined;
-        if (step4 === true || (BUILTIN.test(String(existing!.lesson_id)) && step4 !== false)) throw new HttpError('형성평가가 잠겨 있습니다.', 403);
-        const frozen = await db.one('content_quiz_sessions', { select: 'id', account_id: `eq.${context.user!.id}`, content_id: `eq.${id}` });
-        if (frozen) throw new HttpError('시작한 형성평가 기록으로 제출해야 합니다. 수업을 다시 열어 주세요.', 409, 'QUIZ_ATTEMPT_REQUIRED');
-        const questions = quizData(existing!.quiz_data);
-        const graded = grade(questions, body.answers);
-        const requestId = body.requestId ?? crypto.randomUUID();
-        if (typeof requestId !== 'string' || !UUID.test(requestId)) throw new HttpError('제출 요청 번호가 올바르지 않습니다.');
-        const result = await db.request('rpc/content_record_quiz', {}, { p_content_id: id, p_account_id: context.user!.id, p_request_id: requestId, p_answers: body.answers, p_result: graded, p_content_version: existing!.version });
-        return json({ success: true, ...result });
       }
       if (existing && body.expected_version !== existing.version) throw new HttpError('자료 목록을 새로고침한 뒤 다시 저장해 주세요.', 409, 'VERSION_CONFLICT');
       if (existing?.archived_at && body.action !== 'restore_content') throw new HttpError('보관함에서 자료를 먼저 복원해 주세요.', 409, 'CONTENT_ARCHIVED');
@@ -502,13 +366,13 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       let item: Row; let newPath: string | null = null;
       if (body.action === 'save_content') {
         const kind = body.kind, format = body.format;
-        if (!['lesson', 'worksheet', 'assessment', 'answer'].includes(kind) || !['lesson-pack', 'html', 'pdf'].includes(format)) throw new HttpError('자료 종류를 확인해 주세요.');
-        if (format === 'lesson-pack' && kind !== 'lesson') throw new HttpError('수업 묶음 형식은 일반 수업에만 사용할 수 있습니다.');
+        if (!['lesson', 'worksheet', 'assessment', 'answer'].includes(kind) || !['html', 'pdf'].includes(format)) throw new HttpError('수업은 HTML, 학습지는 PDF 파일로 올려 주세요.');
+        if ((kind === 'lesson' && format !== 'html') || (kind === 'worksheet' && format !== 'pdf')) throw new HttpError('수업은 HTML, 학습지는 PDF 파일로 올려 주세요.');
         const unit = stringValue(body.unit_id, '단원', 100);
         const lesson = body.lesson_id == null || body.lesson_id === '' ? null : stringValue(body.lesson_id, '차시', 100);
         if (!IDENTIFIER.test(unit) || RESERVED_IDS.has(unit) || (lesson && (!IDENTIFIER.test(lesson) || RESERVED_IDS.has(lesson))) || (kind === 'assessment' && (!lesson || !/_eval$/.test(unit)))) throw new HttpError('단원 또는 차시 식별자를 확인해 주세요.');
-        const quiz = quizData(body.quiz_data ?? existing?.quiz_data);
-        if (quiz.length && kind !== 'lesson') throw new HttpError('일반 수업 이외에는 퀴즈 정답을 연결할 수 없습니다.');
+        if (kind === 'lesson' || kind === 'worksheet') validateLessonIdentity(unit, lesson);
+        const quiz: Row[] = [];
         const protectedItem = kind === 'assessment' || kind === 'answer';
         item = { id, kind, format, title: stringValue(body.title, '제목'), description: String(body.description ?? '').slice(0, 2000), unit_id: unit, unit_title: String(body.unit_title ?? unit).slice(0, 200), lesson_id: lesson, published: body.published === true, student_access: kind === 'answer' ? false : body.student_access === true, quiz_data: quiz, has_quiz: quiz.length > 0, content: null, storage_path: null, archived_at: null };
         if (protectedItem && body.student_access == null) item.student_access = false;
@@ -521,9 +385,9 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
             await db.storage(newPath, bytes); item.storage_path = newPath;
           }
         } else {
-          if (format === 'html' ? typeof body.content !== 'string' : !object(body.content)) throw new HttpError('수업 내용 형식을 확인해 주세요.');
-          if (new TextEncoder().encode(JSON.stringify(body.content)).byteLength > MAX_TEXT) throw new HttpError('수업 내용은 2MB 이내로 올려 주세요.', 413);
-          item.content = format === 'lesson-pack' ? publicPack(body.content, quiz, lesson) : body.content;
+          if (typeof body.content !== 'string' || !body.content.trim() || body.content.includes('\0')) throw new HttpError('수업 HTML 파일을 확인해 주세요.');
+          if (new TextEncoder().encode(body.content).byteLength > MAX_TEXT) throw new HttpError('수업 HTML은 10MB 이내로 올려 주세요.', 413);
+          item.content = body.content;
         }
       } else {
         item = { ...existing };
@@ -544,7 +408,7 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       catch (error) {
         // A lost response does not prove that the transaction failed. Retain the
         // private object on uncertain errors; delete only a confirmed rollback.
-        if (newPath && error instanceof HttpError && error.code === 'VERSION_CONFLICT') await db.remove(newPath);
+        if (newPath && error instanceof HttpError && ['VERSION_CONFLICT', 'CONTENT_IDENTITY_CONFLICT'].includes(error.code)) await db.remove(newPath);
         throw error;
       }
       // Previous PDF objects remain private and are referenced by immutable
