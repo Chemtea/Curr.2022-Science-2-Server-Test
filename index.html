@@ -2760,13 +2760,13 @@
     <link rel="stylesheet" href="./assets/content-manager.css">
 </head>
 <body>
-    <!-- ===== 운영 서버 ENVIRONMENT MARKER ===== -->
+    <!-- ===== 테스트 서버 ENVIRONMENT MARKER ===== -->
     <div id="supabaseTestEnvBanner" style="position:fixed;right:14px;bottom:14px;display:none;visibility:hidden;opacity:0;z-index:2147483647;min-width:250px;max-width:360px;padding:12px 15px;border-radius:14px;background:rgba(69,10,10,.96);border:2px solid #f59e0b;box-shadow:0 10px 35px rgba(0,0,0,.55);color:#fff;font-family:Pretendard,-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;pointer-events:auto;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-            <div style="font-size:1rem;font-weight:950;color:#fde68a;letter-spacing:.02em;">☁️ 운영 서버</div>
+            <div style="font-size:1rem;font-weight:950;color:#fde68a;letter-spacing:.02em;">🧪 테스트 서버</div>
             <button type="button"
                     onclick="dismissProductionServerPanel()"
-                    aria-label="운영 서버 연결 상태 창 닫기"
+                    aria-label="테스트 서버 연결 상태 창 닫기"
                     title="연결 상태 창 닫기"
                     style="border:1px solid rgba(253,230,138,.45);background:rgba(15,23,42,.72);color:#fde68a;width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:900;line-height:1;">✕</button>
         </div>
@@ -2778,7 +2778,7 @@
         <div id="supabaseTestSubmissionStatus" style="margin-top:2px;font-size:.78rem;font-weight:800;color:#fecaca;">제출 서버 확인 중...</div>
         <div id="supabaseTestAcademicYearStatus" style="margin-top:2px;font-size:.78rem;font-weight:800;color:#fecaca;">학년도 서버 확인 중...</div>
         <div style="margin-top:5px;padding-top:5px;border-top:1px solid rgba(253,230,138,.18);font-size:.68rem;color:#fcd34d;">
-            정식 운영 Supabase 서버 · 실제 수업 데이터 사용
+            science-platform-test · 테스트 데이터만 사용
         </div>
     </div>
 
@@ -2861,7 +2861,7 @@
             <div class="header-text-area">
                 <div class="header-top-row">
                     <span class="header-tag">중학교 2학년 과학 디지털 탐구 플랫폼</span>
-                    <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:#7f1d1d;border:1px solid #f59e0b;color:#fde68a;font-size:.78rem;font-weight:950;">☁️ 운영 서버</span>
+                    <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;background:#7f1d1d;border:1px solid #f59e0b;color:#fde68a;font-size:.78rem;font-weight:950;">🧪 테스트 서버</span>
                     
                     <div id="userAuthDisplayArea">
                         <button class="btn-auth-login-main" onclick="openStudentLoginModal()">🔑 로그인 (학생/교사)</button>
@@ -2874,7 +2874,7 @@
             
             <div class="qr-header-card" onclick="openQrModal()" title="클릭하여 대형 QR코드로 확대">
                 <div class="qr-thumb-box">
-                    <img src="github QR.jpg" alt="웹사이트 접속 QR코드">
+                    <img src="assets/test-qr.svg" alt="웹사이트 접속 QR코드">
                 </div>
                 <div class="qr-info-text">
                     <div class="qr-info-title">📱 학생 빠른 접속 🔍</div>
@@ -2888,7 +2888,7 @@
         <div class="qr-modal-card" onclick="event.stopPropagation()">
             <h3 style="color:#f8fafc; font-size:1.3rem; margin-bottom:4px;">📱 모바일·태블릿 빠른 접속</h3>
             <p style="color:#94a3b8; font-size:0.9rem;">카메라로 QR코드를 스캔하면 플랫폼으로 바로 연결됩니다.</p>
-            <img class="qr-modal-img" src="github QR.jpg" alt="접속 QR코드 확대">
+            <img class="qr-modal-img" src="assets/test-qr.svg" alt="접속 QR코드 확대">
             <p style="color:#38bdf8; font-size:0.85rem; font-weight:700;">중2 과학 디지털 시뮬레이션 학습관</p>
             <button class="qr-modal-close-btn" onclick="closeQrModal()">닫기</button>
         </div>
@@ -4902,7 +4902,7 @@ window.addEventListener('storage',event=>{
 
     </script>
     <script>
-        // [SUPABASE PRODUCTION] 이 파일은 실제 수업용 GAS가 아니라 운영 서버 백엔드만 사용합니다.
+        // [SUPABASE PRODUCTION] 이 파일은 실제 수업용 GAS가 아니라 테스트 서버 백엔드만 사용합니다.
         // 수업 도구 업데이트: 관리자 메뉴 · 포인트 애니메이션 · 학생 추첨 연출
         // [SUPABASE PRODUCTION] 서버 주소는 platform-config.js 한 곳에서만 관리합니다.
         if (!window.PLATFORM_CONFIG) {
@@ -5170,7 +5170,7 @@ window.addEventListener('storage',event=>{
                     }
                 }
 
-                // 운영 서버에서는 400/503이어도 서버가 JSON으로
+                // 테스트 서버에서는 400/503이어도 서버가 JSON으로
                 // 구체적인 실패 사유를 보내면 통신 장애가 아니라 정상적인 앱 응답으로 처리합니다.
                 if (!response.ok) {
                     if (data && typeof data === 'object' &&
@@ -8049,7 +8049,7 @@ window.addEventListener('storage',event=>{
                 }
             }
 
-            console.error("운영 서버 잠금 상태 확인 실패:", lastError);
+            console.error("테스트 서버 잠금 상태 확인 실패:", lastError);
             worksheetCloudReady = false;
             const worksheetView = document.getElementById('worksheetView');
             if (worksheetView && worksheetView.style.display === 'block') renderWorksheetList();
@@ -8974,7 +8974,7 @@ window.addEventListener('storage',event=>{
 
         function verifyAdminKey(key, callback) {
             // [SUPABASE PRODUCTION] 관리자 비밀번호 원문은 전송하지 않고
-            // 브라우저에서 SHA-256으로 변환한 값만 운영 서버로 보냅니다.
+            // 브라우저에서 SHA-256으로 변환한 값만 테스트 서버로 보냅니다.
             sha256(key)
             .then(passwordHash => fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
