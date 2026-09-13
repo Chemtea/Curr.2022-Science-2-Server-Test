@@ -422,6 +422,14 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       if (body.action === 'get_content') {
         if (!canRead(existing!, context.role, locks)) throw new HttpError('공개되지 않았거나 접근할 수 없는 자료입니다.', 403, 'CONTENT_LOCKED');
         if (existing!.format === 'pdf') return json({ success: true, item: metadata(existing!), file_base64: encode(await db.storage(existing!.storage_path) as Uint8Array), mime: 'application/pdf' });
+        if (context.role === 'student' && existing!.kind === 'lesson' && existing!.format === 'lesson-pack') {
+          // A teacher may restore a pre-v3 format while a learner has a frozen
+          // v3 attempt. Keep its public lesson/quiz paired with that attempt so
+          // the browser cannot silently fall back to mutable legacy answers.
+          // Deliberately do not select private_keys, answers or result here.
+          const frozen = await db.one('content_quiz_sessions', { select: 'public_snapshot,content_version', account_id: `eq.${context.user!.id}`, content_id: `eq.${id}` });
+          if (frozen?.public_snapshot?.schema === 'science-lesson/v3') return json({ success: true, item: metadata(existing!), content: frozen.public_snapshot, contentVersion: frozen.content_version, frozenQuizVersion: true, mime: 'application/json' });
+        }
         return json({ success: true, item: metadata(existing!), content: existing!.content, mime: existing!.format === 'html' ? 'text/html' : 'application/json' });
       }
       if (['begin_quiz', 'answer_quiz', 'review_quiz'].includes(body.action) || (body.action === 'submit_quiz' && (existing!.content?.schema === 'science-lesson/v3' || body.attempt_id != null))) {
@@ -441,6 +449,8 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
         if (context.role !== 'student' || context.user?.account_type === 'manager' || existing!.kind !== 'lesson' || !canRead(existing!, context.role, locks)) throw new HttpError('학생에게 공개된 수업에서만 제출할 수 있습니다.', 403);
         const step4 = object(locks) ? locks.step_locks?.[existing!.lesson_id]?.['4'] : undefined;
         if (step4 === true || (BUILTIN.test(String(existing!.lesson_id)) && step4 !== false)) throw new HttpError('형성평가가 잠겨 있습니다.', 403);
+        const frozen = await db.one('content_quiz_sessions', { select: 'id', account_id: `eq.${context.user!.id}`, content_id: `eq.${id}` });
+        if (frozen) throw new HttpError('시작한 형성평가 기록으로 제출해야 합니다. 수업을 다시 열어 주세요.', 409, 'QUIZ_ATTEMPT_REQUIRED');
         const questions = quizData(existing!.quiz_data);
         const graded = grade(questions, body.answers);
         const requestId = body.requestId ?? crypto.randomUUID();

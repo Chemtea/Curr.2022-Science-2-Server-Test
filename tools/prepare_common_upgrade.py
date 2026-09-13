@@ -20,6 +20,7 @@ def main():
         lesson=path.stem
         if not (a.old_records/path.name).exists():continue
         old=json.loads((a.old_records/path.name).read_text());new=json.loads(path.read_text())
+        if '$upgrade$' in json.dumps([old,new],ensure_ascii=False):raise RuntimeError('SQL delimiter collision in source; no migration prepared')
         if old.get('lesson_id')!=lesson or new['metadata']['lesson_id']!=lesson:raise RuntimeError('Lesson identity mismatch')
         # Safe identifiers must still be SQL-quoted as values, never interpolated as names.
         key="'"+lesson.replace("'","''")+"'"

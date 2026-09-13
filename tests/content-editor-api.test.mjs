@@ -54,6 +54,7 @@ function fixture({ current = item, snapshots = [old], rpcError, sessionChange = 
       if (table === 'app_users') return { id: accountId, login_id: lastRole === 'admin' ? 'admin' : 'test_student', account_type: lastRole, status: '등록완료' };
       if (table === 'app_settings') return { setting_value: clone(locks) };
       if (table === 'content_items') return clone(rows.get(query.id.slice(3)) ?? null);
+      if (table === 'content_quiz_sessions') return null;
       if (table === 'content_versions') return clone(history.find(row => query.content_id === `eq.${row.content_id}` && query.version === `eq.${row.version}`) ?? null);
       throw new Error(`Unexpected read: ${table}`);
     },

@@ -9,15 +9,17 @@ const pack={schema:'science-lesson/v3',title:'Synthetic common lesson',display:{
 const item={id,kind:'lesson',format:'lesson-pack',unit_id:'testunit',lesson_id:'newlesson',title:pack.title,published:true,student_access:true,version:3,content:pack,quiz_data:keys};
 const req=body=>new Request('https://test.invalid',{method:'POST',headers:{'Content-Type':'application/json',Origin:'https://chemtea.github.io'},body:JSON.stringify({id,studentSessionToken:token,...body})});
 function setup(overrides={}){
- const calls=[];
- const store={async one(table){
+ const calls=[],reads=[];
+ const store={async one(table,query){
+  reads.push({table,query});
   if(table==='app_sessions')return {account_id:account,account_type:'student',session_type:'student',expires_at:'2026-09-13T13:00:00Z'};
   if(table==='app_users')return {id:account,login_id:'synthetic',account_type:'student',status:'등록완료',...(overrides.user||{})};
   if(table==='app_settings')return {setting_value:overrides.locks||{}};
   if(table==='content_items')return {...item,...(overrides.item||{})};
+  if(table==='content_quiz_sessions')return overrides.frozen ?? null;
   throw Error(table);
  },async request(path,query,body){calls.push({path,body});return {attempt:{id:attempt,contentVersion:3,content:pack,answers:[null],feedback:[null],submitted:false,result:null}};}};
- return {handler:createHandler({env,store,now:()=>now}),calls};
+ return {handler:createHandler({env,store,now:()=>now}),calls,reads};
 }
 test('v3 roundtrip preserves required context, display, review links and private rich feedback separately',()=>{
  assert.deepEqual(publicPack(pack,quizData(keys),'newlesson'),pack);
@@ -59,4 +61,35 @@ test('stable SQL first-choice/version/incomplete errors map to reviewable API re
   const db=new RestStore('https://test.invalid','synthetic',async()=>new Response(JSON.stringify({message}),{status:400}));
   await assert.rejects(()=>db.request('rpc/content_quiz_engine',{},{}),e=>e.code===message&&e.status===status);
  }
+});
+
+const legacyPack={schema:'science-lesson/v2',title:'Restored older schema',steps:[{title:'Old stage',html:'<p>Old lesson</p>'}],quiz:[{question:'Old question',choices:['A','B']}],simulation:{html:'',css:'',js:'',dependencies:[],microphone:false}};
+test('student get_content keeps a started v3 snapshot after teacher restores a v2 format, with only public scoped columns',async()=>{
+ const {handler,reads}=setup({item:{version:4,content:legacyPack},frozen:{id:attempt,public_snapshot:pack,content_version:3,private_keys:keys,answers:[1],result:{score:0}}});
+ const response=await handler(req({action:'get_content',account_id:'forged-other-account'}));
+ assert.equal(response.status,200);const result=await response.json();
+ assert.deepEqual(result.content,pack);assert.equal(result.item.version,4);assert.equal(result.contentVersion,3);assert.equal(result.frozenQuizVersion,true);
+ const frozenRead=reads.find(r=>r.table==='content_quiz_sessions');
+ assert.deepEqual(frozenRead.query,{select:'public_snapshot,content_version',account_id:`eq.${account}`,content_id:`eq.${id}`});
+ for(const secret of ['private_keys','Specific reason','Original explanation','answers','score'])assert.equal(JSON.stringify(result).includes(secret),false);
+});
+test('legacy submit cannot bypass the first-choice lock after a v3 attempt exists, even after a schema restore',async()=>{
+ const {handler,calls,reads}=setup({item:{version:4,content:legacyPack},frozen:{id:attempt}});
+ const response=await handler(req({action:'submit_quiz',answers:[2],score:999}));
+ assert.equal(response.status,409);assert.equal((await response.json()).code,'QUIZ_ATTEMPT_REQUIRED');assert.equal(calls.length,0);
+ assert.deepEqual(reads.find(r=>r.table==='content_quiz_sessions').query,{select:'id',account_id:`eq.${account}`,content_id:`eq.${id}`});
+});
+test('v1/v2 students with no frozen v3 session retain legacy reads and submissions',async()=>{
+ for(const schema of ['science-lesson/v1','science-lesson/v2']){
+  const older={...legacyPack,schema};
+  const {handler,calls}=setup({item:{version:4,content:older}});
+  const contentResponse=await handler(req({action:'get_content'}));assert.equal(contentResponse.status,200);assert.deepEqual((await contentResponse.json()).content,older);
+  const submitResponse=await handler(req({action:'submit_quiz',answers:[2]}));assert.equal(submitResponse.status,200);
+  assert.equal(calls.length,1);assert.equal(calls[0].path,'rpc/content_record_quiz');assert.deepEqual(calls[0].body.p_answers,[2]);
+ }
+});
+test('current permissions still block frozen content before its snapshot is read',async()=>{
+ const {handler,reads}=setup({item:{student_access:false},frozen:{public_snapshot:pack,content_version:3}});
+ assert.equal((await handler(req({action:'get_content'}))).status,403);
+ assert.equal(reads.some(r=>r.table==='content_quiz_sessions'),false);
 });

@@ -20,6 +20,7 @@ function store(overrides = {}) {
       if (table === 'app_users') return user;
       if (table === 'app_settings') return { setting_value: locks };
       if (table === 'content_items') return item;
+      if (table === 'content_quiz_sessions') return null;
       throw new Error('Unexpected table');
     },
     async request(path, query, body) {
