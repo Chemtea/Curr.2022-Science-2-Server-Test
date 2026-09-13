@@ -1,0 +1,177 @@
+
+
+    <!-- [교사용 상단 원터치 잠금 통제 바] -->
+    <div id="adminStepBar" class="admin-step-bar">
+        <div class="admin-step-bar-inner">
+            <div class="admin-title">
+                <span>🛠️ <b>수업 단계 잠금 제어기</b></span>
+                <span id="syncStatusTag" style="font-size:0.78rem; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:12px; color:#a5b4fc;">실시간 동기화 켬</span>
+            </div>
+            <div class="admin-btn-group">
+                <button class="admin-toggle-chip unlocked" id="admBtn1" onclick="toggleStepLock(1)">1단계: 🔓공개</button>
+                <button class="admin-toggle-chip locked" id="admBtn2" onclick="toggleStepLock(2)">2단계: 🔒잠김</button>
+                <button class="admin-toggle-chip locked" id="admBtn3" onclick="toggleStepLock(3)">3단계: 🔒잠김</button>
+                <button class="admin-toggle-chip locked" id="admBtn4" onclick="toggleStepLock(4)">4단계: 🔒잠김</button>
+                <button class="admin-exit-btn admin-quick-point-launch" onclick="window.AdminQuickPoints && window.AdminQuickPoints.open()">⭐ 빠른 포인트</button>
+                <button class="admin-exit-btn" onclick="exitAdminMode()">관리자 모드 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <span class="header-tag">중학교 2학년 과학 - 3. 빛과 파동</span>
+        <h1 id="lesson-title">🌟 빛의 반사와 거울 탐구 프로그램</h1>
+        <p class="subtitle">입사각과 반사각의 측정 · 정반사와 난반사 · 평면거울의 가상 상 작도</p>
+        <div class="header-login-area">
+            <span id="headerLoginStatus" class="header-login-status">👤 미로그인</span>
+            <button id="headerLoginBtn" class="header-login-btn" onclick="openPageLoginModal()">🔑 로그인</button>
+            <button id="headerLogoutBtn" class="header-logout-btn" onclick="logoutPageUser()">로그아웃</button>
+        </div>
+    </header>
+
+    <div class="step-nav">
+        <button class="step-btn active" id="tabBtn1" onclick="trySwitchStep(1)">
+            <span>1단계: 빛의 반사 핵심 개념</span>
+            <span class="lock-badge-icon" id="tabLockIcon1"></span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn2" onclick="trySwitchStep(2)">
+            <span>2단계: 빛의 반사 법칙 시뮬레이션</span>
+            <span class="lock-badge-icon" id="tabLockIcon2">🔒</span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn3" onclick="trySwitchStep(3)">
+            <span>3단계: 정반사·난반사 & 평면거울 상</span>
+            <span class="lock-badge-icon" id="tabLockIcon3">🔒</span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn4" onclick="trySwitchStep(4)">
+            <span>4단계: 핵심 형성평가 & 결과 제출</span>
+            <span class="lock-badge-icon" id="tabLockIcon4">🔒</span>
+        </button>
+    </div>
+
+    <div class="container">
+
+        <!-- 1단계: 교과서 상세 개념 -->
+        <div id="step1" class="step-content active"></div>
+
+        <!-- 2단계: 빛의 반사 법칙 시뮬레이션 -->
+        <div id="step2" class="step-content"></div>
+
+        <!-- 3단계: 정반사 vs 난반사 & 평면거울 상 생성 -->
+        <div id="step3" class="step-content"></div>
+
+        <!-- 4단계: 핵심 형성평가 & 결과 제출 -->
+        <div id="step4" class="step-content"></div>
+
+    </div>
+
+    <!-- 우측 하단 관리자 로그인 버튼 -->
+    <button class="admin-float-btn" onclick="openAdminModal()">⚙️ 교사용 단계 잠금 관리</button>
+
+    <!-- 관리자 인증 모달 -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔑 관리자 비밀번호 인증</h3>
+            <p>교사용 관리자 비밀번호를 입력하면 수업 단계별 실시간 잠금 제어 바가 활성화됩니다.</p>
+            <input type="password" id="adminPwInput" placeholder="비밀번호 입력" autocomplete="off">
+            <div class="modal-btn-group">
+                <button class="modal-cancel" onclick="closeAdminModal()">취소</button>
+                <button class="modal-confirm" id="adminModalConfirmBtn" onclick="submitAdminAuth()">인증하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 페이지 공통 학생/교사 로그인 모달 -->
+    <div id="pageLoginModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔑 로그인</h3>
+            <p>학번 또는 관리자 ID와 비밀번호를 입력해 주세요.</p>
+            <input type="text" id="pageLoginId" maxlength="10" placeholder="학번(4자리) 또는 ID(admin)" autocomplete="username">
+            <input type="password" id="pageLoginPw" placeholder="비밀번호 입력" autocomplete="current-password">
+            <div class="modal-btn-group">
+                <button class="modal-cancel" onclick="closePageLoginModal()">닫기</button>
+                <button class="modal-confirm" id="btnSubmitPageLogin" onclick="submitPageLogin()">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <footer><a href="index.html">과학 플랫폼으로 돌아가기</a></footer>
+
+    
+
+
+
+
+    
+
+
+<!-- LESSON_WORKSHEET_DRAWER_START -->
+<div id="ctw-root" data-worksheet-version="2026-09-13.3" class="ctw-tools-collapsed" data-lesson="u3_l1" data-pdf="worksheets/3_01_light_reflection.pdf">
+  <button id="ctw-toggle" class="ctw-toggle" type="button" aria-controls="ctw-panel" aria-expanded="false" title="이 차시 학습지 펼치기">▤ <span>학습지</span></button>
+  <aside id="ctw-panel" class="ctw-panel" aria-labelledby="ctw-title" aria-hidden="true" inert hidden>
+    <div id="ctw-resizer" class="ctw-resizer" role="separator" aria-label="학습지 패널 너비" aria-orientation="vertical" aria-valuemin="340" aria-valuemax="800" aria-valuenow="480" tabindex="0"></div>
+    <div class="ctw-head">
+      <div><div class="ctw-eyebrow">수업과 함께 보는 학습지</div><h2 id="ctw-title">3단원 1차시 · 빛의 반사와 거울</h2></div>
+    </div>
+    <div class="ctw-quickbar" role="group" aria-label="학습지 빠른 도구">
+      <button id="ctw-controls-toggle" type="button" aria-controls="ctw-controls" aria-expanded="false" aria-label="도구 펼치기" title="파일·페이지 도구 펼치기">도구 ▾</button>
+    <div class="ctw-tools" role="group" aria-label="학습지 필기 도구">
+      <button type="button" data-tool="move" aria-pressed="true" data-pdf-control disabled>이동</button>
+      <button type="button" data-tool="pen" aria-pressed="false" data-pdf-control disabled>펜</button>
+      <button type="button" data-tool="highlight" aria-pressed="false" data-pdf-control disabled>형광펜</button>
+      <button type="button" data-tool="text" aria-pressed="false" data-pdf-control disabled>글자</button>
+      <label class="ctw-color-label">색 <input id="ctw-color" type="color" value="#dc2626" aria-label="펜·형광펜·글자 색" data-pdf-control disabled></label>
+      <button id="ctw-undo" type="button" aria-label="되돌리기" title="이 페이지의 마지막 필기 지우기" data-pdf-control disabled>↶</button>
+      <button id="ctw-clear" type="button" data-pdf-control disabled>쪽 지우기</button>
+    </div>
+      <button id="ctw-quick-prev" class="ctw-quick-page" type="button" aria-label="이전 페이지" title="이전 페이지" data-pdf-control disabled>‹</button>
+      <button id="ctw-quick-next" class="ctw-quick-page" type="button" aria-label="다음 페이지" title="다음 페이지" data-pdf-control disabled>›</button>
+      <button id="ctw-close" class="ctw-close" type="button" aria-label="학습지 접기" title="학습지 접기 (Esc)">✕</button>
+    </div>
+    <div id="ctw-controls" class="ctw-controls" hidden>
+    <div id="ctw-lock-status" class="ctw-lock-status" role="status" aria-live="polite">학습지 공개 상태 확인 중</div>
+    <div id="ctw-lock-admin" class="ctw-lock-admin" role="group" aria-label="관리자 학습지 잠금" hidden>
+      <button id="ctw-lock-item" type="button" disabled>이 학습지 잠금</button>
+      <button id="ctw-lock-unit" type="button" disabled>단원 잠금</button>
+      <button id="ctw-lock-archive" type="button" disabled>보관함 전체 잠금</button>
+    </div>
+    <div class="ctw-toolbar" aria-label="학습지 파일">
+      <button id="ctw-default" type="button" title="이 차시의 등록된 학습지 다시 열기">차시 학습지</button>
+      <button id="ctw-local" type="button">내 PDF 열기</button>
+      <button id="ctw-print" type="button" disabled>필기 포함 인쇄</button>
+      <input id="ctw-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+    <div id="ctw-source" class="ctw-source"></div>
+    <div class="ctw-toolbar" aria-label="학습지 페이지와 확대">
+      <button id="ctw-prev" type="button" aria-label="이전 페이지" data-pdf-control disabled>‹</button>
+      <label class="ctw-page-label"><input id="ctw-page" type="number" min="1" value="1" aria-label="학습지 페이지" data-pdf-control disabled> <span id="ctw-pages">/ — 쪽</span></label>
+      <button id="ctw-next" type="button" aria-label="다음 페이지" data-pdf-control disabled>›</button>
+      <label>확대 <select id="ctw-zoom" aria-label="학습지 확대" data-pdf-control disabled><option value="1">100% · 너비 맞춤</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+    </div>
+
+    </div>
+    <form id="ctw-text-form" class="ctw-text-form" hidden>
+      <label for="ctw-text">누른 위치에 넣을 글자</label><span id="ctw-text-help" class="ctw-text-help">Enter 넣기 · Shift+Enter 줄바꿈</span>
+      <textarea id="ctw-text" aria-describedby="ctw-text-help" rows="2" maxlength="500" placeholder="함께 정리할 내용을 입력하세요"></textarea>
+      <div class="ctw-text-actions">
+        <label class="ctw-text-size-label" for="ctw-text-size">글자 크기 <input id="ctw-text-size" type="number" min="50" max="300" step="1" value="100" inputmode="numeric" aria-label="글자 크기, 기존 크기의 백분율">%</label>
+        <button id="ctw-text-size-reset" type="button" title="기존 글자 크기 100%로 되돌리기">기본</button>
+        <button type="submit">넣기</button><button id="ctw-text-cancel" type="button">취소</button>
+      </div>
+    </form>
+    <div id="ctw-status" class="ctw-status" role="status" aria-live="polite">학습지를 펼치면 이 차시의 PDF를 불러옵니다.</div>
+    <div class="ctw-view-shell">
+    <div id="ctw-zoom-toast" class="ctw-zoom-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="ctw-view" class="ctw-view" tabindex="0" aria-label="학습지 보기 영역">
+      <div id="ctw-empty" class="ctw-empty"><p id="ctw-empty-message">학습지를 준비하고 있습니다.</p><button id="ctw-lock-retry" type="button">다시 확인</button></div>
+      <div id="ctw-stage" class="ctw-stage" hidden>
+        <canvas id="ctw-pdf" role="img" aria-label="학습지 PDF 페이지"></canvas>
+        <canvas id="ctw-ink" aria-label="학습지 필기 영역"></canvas>
+      </div>
+    </div>
+    </div>
+    <div class="ctw-foot"><span id="ctw-save-note">필기: 이 기기·브라우저에 저장 (아이디별 아님, 자동 만료 없음). 사이트 데이터 삭제 시 사라집니다.</span></div>
+  </aside>
+</div>
+<!-- LESSON_WORKSHEET_DRAWER_END -->
+
+

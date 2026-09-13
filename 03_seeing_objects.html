@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script src="./platform-config.js"></script>
+<script src="./lock-realtime-client.js"></script>
+<script>window.LESSON_CONFIG=Object.freeze({"templateMode": false, "unitKey": "unit3", "lessonKey": "u3_l3", "lessonName": "3단원 3차시 - 물체를 보는 과정", "pageTitle": "중2 과학 3단원 - 물체를 보는 과정", "headerTag": "중학교 2학년 과학 - 3. 빛과 파동", "title": "👁️ 물체를 보는 과정", "subtitle": "빛은 어디에서 출발하여 어떤 경로로 눈에 들어올까요?", "tabs": ["1단계: 개념 학습", "2단계: 책을 보는 조건 탐구", "3단계: 물고기 빛 경로 탐구", "4단계: 형성평가 & 결과 제출"], "worksheetPath": "worksheets/3_03_seeing_objects.pdf", "worksheetTitle": "3차시 학습지 · 물체를 보는 과정", "footer": "© 중2 과학 물체를 보는 과정 탐구 프로그램 · 교과서 102~103쪽", "fallbackSchoolYear": 2026, "trustedBuiltin": true});window.MASTER_LESSON_CONFIG=window.LESSON_CONFIG;</script>
+<script src="./assets/lesson-master.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중2 과학 수업 공통 마스터</title>
+    <!-- MASTER_LESSON_VERSION: 2026-09-12.3
+이 파일은 옴의 법칙 수업을 예시로 담은 공통 마스터입니다.
+새 차시 제작 시 ML:EDIT 주석 내부 9곳만 수정하세요. 나머지는 공통 기능·디자인입니다.
+NEW_LESSON_PROMPT.txt와 함께 사용하고 validate_masterlesson.py로 고정 영역을 비교하세요.
+-->
+
+
+
+    <!-- ================= [차시 및 단계 실시간 잠금 가드 스크립트] ================= -->
+    <script src="./assets/lesson-locks.js"></script>
+    <!-- ============================================================= -->
+
+    <link rel="stylesheet" href="./assets/lesson-base.css">
+<link rel="stylesheet" href="./assets/lesson-style-u3_l3.css">
+<style id="ml-template-style">
+#ml-template-banner { margin:0; padding:9px 16px; color:#fef3c7; background:#493619; border-bottom:1px solid #9b792d; font:13px/1.6 sans-serif; }
+#ml-template-banner[hidden] { display:none !important; }
+</style>
+<style id="ml-content-style">
+/* ML:EDIT:LESSON_CSS:START */
+#ml-step2-content .seeing-intro, #ml-step3-content .seeing-intro { color:#cbd5e1; margin-bottom:18px; line-height:1.8; }
+#ml-step2-content .seeing-controls, #ml-step3-content .seeing-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding:18px; background:#131b2e; border:1px solid #334155; border-radius:12px; margin-bottom:16px; }
+#ml-step2-content .seeing-control, #ml-step3-content .seeing-control { display:flex; flex-direction:column; gap:8px; color:#e2e8f0; min-width:0; }
+#ml-step2-content .seeing-control select, #ml-step3-content .seeing-control select { width:100%; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:8px; padding:10px; font:inherit; }
+#ml-step2-content .seeing-control select:disabled { opacity:.6; }
+#ml-step2-content .seeing-toggles, #ml-step3-content .seeing-toggles { display:flex; align-items:center; flex-wrap:wrap; gap:16px; }
+#ml-step2-content .seeing-toggles label, #ml-step3-content .seeing-toggles label { display:flex; align-items:center; gap:7px; min-height:36px; cursor:pointer; }
+#ml-step2-content .seeing-toggles input, #ml-step3-content .seeing-toggles input { accent-color:#38bdf8; width:18px; height:18px; }
+#ml-step3-content .seeing-control input[type="range"] { width:100%; min-height:32px; accent-color:#38bdf8; }
+#ml-step2-content .seeing-wide, #ml-step3-content .seeing-wide { grid-column:1 / -1; }
+#ml-step2-content .seeing-scroll, #ml-step3-content .seeing-scroll { overflow-x:auto; max-width:100%; border:1px solid #334155; border-radius:12px; background:#0f172a; margin-bottom:12px; }
+#ml-step2-content .seeing-svg, #ml-step3-content .seeing-svg { display:block; width:100%; min-width:620px; height:auto; font-family:inherit; }
+#ml-step2-content .seeing-caption, #ml-step3-content .seeing-caption { font-size:.88rem; color:#a8b8cc; line-height:1.7; margin:10px 0 16px; }
+#ml-step2-content .seeing-result, #ml-step3-content .seeing-result { background:#182238; border:1px solid #334155; border-radius:12px; padding:16px; margin:14px 0 20px; color:#e2e8f0; line-height:1.8; }
+#ml-step2-content .seeing-result strong[data-visible="true"] { color:#6ee7b7; }
+#ml-step2-content .seeing-result strong[data-visible="false"] { color:#fda4af; }
+#ml-step2-content .seeing-actions, #ml-step3-content .seeing-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:12px 0; }
+#ml-step2-content .seeing-table, #ml-step3-content .seeing-table { width:100%; min-width:560px; border-collapse:collapse; color:#e2e8f0; font-size:.92rem; }
+#ml-step2-content .seeing-table th, #ml-step2-content .seeing-table td, #ml-step3-content .seeing-table th, #ml-step3-content .seeing-table td { padding:10px 12px; text-align:left; border-bottom:1px solid #334155; }
+#ml-step2-content .seeing-table th, #ml-step3-content .seeing-table th { color:#7dd3fc; background:#182238; }
+#ml-step3-content .seeing-order { display:flex; flex-wrap:wrap; gap:10px 25px; min-height:55px; margin:16px 0 16px 28px; }
+#ml-step3-content .seeing-order li { padding:7px 12px; background:#0f172a; border:1px solid #38bdf8; border-radius:7px; color:#e2e8f0; }
+#ml-step3-content .seeing-actions button:disabled { opacity:.45; cursor:default; transform:none; }
+@media (max-width:650px) {
+  #ml-step2-content .seeing-controls, #ml-step3-content .seeing-controls { grid-template-columns:1fr; padding:14px; }
+  #ml-step2-content .seeing-actions .sim-btn, #ml-step3-content .seeing-actions .sim-btn { min-height:42px; }
+}
+
+#ml-step1-content .seeing-key { border-left:3px solid #38bdf8; padding:12px 15px; background:#0f172a; border-radius:0 8px 8px 0; line-height:1.8; }
+#ml-step1-content .seeing-study-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:15px; margin:18px 0; }
+#ml-step1-content .seeing-diagram { margin:0; padding:16px; border:1px solid #334155; border-radius:12px; background:#0f172a; min-width:0; }
+#ml-step1-content .seeing-diagram h4 { color:#7dd3fc; font-size:1rem; margin-bottom:12px; }
+#ml-step1-content .seeing-study-svg { display:block; width:100%; height:auto; font-family:inherit; }
+#ml-step1-content .seeing-diagram figcaption { margin-top:12px; color:#94a3b8; font-size:.88rem; line-height:1.7; text-align:center; }
+#ml-step1-content .seeing-diagram-wide { margin:16px 0; }
+#ml-step1-content .seeing-diagram-wide .seeing-study-svg { max-width:760px; margin:auto; }
+#ml-step1-content .seeing-table-wrap { overflow-x:auto; margin:16px 0; border:1px solid #334155; border-radius:10px; }
+#ml-step1-content .seeing-concept-table { border-collapse:collapse; width:100%; color:#cbd5e1; font-size:.94rem; line-height:1.7; }
+#ml-step1-content .seeing-concept-table th, #ml-step1-content .seeing-concept-table td { text-align:left; padding:12px 14px; border-bottom:1px solid #334155; vertical-align:top; }
+#ml-step1-content .seeing-concept-table thead th { background:#182238; color:#7dd3fc; }
+#ml-step1-content .seeing-concept-table tbody th { color:#e2e8f0; width:27%; }
+#ml-step1-content .seeing-concept-table tbody tr:last-child th, #ml-step1-content .seeing-concept-table tbody tr:last-child td { border-bottom:0; }
+#ml-step1-content .seeing-flow { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin:16px 0; padding:14px; border:1px solid #334155; border-radius:10px; color:#7dd3fc; background:#0f172a; font-size:.95rem; font-weight:700; }
+#ml-step1-content .seeing-flow span { max-width:100%; }
+#ml-step1-content .seeing-advanced { background:#131b2e; border:1px solid #475569; border-radius:12px; margin:16px 0; overflow:hidden; }
+#ml-step1-content .seeing-advanced summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 20px; color:#c4b5fd; background:#182238; font-weight:bold; cursor:pointer; list-style:none; }
+#ml-step1-content .seeing-advanced summary::-webkit-details-marker { display:none; }
+#ml-step1-content .seeing-advanced summary:hover { background:#233047; }
+#ml-step1-content .seeing-advanced summary:focus-visible { outline:3px solid #38bdf8; outline-offset:-4px; }
+#ml-step1-content .seeing-fold { flex-shrink:0; font-size:.86rem; color:#cbd5e1; }
+#ml-step1-content .seeing-fold-open { display:none; }
+#ml-step1-content .seeing-advanced[open] .seeing-fold-open { display:inline; }
+#ml-step1-content .seeing-advanced[open] .seeing-fold-closed { display:none; }
+#ml-step1-content .seeing-advanced-body { padding:20px; color:#cbd5e1; line-height:1.85; }
+#ml-step1-content .seeing-advanced-body p { margin-bottom:14px; font-size:.96rem; }
+#ml-step1-content .seeing-advanced-body p:last-child { margin-bottom:0; }
+#ml-step1-content .seeing-advanced-body .seeing-optional { font-size:.86rem; color:#a5b4c8; }
+@media (max-width:600px) {
+ #ml-step1-content .concept-card-grid { grid-template-columns:minmax(0,1fr); }
+ #ml-step1-content .seeing-advanced summary { align-items:flex-start; padding:14px; }
+ #ml-step1-content .seeing-advanced-body { padding:16px; }
+ #ml-step1-content .seeing-concept-table th, #ml-step1-content .seeing-concept-table td { padding:9px 8px; font-size:.87rem; }
+ #ml-step1-content .seeing-diagram { padding:10px; }
+}
+/* ML:EDIT:LESSON_CSS:END */
+</style>
+</head>
+<body>
+<div id="ml-template-banner" hidden>마스터 미리보기 · 아래 옴의 법칙은 교체할 예시 내용입니다. 로그인·제출·포인트·잠금 서버 작업은 실행하지 않습니다.</div>
+
+    <!-- [교사용 상단 원터치 잠금 통제 바] -->
+    <div id="adminStepBar" class="admin-step-bar">
+        <div class="admin-step-bar-inner">
+            <div class="admin-title">
+                <span>🛠️ <b>수업 단계 잠금 제어기</b></span>
+                <span id="syncStatusTag" style="font-size:0.78rem; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:12px; color:#a5b4fc;">실시간 동기화 켬</span>
+            </div>
+            <div class="admin-btn-group">
+                <button class="admin-toggle-chip unlocked" id="admBtn1" onclick="toggleStepLock(1)">1단계: 🔓공개</button>
+                <button class="admin-toggle-chip locked" id="admBtn2" onclick="toggleStepLock(2)">2단계: 🔒잠김</button>
+                <button class="admin-toggle-chip locked" id="admBtn3" onclick="toggleStepLock(3)">3단계: 🔒잠김</button>
+                <button class="admin-toggle-chip locked" id="admBtn4" onclick="toggleStepLock(4)">4단계: 🔒잠김</button>
+                <button class="admin-exit-btn admin-quick-point-launch" onclick="if (window.MasterLessonRuntime.allowServerAction()) window.AdminQuickPoints && window.AdminQuickPoints.open()">⭐ 빠른 포인트</button>
+                <button class="admin-exit-btn" onclick="exitAdminMode()">관리자 모드 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <span class="header-tag" data-ml-text="headerTag"></span>
+        <h1 data-ml-text="title"></h1>
+        <p class="subtitle" data-ml-text="subtitle"></p>
+        <div class="header-login-area">
+            <span id="headerLoginStatus" class="header-login-status">👤 미로그인</span>
+            <button id="headerLoginBtn" class="header-login-btn" onclick="openPageLoginModal()">🔑 로그인</button>
+            <button id="headerLogoutBtn" class="header-logout-btn" onclick="logoutPageUser()">로그아웃</button>
+        </div>
+    </header>
+
+    <div class="step-nav">
+        <button class="step-btn active" id="tabBtn1" onclick="trySwitchStep(1)">
+            <span data-ml-tab="0"></span>
+            <span class="lock-badge-icon" id="tabLockIcon1"></span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn2" onclick="trySwitchStep(2)">
+            <span data-ml-tab="1"></span>
+            <span class="lock-badge-icon" id="tabLockIcon2">🔒</span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn3" onclick="trySwitchStep(3)">
+            <span data-ml-tab="2"></span>
+            <span class="lock-badge-icon" id="tabLockIcon3">🔒</span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn4" onclick="trySwitchStep(4)">
+            <span data-ml-tab="3"></span>
+            <span class="lock-badge-icon" id="tabLockIcon4">🔒</span>
+        </button>
+    </div>
+
+    <div class="container">
+
+        <div id="step1" class="step-content active">
+<div id="ml-step1-content">
+<!-- ML:EDIT:STEP1_CONTENT:START -->
+<h2 class="section-title">📖 1단계. 물체를 보는 과정 (교과서 p.102~103)</h2>
+
+<div class="textbook-section">
+ <h3>1. 광원과 광원이 아닌 물체</h3>
+ <p>우리가 물체를 보는 데에는 <b>빛</b>이 필요합니다. 태양이나 켜진 전등처럼 <b>스스로 빛을 내는 물체를 광원</b>이라고 합니다. 책이나 의자처럼 스스로 빛을 내지 않는 물체는 다른 곳에서 온 빛을 반사합니다.</p>
+ <div class="concept-card-grid">
+  <div class="concept-box"><h4>💡 광원 — 빛을 내는 물체</h4><p>태양, 켜진 전등, 반딧불이, 빛을 내고 있는 스마트폰 화면</p><p>이 물체에서 나온 빛이 눈에 들어오면 광원 자체를 볼 수 있습니다.</p></div>
+  <div class="concept-box"><h4>📚 광원이 아닌 물체 — 빛을 반사하는 물체</h4><p>책, 책상, 벽, 달, 스스로 빛을 내지 않는 물고기</p><p>이 물체에 도달한 빛이 반사되어 눈에 들어오면 물체를 볼 수 있습니다.</p></div>
+ </div>
+ <p class="seeing-key"><b>밝게 보인다고 모두 광원은 아닙니다.</b> 달은 태양 빛을 반사하여 밝게 보입니다. 꺼진 스마트폰 화면도 주변 빛을 반사하면 보이지만, 그때는 화면 자체가 빛을 내는 상태가 아닙니다.</p>
+</div>
+
+<div class="textbook-section">
+ <h3>2. 물체가 보일 때 빛은 어디로 진행할까?</h3>
+ <p>물체를 볼 때에는 <b>그 물체에서 오는 빛이 눈에 들어옵니다.</b> 빛의 출발점은 광원이며, 광원이 아닌 물체를 보는 경로에는 물체에서 <b>반사</b>되는 과정이 포함됩니다.</p>
+ <div class="seeing-study-grid">
+  <figure class="seeing-diagram"><h4>광원 자체를 볼 때</h4><svg class="seeing-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 235" role="img" aria-label="광원에서 나온 빛이 눈에 직접 들어오는 경로"><title>광원에서 나온 빛이 눈에 직접 들어오는 경로</title><line x1="65" y1="108" x2="290" y2="108" stroke="#fbbf24" stroke-width="3"/><polygon points="203.50,108.00 190.50,113.00 190.50,103.00" fill="#fbbf24"/><g transform="translate(65 108)"><circle r="24" fill="#fbbf2425"/><circle r="17" fill="#fde68a" stroke="#fbbf24" stroke-width="2"/><path d="M-7 16 v11 h14 V16 M-6 31 h12" fill="none" stroke="#94a3b8" stroke-width="3"/></g><g transform="translate(290 108)"><path d="M-25 0 Q0 -22 25 0 Q0 22 -25 0" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><circle r="9" fill="#38bdf8"/><circle r="4" fill="#0f172a"/></g><text x="65" y="167" text-anchor="middle" font-size="16" fill="#cbd5e1">광원</text><text x="290" y="155" text-anchor="middle" font-size="16" fill="#cbd5e1">눈</text><text x="185" y="72" text-anchor="middle" font-size="15" fill="#fbbf24">광원에서 나온 빛</text><text x="180" y="216" text-anchor="middle" font-size="19" fill="#7dd3fc">광원 → 눈</text></svg><figcaption>전등에서 나온 빛 중 일부가 눈에 <b>직접 들어옵니다.</b></figcaption></figure>
+  <figure class="seeing-diagram"><h4>스스로 빛을 내지 않는 책을 볼 때</h4><svg class="seeing-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 235" role="img" aria-label="전등에서 나온 빛이 책에서 반사된 뒤 눈에 들어오는 경로"><title>전등에서 나온 빛이 책에서 반사된 뒤 눈에 들어오는 경로</title><line x1="50" y1="55" x2="180" y2="133" stroke="#fbbf24" stroke-width="3"/><polygon points="132.26,104.36 118.54,101.95 123.69,93.38" fill="#fbbf24"/><line x1="180" y1="133" x2="305" y2="55" stroke="#fbbf24" stroke-width="3"/><polygon points="259.29,83.52 250.91,94.65 245.61,86.17" fill="#fbbf24"/><g transform="translate(50 55)"><circle r="24" fill="#fbbf2425"/><circle r="17" fill="#fde68a" stroke="#fbbf24" stroke-width="2"/><path d="M-7 16 v11 h14 V16 M-6 31 h12" fill="none" stroke="#94a3b8" stroke-width="3"/></g><g transform="translate(180 133)"><path d="M-40 0 L-7 -15 L0 -9 L7 -15 L40 0 V23 L0 8 L-40 23 Z" fill="#e2e8f0" stroke="#38bdf8" stroke-width="2"/><path d="M0 -9 V8" stroke="#64748b" stroke-width="2"/></g><g transform="translate(305 55)"><path d="M-25 0 Q0 -22 25 0 Q0 22 -25 0" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><circle r="9" fill="#38bdf8"/><circle r="4" fill="#0f172a"/></g><text x="50" y="111" text-anchor="middle" font-size="16" fill="#cbd5e1">전등</text><text x="305" y="96" text-anchor="middle" font-size="16" fill="#cbd5e1">눈</text><text x="180" y="183" text-anchor="middle" font-size="16" fill="#fbbf24">책에서 반사</text><text x="180" y="218" text-anchor="middle" font-size="19" fill="#7dd3fc">광원 → 물체 → 눈</text></svg><figcaption>전등에서 나온 빛이 <b>책에서 반사된 뒤</b> 눈에 들어옵니다.</figcaption></figure>
+ </div>
+ <p>화살표는 <b>빛이 실제로 진행하는 방향</b>입니다. 책을 보는 경로는 ‘전등 → 책 → 눈’으로 이어집니다. ‘눈 → 책 → 전등’처럼 눈에서 출발하도록 그리지 않습니다.</p>
+ <p class="seeing-key"><b>달을 보는 과정도 같은 원리입니다.</b><br>태양에서 나온 빛 → 달 표면에서 반사 → 우리 눈</p>
+</div>
+
+<div class="textbook-section">
+ <h3>3. 여러 사람이 같은 책을 볼 수 있는 까닭</h3>
+ <p>책의 표면에 도달한 빛은 여러 방향으로 반사됩니다. 서로 다른 위치에 있는 사람들은 <b>각자의 눈에 들어오는 반사광</b>을 받아 같은 책을 볼 수 있습니다. 빛이 한 사람의 눈으로만 모이는 것은 아닙니다.</p>
+ <figure class="seeing-diagram seeing-diagram-wide"><svg class="seeing-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 265" role="img" aria-label="책에서 여러 방향으로 반사된 빛 중 일부가 각각의 눈에 들어오는 모습"><title>책에서 여러 방향으로 반사된 빛 중 일부가 각각의 눈에 들어오는 모습</title><line x1="85" y1="60" x2="265" y2="160" stroke="#fbbf24" stroke-width="3"/><polygon points="196.39,121.89 182.60,119.94 187.46,111.20" fill="#fbbf24"/><line x1="265" y1="160" x2="565" y2="65" stroke="#38bdf8" stroke-width="3"/><polygon points="446.63,102.48 435.74,111.18 432.72,101.64" fill="#38bdf8"/><line x1="265" y1="160" x2="565" y2="192" stroke="#38bdf8" stroke-width="3"/><polygon points="446.95,179.41 433.50,183.00 434.56,173.06" fill="#38bdf8"/><line x1="265" y1="160" x2="376" y2="32" stroke="#64748b" stroke-width="2"/><polygon points="334.62,79.72 329.88,92.81 322.33,86.26" fill="#64748b"/><line x1="265" y1="160" x2="160" y2="32" stroke="#64748b" stroke-width="2"/><polygon points="199.03,79.57 211.14,86.45 203.41,92.80" fill="#64748b"/><g transform="translate(85 60)"><circle r="24" fill="#fbbf2425"/><circle r="17" fill="#fde68a" stroke="#fbbf24" stroke-width="2"/><path d="M-7 16 v11 h14 V16 M-6 31 h12" fill="none" stroke="#94a3b8" stroke-width="3"/></g><g transform="translate(265 160)"><path d="M-40 0 L-7 -15 L0 -9 L7 -15 L40 0 V23 L0 8 L-40 23 Z" fill="#e2e8f0" stroke="#38bdf8" stroke-width="2"/><path d="M0 -9 V8" stroke="#64748b" stroke-width="2"/></g><g transform="translate(565 65)"><path d="M-25 0 Q0 -22 25 0 Q0 22 -25 0" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><circle r="9" fill="#38bdf8"/><circle r="4" fill="#0f172a"/></g><g transform="translate(565 192)"><path d="M-25 0 Q0 -22 25 0 Q0 22 -25 0" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><circle r="9" fill="#38bdf8"/><circle r="4" fill="#0f172a"/></g><text x="85" y="113" text-anchor="middle" font-size="16" fill="#cbd5e1">전등</text><text x="265" y="216" text-anchor="middle" font-size="16" fill="#cbd5e1">책</text><text x="565" y="102" text-anchor="middle" font-size="16" fill="#cbd5e1">눈 A</text><text x="565" y="233" text-anchor="middle" font-size="16" fill="#cbd5e1">눈 B</text><text x="336" y="252" text-anchor="middle" font-size="16" fill="#7dd3fc">눈으로 들어온 빛으로 책을 봄</text></svg><figcaption>책에 도달한 빛과 반사된 빛 중 일부만 나타낸 모식도입니다. 파란색 화살표는 각각의 눈에 들어오는 반사광입니다.</figcaption></figure>
+ <p>종이·벽처럼 거친 표면에서 빛이 여러 방향으로 반사되는 현상은 <b>난반사</b>입니다. 거울처럼 다른 물체의 모습이 선명하게 비치지 않아도 반사는 일어납니다.</p>
+</div>
+
+<div class="textbook-section">
+ <h3>4. 빛이 없는 곳에서는 왜 볼 수 없을까?</h3>
+ <p>책이 눈앞에 있어도 <b>책에서 눈으로 들어오는 빛이 없다면</b> 책을 볼 수 없습니다. 외부 빛도 들어오지 않고 내부 광원도 없는 방에서는, 눈을 떠도 책을 볼 수 없습니다. 눈을 뜨는 행동이 책을 비추는 빛을 만들어 내지는 않기 때문입니다.</p>
+ <div class="concept-card-grid">
+  <div class="concept-box"><h4>물체를 비추는 빛이 없을 때</h4><p>책에 도달하는 빛이 없으므로 책에서 반사되어 눈에 들어올 빛도 없습니다.</p></div>
+  <div class="concept-box"><h4>물체에서 눈으로 오는 빛이 가려질 때</h4><p>물체가 빛을 받고 있어도, 불투명한 물체가 시야를 가려 그 빛이 눈에 들어오지 못하면 그 물체를 직접 볼 수 없습니다.</p></div>
+ </div>
+ <p>희미한 빛이 있는 어두운 방과 <b>보이는 빛이 전혀 없는 방</b>은 다릅니다. 눈이 어둠에 적응하면 희미한 빛을 더 잘 느낄 수 있지만, 빛이 전혀 없는데 물체의 모습이 저절로 보이는 것은 아닙니다.</p>
+</div>
+
+<div class="textbook-section">
+ <h3>5. 물속 물고기를 볼 때 — 반사와 굴절이 함께 일어남</h3>
+ <p>물고기도 스스로 빛을 내지 않는다면 <b>물고기에서 반사된 빛</b>이 눈에 들어와야 보입니다. 물고기는 물속에 있고 눈은 공기 중에 있으므로, 그 빛은 물과 공기의 경계를 지나야 합니다.</p>
+ <p>공기 중의 전등이 물속 물고기를 비추고, 공기 중에서 수면을 비스듬히 내려다보는 경우의 경로는 다음과 같습니다.</p>
+ <figure class="seeing-diagram seeing-diagram-wide"><svg class="seeing-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-label="공기 중 광원에서 물로 들어가 굴절하고 물고기에서 반사된 뒤 공기로 나와 굴절하여 눈에 도착하는 경로"><title>공기 중 광원에서 물로 들어가 굴절하고 물고기에서 반사된 뒤 공기로 나와 굴절하여 눈에 도착하는 경로</title><path d="M0 145 H720 V330 H0 Z" fill="#0c4a6e66"/><line x1="0" y1="145" x2="720" y2="145" stroke="#38bdf8" stroke-width="2"/><line x1="75" y1="53" x2="218.5632033384187" y2="145" stroke="#fbbf24" stroke-width="3"/><polygon points="165.00,110.68 151.36,107.87 156.75,99.45" fill="#fbbf24"/><line x1="218.5632033384187" y1="145" x2="300" y2="245" stroke="#fbbf24" stroke-width="3"/><polygon points="270.85,209.20 258.76,202.28 266.52,195.97" fill="#fbbf24"/><line x1="300" y1="245" x2="398.09490394024147" y2="145" stroke="#fbbf24" stroke-width="3"/><polygon points="362.50,181.29 356.96,194.07 349.82,187.07" fill="#fbbf24"/><line x1="398.09490394024147" y1="145" x2="638" y2="53" stroke="#fbbf24" stroke-width="3"/><polygon points="544.71,88.78 534.36,98.10 530.78,88.76" fill="#fbbf24"/><g transform="translate(75 53)"><circle r="24" fill="#fbbf2425"/><circle r="17" fill="#fde68a" stroke="#fbbf24" stroke-width="2"/><path d="M-7 16 v11 h14 V16 M-6 31 h12" fill="none" stroke="#94a3b8" stroke-width="3"/></g><g transform="translate(638 53)"><path d="M-25 0 Q0 -22 25 0 Q0 22 -25 0" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/><circle r="9" fill="#38bdf8"/><circle r="4" fill="#0f172a"/></g><g transform="translate(300 245)"><path d="M-24 0 L-48 -19 V19 Z" fill="#fb923c"/><ellipse rx="31" ry="18" fill="#fbbf24" stroke="#f8fafc" stroke-width="2"/><circle cx="18" cy="-4" r="3" fill="#0f172a"/></g><text x="75" y="22" text-anchor="middle" font-size="16" fill="#cbd5e1">광원</text><text x="638" y="23" text-anchor="middle" font-size="16" fill="#cbd5e1">눈</text><text x="28" y="130" text-anchor="middle" font-size="14" fill="#cbd5e1">공기</text><text x="28" y="170" text-anchor="middle" font-size="14" fill="#7dd3fc">물</text><text x="219" y="111" text-anchor="middle" font-size="16" fill="#7dd3fc">① 굴절</text><text x="300" y="295" text-anchor="middle" font-size="16" fill="#fbbf24">② 물고기에서 반사</text><text x="398" y="111" text-anchor="middle" font-size="16" fill="#7dd3fc">③ 굴절</text></svg><figcaption>빛이 수면을 비스듬히 통과하는 한 경로입니다. 수면에서 반사되는 일부 빛과 어항 유리의 영향은 생략했습니다.</figcaption></figure>
+ <div class="seeing-flow" aria-label="물고기를 보는 빛의 경로"><span>광원</span><span aria-hidden="true">→</span><span>수면에서 굴절</span><span aria-hidden="true">→</span><span>물고기에서 반사</span><span aria-hidden="true">→</span><span>수면에서 굴절</span><span aria-hidden="true">→</span><span>눈</span></div>
+ <div class="seeing-table-wrap" role="region" aria-label="빛의 반사와 굴절 위치 비교" tabindex="0"><table class="seeing-concept-table"><thead><tr><th scope="col">빛이 지나는 곳</th><th scope="col">일어나는 현상</th><th scope="col">빛의 진행</th></tr></thead><tbody>
+ <tr><th scope="row">① 공기 → 물 경계</th><td>굴절</td><td>물속으로 들어가며 방향이 바뀜</td></tr>
+ <tr><th scope="row">② 물고기 표면</th><td>반사</td><td>표면에서 반사되어 다시 물속으로 나아감</td></tr>
+ <tr><th scope="row">③ 물 → 공기 경계</th><td>굴절</td><td>공기 중으로 나오며 방향이 바뀜</td></tr>
+ </tbody></table></div>
+ <p><b>반사</b>는 빛이 물체 표면에 닿아 되돌아 나아가는 현상이고, <b>굴절</b>은 빛이 다른 물질로 진행할 때 경계에서 방향이 꺾이는 현상입니다. 빛이 경계에 <b>수직으로 들어갈 때에는 방향이 꺾이지 않습니다.</b></p>
+</div>
+
+<div class="textbook-section">
+ <h3>6. 세 가지 상황의 공통 원리</h3>
+ <div class="seeing-table-wrap" role="region" aria-label="물체를 보는 세 가지 경로 비교" tabindex="0"><table class="seeing-concept-table"><thead><tr><th scope="col">보는 대상</th><th scope="col">눈에 들어오는 빛</th></tr></thead><tbody>
+ <tr><th scope="row">빛을 내는 전등</th><td>전등에서 직접 나온 빛</td></tr>
+ <tr><th scope="row">책·달</th><td>광원에서 출발하여 그 물체에서 반사된 빛</td></tr>
+ <tr><th scope="row">물속 물고기</th><td>물고기에서 반사되고, 물과 공기의 경계를 지나 눈에 도착한 빛</td></tr>
+ </tbody></table></div>
+ <p class="seeing-key"><b>물체를 보는 데 필요한 빛은 눈에서 나가는 것이 아니라, 물체에서 눈으로 들어옵니다.</b></p>
+</div>
+
+<details class="seeing-advanced" id="seeing-advanced-eye">
+ <summary><span>🔬 심화학습 · 눈에 들어온 빛은 어떻게 모습이 될까?</span><span class="seeing-fold"><span class="seeing-fold-closed">▼ 펼치기</span><span class="seeing-fold-open">▲ 감추기</span></span></summary>
+ <div class="seeing-advanced-body">
+  <p class="seeing-optional">더 알아보고 싶을 때 펼쳐 읽는 내용입니다. 형성평가 4문항은 위의 기본 개념에서 출제됩니다.</p>
+  <p>물체의 각 부분에서 온 빛은 눈의 <b>각막과 수정체</b>를 지나며 굴절합니다. 이 빛이 눈 뒤쪽의 <b>망막</b>에 모여 상을 만듭니다. 망막에는 빛에 반응하는 세포가 있어 빛의 정보를 신경 신호로 바꿉니다.</p>
+  <div class="seeing-flow"><span>물체에서 온 빛</span><span aria-hidden="true">→</span><span>각막·수정체</span><span aria-hidden="true">→</span><span>망막에서 신경 신호로 전환</span><span aria-hidden="true">→</span><span>시각 신경을 따라 신호 전달</span><span aria-hidden="true">→</span><span>뇌</span></div>
+  <p>뇌는 전달된 신호를 처리하여 물체의 모양·색·움직임 등을 인식합니다. 따라서 ‘본다’는 것은 <b>빛이 눈에 들어오는 과정과 그 정보를 신경계가 처리하는 과정</b>으로 이어집니다.</p>
+  <p><b>기억할 점:</b> 물체에서 나온 모든 빛이 눈에 모이는 것은 아닙니다. 눈에 들어온 빛이 눈 안에서 굴절하여 망막에 상을 만드는 것입니다.</p>
+ </div>
+</details>
+
+<details class="seeing-advanced" id="seeing-advanced-scattering">
+ <summary><span>🔬 심화학습 · 공중의 빛줄기는 왜 보일까?</span><span class="seeing-fold"><span class="seeing-fold-closed">▼ 펼치기</span><span class="seeing-fold-open">▲ 감추기</span></span></summary>
+ <div class="seeing-advanced-body">
+  <p class="seeing-optional">‘눈에 들어오는 빛’이라는 원리를 공기 중 현상에 적용한 설명입니다.</p>
+  <p>먼지나 안개가 있는 곳에서는 옆에서 보아도 빛줄기가 뚜렷해질 수 있습니다. 빛이 공기 중 작은 입자에 의해 여러 방향으로 퍼지는 <b>산란</b>이 일어나고, 그중 일부가 눈에 들어오기 때문입니다.</p>
+  <div class="seeing-flow"><span>광원</span><span aria-hidden="true">→</span><span>먼지·물방울 등에서 산란</span><span aria-hidden="true">→</span><span>옆에 있는 관찰자의 눈</span></div>
+  <p>관찰자의 눈을 향하지 않고 지나가는 빛을 옆에서 바로 보는 것은 아닙니다. <b>눈 쪽으로 방향이 바뀐 빛</b>을 보는 것입니다. 깨끗한 공기에서도 산란은 일어나지만, 눈에 도달하는 양이 적으면 빛줄기는 잘 드러나지 않습니다.</p>
+  <p>책 표면에서의 반사와 공기 중 입자에 의한 산란은 구별되는 설명이지만, <b>물체나 입자에서 오는 빛이 눈에 들어와야 보인다</b>는 점은 같습니다.</p>
+ </div>
+</details>
+<!-- ML:EDIT:STEP1_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step2" class="step-content">
+<div id="ml-step2-content">
+<!-- ML:EDIT:STEP2_CONTENT:START -->
+<h2 class="section-title">🧪 2단계. 책이 보이려면 무엇이 필요할까요?</h2>
+<p class="seeing-intro"><b>예상 → 한 조건씩 바꾸기 → 관찰 → 학습지 정리</b><br>먼저 전등을 켜고 눈을 뜬 상태에서 책을 관찰하세요. 전등·가림막·눈의 상태를 하나씩 바꾸며, 빛의 경로가 어디에서 끊기는지 비교합니다.</p>
+<div class="textbook-section">
+ <h3>탐구 · 다섯 조건 비교하기</h3>
+ <p>① 전등 켜짐·가림막 없음·눈 뜸 → ② 전등 끔 → ③ 전등과 책 사이를 가림 → ④ 책과 눈 사이를 가림 → ⑤ 눈 감음의 순서로 비교하세요. <b>매번 나머지 조건을 처음 상태로 돌려놓고</b> 비교합니다.</p>
+ <p>경로 표시를 끄고 먼저 예상한 뒤, 경로를 켜서 확인하세요. 책 활동을 마치면 ‘관찰할 대상’을 전등으로 바꾸어 광원을 직접 보는 경우와 비교합니다.</p>
+</div>
+<div class="seeing-controls">
+ <label class="seeing-control" for="seeing-target"><b>관찰할 대상</b><select id="seeing-target" onchange="updateStep2Sim()"><option value="book">스스로 빛을 내지 않는 책</option><option value="lamp">빛을 내는 전등 자체</option></select></label>
+ <label class="seeing-control" for="seeing-shield"><b>가림막 위치</b><select id="seeing-shield" onchange="updateStep2Sim()"><option value="none">없음</option><option value="before">전등 → 책 사이</option><option value="after">책 → 눈 사이</option></select></label>
+ <div class="seeing-toggles seeing-wide"><label><input type="checkbox" id="seeing-light" checked onchange="updateStep2Sim()">전등 켜기</label><label><input type="checkbox" id="seeing-eye" checked onchange="updateStep2Sim()">눈 뜨기</label><label><input type="checkbox" id="seeing-rays2" checked onchange="updateStep2Sim()">빛의 경로 표시</label></div>
+ <p id="seeing-shield-note" class="seeing-caption seeing-wide"></p>
+</div>
+<div class="seeing-scroll" tabindex="0" role="region" aria-label="책과 전등 빛 경로 모형. 좁은 화면에서는 가로로 이동할 수 있습니다."><svg id="seeing-scene2" class="seeing-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 370" role="img" aria-label="전등에서 책을 거쳐 눈에 들어오는 빛"></svg></div>
+<div class="seeing-actions"><button type="button" class="sim-btn secondary" id="seeing-motion2" aria-pressed="true" onclick="seeingToggleMotion(2)">⏸ 빛 이동 멈추기</button></div>
+<p class="seeing-caption">다른 광원과 벽에서 반사되는 빛은 생략했습니다. 가림막은 해당 경로의 빛을 모두 막는다고 가정합니다. 어두워도 물체의 위치를 알 수 있도록 그림은 남아 있습니다. 움직이는 점은 방향을 보여 주는 느린 표시이며 실제 빛의 속도가 아닙니다. 좁은 화면에서는 그림을 가로로 밀어 보세요.</p>
+<div class="seeing-result" aria-live="polite"><strong id="seeing-result2"></strong><p id="seeing-reason2"></p></div>
+<div class="seeing-actions"><button type="button" class="sim-btn" onclick="seeingRecord2()">＋ 현재 조건 기록</button><button type="button" class="sim-btn secondary" onclick="seeingClearRecords(2)">이 표 비우기</button></div>
+<p class="seeing-caption" id="seeing-record-hint" aria-live="polite"></p>
+<div class="seeing-scroll" tabindex="0" role="region" aria-label="2단계 관찰 기록"><table class="seeing-table"><thead><tr><th scope="col">대상</th><th scope="col">전등</th><th scope="col">눈</th><th scope="col">가림막</th><th scope="col">결과</th></tr></thead><tbody id="seeing-records2"></tbody></table></div>
+<div class="textbook-section"><h3>💡 관찰 결과로 설명하기</h3><ul><li>책이 보이는 조건에서 <b>전등 → 책 → 눈</b>을 잇는 화살표를 그리세요. 화살표는 빛이 나아가는 방향입니다.</li><li>책이 보이지 않은 조건 두 가지를 골라, 빛이 어느 구간을 지나지 못했는지 쓰세요.</li><li>‘눈을 뜨기만 하면 완전히 어두운 곳에서도 책을 볼 수 있다’는 설명을 관찰 결과로 고쳐 쓰세요.</li></ul><p class="seeing-caption">이 화면의 관찰 표는 새로고침하면 비워집니다. 정리는 종이 학습지나 오른쪽 PDF 필기 도구에 남기세요.</p></div>
+<!-- ML:EDIT:STEP2_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step3" class="step-content">
+<div id="ml-step3-content">
+<!-- ML:EDIT:STEP3_CONTENT:START -->
+<h2 class="section-title">🐟 3단계. 물속 물고기의 빛은 어떻게 눈에 도착할까요?</h2>
+<p class="seeing-intro"><b>광원과 눈은 공기 중에, 물고기는 물속에 있습니다.</b><br>눈의 위치와 물고기의 깊이를 바꾸면서 빛이 물에 들어갈 때, 물고기에 닿을 때, 물에서 나올 때 각각 어떤 일이 일어나는지 찾아보세요.</p>
+<div class="textbook-section"><h3>탐구 · 경로의 모양과 순서 비교하기</h3><p>① 눈의 위치만 바꾸어 경로를 비교합니다. ② 눈의 위치를 고정하고 물고기 깊이만 바꿉니다. ③ 경로의 모양이 바뀌어도 <b>굴절·반사가 일어나는 장소와 순서</b>가 같은지 확인합니다. ④ 아래 카드로 경로를 완성하고 빛의 경로를 화살표로 나타냅니다.</p></div>
+<div class="seeing-controls">
+ <label class="seeing-control" for="seeing-eye-x"><b>눈의 위치 <output id="seeing-eye-value" for="seeing-eye-x"></output></b><input type="range" id="seeing-eye-x" min="540" max="780" step="5" value="700" oninput="updateStep3Data()"><span>왼쪽 ↔ 오른쪽</span></label>
+ <label class="seeing-control" for="seeing-fish-depth"><b>물고기의 깊이 <output id="seeing-depth-value" for="seeing-fish-depth"></output></b><input type="range" id="seeing-fish-depth" min="70" max="180" step="5" value="120" oninput="updateStep3Data()"><span>얕게 ↔ 깊게</span></label>
+ <div class="seeing-toggles seeing-wide"><label><input type="checkbox" id="seeing-light3" checked onchange="updateStep3Data()">광원 켜기</label><label><input type="checkbox" id="seeing-rays3" checked onchange="updateStep3Data()">빛의 경로 표시</label><label><input type="checkbox" id="seeing-normals3" onchange="updateStep3Data()">경계에 수직인 선 표시</label></div>
+</div>
+<div class="seeing-scroll" tabindex="0" role="region" aria-label="물고기 빛 경로 모형. 좁은 화면에서는 가로로 이동할 수 있습니다."><svg id="seeing-scene3" class="seeing-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 440" role="img" aria-label="공기에서 물로 들어간 빛이 물고기에서 반사되고 물에서 공기로 나와 눈에 도착하는 경로"></svg></div>
+<div class="seeing-actions"><button type="button" class="sim-btn secondary" id="seeing-motion3" aria-pressed="true" onclick="seeingToggleMotion(3)">⏸ 빛 이동 멈추기</button><button type="button" class="sim-btn" onclick="seeingRecord3()">＋ 현재 경로 기록</button><button type="button" class="sim-btn secondary" onclick="seeingClearRecords(3)">이 표 비우기</button></div>
+<p class="seeing-caption" id="seeing-path-note3"></p>
+<div class="seeing-result" aria-live="polite"><p id="seeing-reason3"></p></div>
+<p class="seeing-caption">어항 유리와 경계에서 반사되는 일부 빛을 생략하고, 공기와 물 사이를 통과하는 경로에 집중한 모형입니다. 빛이 경계에 비스듬히 들어가는 상황입니다. 점의 이동은 실제보다 느리게 표시됩니다. 좁은 화면에서는 그림을 가로로 밀어 보세요.</p>
+<p class="seeing-caption" id="seeing-record-hint3" aria-live="polite">모형의 위치를 구별하는 숫자로 조건을 기록합니다. 실제 거리 단위가 아니며 계산할 필요는 없습니다.</p>
+<div class="seeing-scroll" tabindex="0" role="region" aria-label="3단계 관찰 기록"><table class="seeing-table"><thead><tr><th scope="col">눈 위치(모형값)</th><th scope="col">깊이(모형값)</th><th scope="col">광원</th><th scope="col">물고기를 보는 경로</th></tr></thead><tbody id="seeing-records3"></tbody></table></div>
+<div class="textbook-section"><h3>🧩 빛의 경로를 순서대로 완성하세요</h3><p>경로 표시를 끈 뒤 스스로 완성해 보세요. 카드를 <b>출발점부터 도착점 순서로</b> 누릅니다. 이 연습은 형성평가 점수에 포함되지 않습니다.</p>
+ <div class="seeing-actions"><button type="button" class="sim-btn secondary" data-seeing-order="eye" onclick="seeingPickOrder('eye')">눈</button><button type="button" class="sim-btn secondary" data-seeing-order="fish" onclick="seeingPickOrder('fish')">물고기 · 반사</button><button type="button" class="sim-btn secondary" data-seeing-order="out" onclick="seeingPickOrder('out')">물 → 공기 경계 · 굴절</button><button type="button" class="sim-btn secondary" data-seeing-order="source" onclick="seeingPickOrder('source')">광원</button><button type="button" class="sim-btn secondary" data-seeing-order="into" onclick="seeingPickOrder('into')">공기 → 물 경계 · 굴절</button></div>
+ <ol id="seeing-order" class="seeing-order" aria-label="내가 만든 빛의 경로"></ol>
+ <div class="seeing-actions"><button type="button" class="sim-btn" onclick="seeingCheckOrder()">경로 확인</button><button type="button" class="sim-btn secondary" onclick="seeingUndoOrder()">한 칸 되돌리기</button><button type="button" class="sim-btn secondary" onclick="seeingResetOrder()">다시 만들기</button></div>
+ <p id="seeing-order-feedback" aria-live="polite"></p>
+</div>
+<div class="textbook-section"><h3>💡 관찰 결과로 설명하기</h3><ul><li>빛의 출발점과 도착점을 쓰고, 두 경계와 물고기를 지나는 화살표를 그리세요.</li><li>굴절이 일어나는 두 곳과 반사가 일어나는 한 곳에 각각 표시하세요.</li><li>눈의 위치나 물고기 깊이를 바꿔도 유지되는 과정을 설명하세요.</li><li>마지막으로 달이 광원이 아닌데도 보이는 까닭을 ‘태양·반사·눈’을 사용해 설명하세요.</li></ul><p class="seeing-caption">화면의 관찰 표와 경로 카드는 새로고침하면 초기화됩니다. 완성한 설명은 학습지에 남기세요.</p></div>
+<!-- ML:EDIT:STEP3_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step4" class="step-content">
+<!-- ML:EDIT:STEP4_INTRO:START -->
+<h2 class="section-title">📝 4단계. 물체를 보는 과정 — 형성평가 4문항</h2>
+            <p style="margin-bottom:15px; color:#cbd5e1;">광원의 구별, 책을 보는 경로, 어둠 속 관찰, 물고기를 보는 경로를 확인합니다. <b>제출 전에는 각 문항에서 처음 선택한 답이 기록</b>되므로 신중하게 고르세요. 4문항을 모두 푼 뒤 로그인된 학번·이름을 확인하고 제출하면 결과가 기록되며, 포인트는 플랫폼의 채점·지급 기준에 따라 반영됩니다. 제출 후에는 선택지를 다시 눌러 복습할 수 있습니다.</p>
+<!-- ML:EDIT:STEP4_INTRO:END -->
+
+            <div class="student-info-box">
+                <div class="student-info-group">
+                    <label for="studentIdInput">학번: </label>
+                    <input type="text" id="studentIdInput" placeholder="예: 20301" style="width: 110px;">
+                </div>
+                <div class="student-info-group">
+                    <label for="studentNameInput">이름: </label>
+                    <input type="text" id="studentNameInput" placeholder="예: 홍길동" style="width: 110px;">
+                </div>
+                <button class="submit-btn" id="quizSubmitBtn" onclick="submitQuizResults()">📤 문제풀이 결과 교사에게 제출</button>
+            </div>
+
+<div id="ml-quiz-items">
+<!-- ML:EDIT:QUIZ_HTML:START -->
+<div class="quiz-item" id="quiz-block-1">
+                <div class="quiz-q">Q1. 광원에 해당하는 것끼리만 묶은 것은?</div>
+                <div class="quiz-opt" onclick="handleQuiz(1,this,1)">① 달, 햇빛을 받은 책</div>
+                <div class="quiz-opt" onclick="handleQuiz(1,this,2)">② 켜져 빛을 내는 스마트폰 화면, 켜진 전등</div>
+                <div class="quiz-opt" onclick="handleQuiz(1,this,3)">③ 거울, 밝은 벽</div>
+                <div class="quiz-opt" onclick="handleQuiz(1,this,4)">④ 일반적인 물고기, 교실 의자</div>
+                <div id="fb-1" class="quiz-feedback-box">
+                    <div id="fb-title-1" class="fb-header"></div>
+                    <div class="fb-detail-card">
+                        <div id="fb-content-1"></div>
+                        <button class="goto-sim-btn" onclick="trySwitchStep(1)">🔎 1단계 광원과 반사 개념 복습 ➔</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-item" id="quiz-block-2">
+                <div class="quiz-q">Q2. 전등이 켜진 교실에서 스스로 빛을 내지 않는 책을 보고 있습니다. 책을 보게 하는 빛의 경로로 옳은 것은?</div>
+                <div class="quiz-opt" onclick="handleQuiz(2,this,1)">① 눈 → 책 → 전등</div>
+                <div class="quiz-opt" onclick="handleQuiz(2,this,2)">② 전등 → 눈 → 책</div>
+                <div class="quiz-opt" onclick="handleQuiz(2,this,3)">③ 책이 스스로 빛을 냄 → 눈</div>
+                <div class="quiz-opt" onclick="handleQuiz(2,this,4)">④ 전등 → 책에서 반사 → 눈</div>
+                <div id="fb-2" class="quiz-feedback-box">
+                    <div id="fb-title-2" class="fb-header"></div>
+                    <div class="fb-detail-card">
+                        <div id="fb-content-2"></div>
+                        <button class="goto-sim-btn" onclick="trySwitchStep(2)">🔎 2단계 빛의 경로 탐구로 돌아가기 ➔</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-item" id="quiz-block-3">
+                <div class="quiz-q">Q3. 외부에서 들어오는 빛도, 내부 광원도 없어 보이는 빛이 전혀 없는 방에 책이 있습니다. 눈을 뜨고 책을 바라볼 때의 설명으로 옳은 것은?</div>
+                <div class="quiz-opt" onclick="handleQuiz(3,this,1)">① 책에서 눈으로 들어오는 빛이 없으므로 책을 볼 수 없다.</div>
+                <div class="quiz-opt" onclick="handleQuiz(3,this,2)">② 눈을 크게 뜨면 눈에서 나온 빛으로 책을 볼 수 있다.</div>
+                <div class="quiz-opt" onclick="handleQuiz(3,this,3)">③ 책이 눈앞에 있으므로 빛이 없어도 책을 볼 수 있다.</div>
+                <div class="quiz-opt" onclick="handleQuiz(3,this,4)">④ 시간이 충분히 지나면 책이 빛을 반사해 보인다.</div>
+                <div id="fb-3" class="quiz-feedback-box">
+                    <div id="fb-title-3" class="fb-header"></div>
+                    <div class="fb-detail-card">
+                        <div id="fb-content-3"></div>
+                        <button class="goto-sim-btn" onclick="trySwitchStep(2)">🔎 2단계 광원을 끈 조건 다시 관찰하기 ➔</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-item" id="quiz-block-4">
+                <div class="quiz-q">Q4. 공기 중 광원이 물속 물고기를 비추고, 공기 중 관찰자가 수면을 비스듬히 내려다봅니다. 광원에서 출발하여 물고기를 거친 뒤 눈까지 이어지는 빛의 경로로 옳은 것은?</div>
+                <div class="quiz-opt" onclick="handleQuiz(4,this,1)">① 광원 → 물고기에서 굴절 → 눈</div>
+                <div class="quiz-opt" onclick="handleQuiz(4,this,2)">② 눈 → 수면에서 굴절 → 물고기에서 반사 → 광원</div>
+                <div class="quiz-opt" onclick="handleQuiz(4,this,3)">③ 광원 → 수면에서 굴절 → 물고기에서 반사 → 수면에서 굴절 → 눈</div>
+                <div class="quiz-opt" onclick="handleQuiz(4,this,4)">④ 광원 → 수면에서 반사 → 물고기에서 굴절 → 눈</div>
+                <div id="fb-4" class="quiz-feedback-box">
+                    <div id="fb-title-4" class="fb-header"></div>
+                    <div class="fb-detail-card">
+                        <div id="fb-content-4"></div>
+                        <button class="goto-sim-btn" onclick="trySwitchStep(3)">🔎 3단계 물고기를 보는 경로 다시 관찰하기 ➔</button>
+                    </div>
+                </div>
+            </div>
+<!-- ML:EDIT:QUIZ_HTML:END -->
+</div>
+
+        </div>
+
+    </div>
+
+    <!-- 우측 하단 관리자 로그인 버튼 -->
+    <button class="admin-float-btn" onclick="openAdminModal()">⚙️ 교사용 단계 잠금 관리</button>
+
+    <!-- 관리자 인증 모달 -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔑 관리자 비밀번호 인증</h3>
+            <p>교사용 관리자 비밀번호를 입력하면 수업 단계별 실시간 잠금 제어 바가 활성화됩니다.</p>
+            <input type="password" id="adminPwInput" placeholder="비밀번호 입력" autocomplete="off">
+            <div class="modal-btn-group">
+                <button class="modal-cancel" onclick="closeAdminModal()">취소</button>
+                <button class="modal-confirm" id="adminModalConfirmBtn" onclick="submitAdminAuth()">인증하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 페이지 공통 학생/교사 로그인 모달 -->
+    <div id="pageLoginModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔑 로그인</h3>
+            <p>학번 또는 관리자 ID와 비밀번호를 입력해 주세요.</p>
+            <input type="text" id="pageLoginId" maxlength="10" placeholder="학번(4자리) 또는 ID(admin)" autocomplete="username">
+            <input type="password" id="pageLoginPw" placeholder="비밀번호 입력" autocomplete="current-password">
+            <div class="modal-btn-group">
+                <button class="modal-cancel" onclick="closePageLoginModal()">닫기</button>
+                <button class="modal-confirm" id="btnSubmitPageLogin" onclick="submitPageLogin()">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p data-ml-text="footer"></p>
+    </footer>
+
+    <script src="./assets/lesson-core.js"></script>
+<script src="./assets/content-client.js"></script>
+<script src="./assets/lesson-content.js"></script>
+<script src="./assets/lesson-quiz.js"></script>
+<script src="./assets/lesson-sim-u3_l3.js"></script>
+    <script src="./admin-quick-points.js"></script>
+
+<link rel="stylesheet" href="./assets/lesson-worksheet.css">
+<!-- LESSON_WORKSHEET_DRAWER_START -->
+<div id="ctw-root" data-worksheet-version="2026-09-13.3" class="ctw-tools-collapsed" data-lesson="" data-pdf="">
+  <button id="ctw-toggle" class="ctw-toggle" type="button" aria-controls="ctw-panel" aria-expanded="false" title="이 차시 학습지 펼치기">▤ <span>학습지</span></button>
+  <aside id="ctw-panel" class="ctw-panel" aria-labelledby="ctw-title" aria-hidden="true" inert hidden>
+    <div id="ctw-resizer" class="ctw-resizer" role="separator" aria-label="학습지 패널 너비" aria-orientation="vertical" aria-valuemin="340" aria-valuemax="800" aria-valuenow="480" tabindex="0"></div>
+    <div class="ctw-head">
+      <div><div class="ctw-eyebrow">수업과 함께 보는 학습지</div><h2 id="ctw-title"></h2></div>
+    </div>
+    <div class="ctw-quickbar" role="group" aria-label="학습지 빠른 도구">
+      <button id="ctw-controls-toggle" type="button" aria-controls="ctw-controls" aria-expanded="false" aria-label="도구 펼치기" title="파일·페이지 도구 펼치기">도구 ▾</button>
+    <div class="ctw-tools" role="group" aria-label="학습지 필기 도구">
+      <button type="button" data-tool="move" aria-pressed="true" data-pdf-control disabled>이동</button>
+      <button type="button" data-tool="pen" aria-pressed="false" data-pdf-control disabled>펜</button>
+      <button type="button" data-tool="highlight" aria-pressed="false" data-pdf-control disabled>형광펜</button>
+      <button type="button" data-tool="text" aria-pressed="false" data-pdf-control disabled>글자</button>
+      <label class="ctw-color-label">색 <input id="ctw-color" type="color" value="#dc2626" aria-label="펜·형광펜·글자 색" data-pdf-control disabled></label>
+      <button id="ctw-undo" type="button" aria-label="되돌리기" title="이 페이지의 마지막 필기 지우기" data-pdf-control disabled>↶</button>
+      <button id="ctw-clear" type="button" data-pdf-control disabled>쪽 지우기</button>
+    </div>
+      <button id="ctw-quick-prev" class="ctw-quick-page" type="button" aria-label="이전 페이지" title="이전 페이지" data-pdf-control disabled>‹</button>
+      <button id="ctw-quick-next" class="ctw-quick-page" type="button" aria-label="다음 페이지" title="다음 페이지" data-pdf-control disabled>›</button>
+      <button id="ctw-close" class="ctw-close" type="button" aria-label="학습지 접기" title="학습지 접기 (Esc)">✕</button>
+    </div>
+    <div id="ctw-controls" class="ctw-controls" hidden>
+    <div id="ctw-lock-status" class="ctw-lock-status" role="status" aria-live="polite">학습지 공개 상태 확인 중</div>
+    <div id="ctw-lock-admin" class="ctw-lock-admin" role="group" aria-label="관리자 학습지 잠금" hidden>
+      <button id="ctw-lock-item" type="button" disabled>이 학습지 잠금</button>
+      <button id="ctw-lock-unit" type="button" disabled>단원 잠금</button>
+      <button id="ctw-lock-archive" type="button" disabled>보관함 전체 잠금</button>
+    </div>
+    <div class="ctw-toolbar" aria-label="학습지 파일">
+      <button id="ctw-default" type="button" title="이 차시의 등록된 학습지 다시 열기">차시 학습지</button>
+      <button id="ctw-local" type="button">내 PDF 열기</button>
+      <button id="ctw-print" type="button" disabled>필기 포함 인쇄</button>
+      <input id="ctw-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+    <div id="ctw-source" class="ctw-source"></div>
+    <div class="ctw-toolbar" aria-label="학습지 페이지와 확대">
+      <button id="ctw-prev" type="button" aria-label="이전 페이지" data-pdf-control disabled>‹</button>
+      <label class="ctw-page-label"><input id="ctw-page" type="number" min="1" value="1" aria-label="학습지 페이지" data-pdf-control disabled> <span id="ctw-pages">/ — 쪽</span></label>
+      <button id="ctw-next" type="button" aria-label="다음 페이지" data-pdf-control disabled>›</button>
+      <label>확대 <select id="ctw-zoom" aria-label="학습지 확대" data-pdf-control disabled><option value="1">100% · 너비 맞춤</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+    </div>
+
+    </div>
+    <form id="ctw-text-form" class="ctw-text-form" hidden>
+      <label for="ctw-text">누른 위치에 넣을 글자</label><span id="ctw-text-help" class="ctw-text-help">Enter 넣기 · Shift+Enter 줄바꿈</span>
+      <textarea id="ctw-text" aria-describedby="ctw-text-help" rows="2" maxlength="500" placeholder="함께 정리할 내용을 입력하세요"></textarea>
+      <div class="ctw-text-actions">
+        <label class="ctw-text-size-label" for="ctw-text-size">글자 크기 <input id="ctw-text-size" type="number" min="50" max="300" step="1" value="100" inputmode="numeric" aria-label="글자 크기, 기존 크기의 백분율">%</label>
+        <button id="ctw-text-size-reset" type="button" title="기존 글자 크기 100%로 되돌리기">기본</button>
+        <button type="submit">넣기</button><button id="ctw-text-cancel" type="button">취소</button>
+      </div>
+    </form>
+    <div id="ctw-status" class="ctw-status" role="status" aria-live="polite">학습지를 펼치면 이 차시의 PDF를 불러옵니다.</div>
+    <div class="ctw-view-shell">
+    <div id="ctw-zoom-toast" class="ctw-zoom-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="ctw-view" class="ctw-view" tabindex="0" aria-label="학습지 보기 영역">
+      <div id="ctw-empty" class="ctw-empty"><p id="ctw-empty-message">학습지를 준비하고 있습니다.</p><button id="ctw-lock-retry" type="button">다시 확인</button></div>
+      <div id="ctw-stage" class="ctw-stage" hidden>
+        <canvas id="ctw-pdf" role="img" aria-label="학습지 PDF 페이지"></canvas>
+        <canvas id="ctw-ink" aria-label="학습지 필기 영역"></canvas>
+      </div>
+    </div>
+    </div>
+    <div class="ctw-foot"><span id="ctw-save-note">필기: 이 기기·브라우저에 저장 (아이디별 아님, 자동 만료 없음). 사이트 데이터 삭제 시 사라집니다.</span></div>
+  </aside>
+</div>
+<!-- LESSON_WORKSHEET_DRAWER_END -->
+
+<script id="ml-bind">window.MasterLessonRuntime.bind();</script>
+<script src="./assets/lesson-worksheet.js"></script>
+</body>
+</html>

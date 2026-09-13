@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script src="./platform-config.js"></script>
+<script src="./lock-realtime-client.js"></script>
+<script>window.LESSON_CONFIG=Object.freeze({"templateMode": false, "unitKey": "unit3", "lessonKey": "u3_l6", "lessonName": "3단원 6차시 - 빛의 합성", "pageTitle": "중2 과학 3단원 - 빛의 합성", "headerTag": "중학교 2학년 과학 - 3. 빛과 파동", "title": "🌈 빛의 합성", "subtitle": "빨강·초록·파랑 빛으로 어떤 색을 만들 수 있을까요?", "tabs": ["1단계: 개념 학습", "2단계: 빛 섞어 보기", "3단계: 조명 바꿔 보기", "4단계: 형성평가 & 결과 제출"], "worksheetPath": "", "worksheetTitle": "3단원 6차시 · 빛의 합성 학습지", "footer": "© 중2 과학 빛의 합성 탐구 프로그램 · 교과서 112~115쪽", "fallbackSchoolYear": 2026, "trustedBuiltin": true});window.MASTER_LESSON_CONFIG=window.LESSON_CONFIG;</script>
+<script src="./assets/lesson-master.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중2 과학 수업 공통 마스터</title>
+    <!-- MASTER_LESSON_VERSION: 2026-09-12.4
+물체를 보는 과정의 승인된 수업 내용과 공통 UI를 예시로 담은 제작용 마스터입니다.
+1단계는 개념·원리·그림 중심. 학습목표·학습지 작성법·2/3단계 활동 예고는 넣지 않습니다.
+심화는 기본 접힘. 학습지는 교사가 제작하며 요청 없이 만들지 않습니다.
+새 차시 제작 시 ML:EDIT 주석 내부 9곳만 수정하세요. 나머지는 공통 기능·디자인입니다.
+NEW_LESSON_PROMPT.txt와 함께 사용하고 validate_masterlesson.py로 고정 영역을 비교하세요.
+-->
+
+
+
+    <!-- ================= [차시 및 단계 실시간 잠금 가드 스크립트] ================= -->
+    <script src="./assets/lesson-locks.js"></script>
+    <!-- ============================================================= -->
+
+    <link rel="stylesheet" href="./assets/lesson-base.css">
+<link rel="stylesheet" href="./assets/lesson-style-u3_l6.css">
+<style id="ml-template-style">
+#ml-template-banner { margin:0; padding:9px 16px; color:#fef3c7; background:#493619; border-bottom:1px solid #9b792d; font:13px/1.6 sans-serif; }
+#ml-template-banner[hidden] { display:none !important; }
+</style>
+<style id="ml-content-style">
+/* ML:EDIT:LESSON_CSS:START */
+#ml-step2-content .mix-playground { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(210px,1fr); align-items:center; gap:20px; }
+#ml-step2-content .mix-playground .mix-board, #ml-step2-content .mix-playground .mix-console { min-width:0; }
+#ml-step2-content .mix-slider { width:100%; min-height:36px; accent-color:#38bdf8; }
+#ml-step2-content .mix-control-title { display:flex; justify-content:space-between; gap:12px; }
+#ml-step2-content .mix-control-title output { color:#7dd3fc; font-variant-numeric:tabular-nums; }
+#ml-step2-content .ml-controls.mix-rgb-controls { grid-template-columns:1fr; gap:20px; }
+#ml-step2-content .mix-color-name { margin:8px 0 16px; color:#cbd5e1; text-align:center; }
+#ml-step2-content .mix-color-name strong { color:#f8fafc; }
+#ml-step2-content .mix-target { display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding-top:12px; }
+#ml-step2-content .mix-target-swatch { display:inline-block; width:88px; height:60px; flex:0 0 auto; border:1px solid #94a3b8; border-radius:8px; }
+#ml-step2-content .mix-challenge-feedback { min-height:1.8em; margin:12px 0 0; color:#cbd5e1; }
+#ml-step2-content .mix-option-panel summary, #ml-step3-content .mix-option-panel summary { cursor:pointer; color:#7dd3fc; font-weight:700; padding:5px 0; }
+#ml-step2-content .ml-scroll .ml-svg, #ml-step3-content .ml-scroll .ml-svg { min-width:0; }
+#ml-step3-content .mix3-label { fill:#e2e8f0; font-size:18px; text-anchor:middle; }
+#ml-step3-content .mix3-note { fill:#b9c9dc; font-size:16px; text-anchor:middle; }
+#ml-step3-content .mix3-key { fill:#7dd3fc; font-size:19px; font-weight:700; text-anchor:middle; }
+@media (max-width:760px) {
+ #ml-step2-content .mix-playground { grid-template-columns:1fr; gap:0; }
+ #ml-step2-content .mix-playground .mix-board { max-width:650px; width:100%; margin:auto; }
+}
+/* ML:EDIT:LESSON_CSS:END */
+
+/* MASTER_CONTENT_UI: fixed across all lessons. */
+#ml-step2-content .ml-intro, #ml-step3-content .ml-intro { color:#cbd5e1; margin-bottom:18px; line-height:1.8; }
+#ml-step2-content .ml-controls, #ml-step3-content .ml-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding:18px; background:#131b2e; border:1px solid #334155; border-radius:12px; margin-bottom:16px; }
+#ml-step2-content .ml-control, #ml-step3-content .ml-control { display:flex; flex-direction:column; gap:8px; color:#e2e8f0; min-width:0; }
+#ml-step2-content .ml-control select, #ml-step3-content .ml-control select { width:100%; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:8px; padding:10px; font:inherit; }
+#ml-step2-content .ml-control select:disabled { opacity:.6; }
+#ml-step2-content .ml-toggles, #ml-step3-content .ml-toggles { display:flex; align-items:center; flex-wrap:wrap; gap:16px; }
+#ml-step2-content .ml-toggles label, #ml-step3-content .ml-toggles label { display:flex; align-items:center; gap:7px; min-height:36px; cursor:pointer; }
+#ml-step2-content .ml-toggles input, #ml-step3-content .ml-toggles input { accent-color:#38bdf8; width:18px; height:18px; }
+#ml-step3-content .ml-control input[type="range"] { width:100%; min-height:32px; accent-color:#38bdf8; }
+#ml-step2-content .ml-wide, #ml-step3-content .ml-wide { grid-column:1 / -1; }
+#ml-step2-content .ml-scroll, #ml-step3-content .ml-scroll { overflow-x:auto; max-width:100%; border:1px solid #334155; border-radius:12px; background:#0f172a; margin-bottom:12px; }
+#ml-step2-content .ml-svg, #ml-step3-content .ml-svg { display:block; width:100%; min-width:620px; height:auto; font-family:inherit; }
+#ml-step2-content .ml-caption, #ml-step3-content .ml-caption { font-size:.88rem; color:#a8b8cc; line-height:1.7; margin:10px 0 16px; }
+#ml-step2-content .ml-result, #ml-step3-content .ml-result { background:#182238; border:1px solid #334155; border-radius:12px; padding:16px; margin:14px 0 20px; color:#e2e8f0; line-height:1.8; }
+#ml-step2-content .ml-result strong[data-visible="true"] { color:#6ee7b7; }
+#ml-step2-content .ml-result strong[data-visible="false"] { color:#fda4af; }
+#ml-step2-content .ml-actions, #ml-step3-content .ml-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:12px 0; }
+#ml-step2-content .ml-table, #ml-step3-content .ml-table { width:100%; min-width:560px; border-collapse:collapse; color:#e2e8f0; font-size:.92rem; }
+#ml-step2-content .ml-table th, #ml-step2-content .ml-table td, #ml-step3-content .ml-table th, #ml-step3-content .ml-table td { padding:10px 12px; text-align:left; border-bottom:1px solid #334155; }
+#ml-step2-content .ml-table th, #ml-step3-content .ml-table th { color:#7dd3fc; background:#182238; }
+#ml-step3-content .ml-order { display:flex; flex-wrap:wrap; gap:10px 25px; min-height:55px; margin:16px 0 16px 28px; }
+#ml-step3-content .ml-order li { padding:7px 12px; background:#0f172a; border:1px solid #38bdf8; border-radius:7px; color:#e2e8f0; }
+#ml-step3-content .ml-actions button:disabled { opacity:.45; cursor:default; transform:none; }
+@media (max-width:650px) {
+  #ml-step2-content .ml-controls, #ml-step3-content .ml-controls { grid-template-columns:1fr; padding:14px; }
+  #ml-step2-content .ml-actions .sim-btn, #ml-step3-content .ml-actions .sim-btn { min-height:42px; }
+}
+
+#ml-step1-content .ml-key { border-left:3px solid #38bdf8; padding:12px 15px; background:#0f172a; border-radius:0 8px 8px 0; line-height:1.8; }
+#ml-step1-content .ml-study-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:15px; margin:18px 0; }
+#ml-step1-content .ml-diagram { margin:0; padding:16px; border:1px solid #334155; border-radius:12px; background:#0f172a; min-width:0; }
+#ml-step1-content .ml-diagram h4 { color:#7dd3fc; font-size:1rem; margin-bottom:12px; }
+#ml-step1-content .ml-study-svg { display:block; width:100%; height:auto; font-family:inherit; }
+#ml-step1-content .ml-diagram figcaption { margin-top:12px; color:#94a3b8; font-size:.88rem; line-height:1.7; text-align:center; }
+#ml-step1-content .ml-diagram-wide { margin:16px 0; }
+#ml-step1-content .ml-diagram-wide .ml-study-svg { max-width:760px; margin:auto; }
+#ml-step1-content .ml-table-wrap { overflow-x:auto; margin:16px 0; border:1px solid #334155; border-radius:10px; }
+#ml-step1-content .ml-concept-table { border-collapse:collapse; width:100%; color:#cbd5e1; font-size:.94rem; line-height:1.7; }
+#ml-step1-content .ml-concept-table th, #ml-step1-content .ml-concept-table td { text-align:left; padding:12px 14px; border-bottom:1px solid #334155; vertical-align:top; }
+#ml-step1-content .ml-concept-table thead th { background:#182238; color:#7dd3fc; }
+#ml-step1-content .ml-concept-table tbody th { color:#e2e8f0; width:27%; }
+#ml-step1-content .ml-concept-table tbody tr:last-child th, #ml-step1-content .ml-concept-table tbody tr:last-child td { border-bottom:0; }
+#ml-step1-content .ml-flow { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin:16px 0; padding:14px; border:1px solid #334155; border-radius:10px; color:#7dd3fc; background:#0f172a; font-size:.95rem; font-weight:700; }
+#ml-step1-content .ml-flow span { max-width:100%; }
+#ml-step1-content .ml-advanced { background:#131b2e; border:1px solid #475569; border-radius:12px; margin:16px 0; overflow:hidden; }
+#ml-step1-content .ml-advanced summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 20px; color:#c4b5fd; background:#182238; font-weight:bold; cursor:pointer; list-style:none; }
+#ml-step1-content .ml-advanced summary::-webkit-details-marker { display:none; }
+#ml-step1-content .ml-advanced summary:hover { background:#233047; }
+#ml-step1-content .ml-advanced summary:focus-visible { outline:3px solid #38bdf8; outline-offset:-4px; }
+#ml-step1-content .ml-fold { flex-shrink:0; font-size:.86rem; color:#cbd5e1; }
+#ml-step1-content .ml-fold-open { display:none; }
+#ml-step1-content .ml-advanced[open] .ml-fold-open { display:inline; }
+#ml-step1-content .ml-advanced[open] .ml-fold-closed { display:none; }
+#ml-step1-content .ml-advanced-body { padding:20px; color:#cbd5e1; line-height:1.85; }
+#ml-step1-content .ml-advanced-body p { margin-bottom:14px; font-size:.96rem; }
+#ml-step1-content .ml-advanced-body p:last-child { margin-bottom:0; }
+#ml-step1-content .ml-advanced-body .ml-optional { font-size:.86rem; color:#a5b4c8; }
+@media (max-width:600px) {
+ #ml-step1-content .concept-card-grid { grid-template-columns:minmax(0,1fr); }
+ #ml-step1-content .ml-advanced summary { align-items:flex-start; padding:14px; }
+ #ml-step1-content .ml-advanced-body { padding:16px; }
+ #ml-step1-content .ml-concept-table th, #ml-step1-content .ml-concept-table td { padding:9px 8px; font-size:.87rem; }
+ #ml-step1-content .ml-diagram { padding:10px; }
+}
+/* MASTER_CONTENT_UI_END */
+</style>
+</head>
+<body>
+<div id="ml-template-banner" hidden>마스터 미리보기 · 아래 옴의 법칙은 교체할 예시 내용입니다. 로그인·제출·포인트·잠금 서버 작업은 실행하지 않습니다.</div>
+
+    <!-- [교사용 상단 원터치 잠금 통제 바] -->
+    <div id="adminStepBar" class="admin-step-bar">
+        <div class="admin-step-bar-inner">
+            <div class="admin-title">
+                <span>🛠️ <b>수업 단계 잠금 제어기</b></span>
+                <span id="syncStatusTag" style="font-size:0.78rem; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:12px; color:#a5b4fc;">실시간 동기화 켬</span>
+            </div>
+            <div class="admin-btn-group">
+                <button class="admin-toggle-chip unlocked" id="admBtn1" onclick="toggleStepLock(1)">1단계: 🔓공개</button>
+                <button class="admin-toggle-chip locked" id="admBtn2" onclick="toggleStepLock(2)">2단계: 🔒잠김</button>
+                <button class="admin-toggle-chip locked" id="admBtn3" onclick="toggleStepLock(3)">3단계: 🔒잠김</button>
+                <button class="admin-toggle-chip locked" id="admBtn4" onclick="toggleStepLock(4)">4단계: 🔒잠김</button>
+                <button class="admin-exit-btn admin-quick-point-launch" onclick="if (window.MasterLessonRuntime.allowServerAction()) window.AdminQuickPoints && window.AdminQuickPoints.open()">⭐ 빠른 포인트</button>
+                <button class="admin-exit-btn" onclick="exitAdminMode()">관리자 모드 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <span class="header-tag" data-ml-text="headerTag"></span>
+        <h1 data-ml-text="title"></h1>
+        <p class="subtitle" data-ml-text="subtitle"></p>
+        <div class="header-login-area">
+            <span id="headerLoginStatus" class="header-login-status">👤 미로그인</span>
+            <button id="headerLoginBtn" class="header-login-btn" onclick="openPageLoginModal()">🔑 로그인</button>
+            <button id="headerLogoutBtn" class="header-logout-btn" onclick="logoutPageUser()">로그아웃</button>
+        </div>
+    </header>
+
+    <div class="step-nav">
+        <button class="step-btn active" id="tabBtn1" onclick="trySwitchStep(1)">
+            <span data-ml-tab="0"></span>
+            <span class="lock-badge-icon" id="tabLockIcon1"></span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn2" onclick="trySwitchStep(2)">
+            <span data-ml-tab="1"></span>
+            <span class="lock-badge-icon" id="tabLockIcon2">🔒</span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn3" onclick="trySwitchStep(3)">
+            <span data-ml-tab="2"></span>
+            <span class="lock-badge-icon" id="tabLockIcon3">🔒</span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn4" onclick="trySwitchStep(4)">
+            <span data-ml-tab="3"></span>
+            <span class="lock-badge-icon" id="tabLockIcon4">🔒</span>
+        </button>
+    </div>
+
+    <div class="container">
+
+        <div id="step1" class="step-content active">
+<div id="ml-step1-content">
+<!-- ML:EDIT:STEP1_CONTENT:START -->
+<h2 class="section-title">📖 1단계. 빛의 합성 (교과서 p.112~115)</h2>
+
+<div class="textbook-section">
+ <h3>물체의 색은 눈에 들어오는 빛의 색</h3>
+ <p>스스로 빛을 내지 않는 물체는 조명에서 온 빛을 <b>일부 흡수하고 일부 반사</b>합니다. 눈에 들어오는 반사광에 따라 물체의 색을 느끼므로 <b>조명의 색</b>도 중요합니다.</p>
+ <p><b>백색광</b>은 여러 색의 빛이 함께 들어 있어 흰색으로 보이는 빛입니다. 백색광 아래의 초록색 물체는 초록색 계열의 빛을 주로 반사합니다.</p>
+ <div class="ml-study-grid">
+  <figure class="ml-diagram">
+   <h4>백색광으로 비추면</h4>
+   <svg class="ml-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 310" role="img" aria-label="백색광을 받은 이상적인 초록색 물체가 빨강과 파랑을 흡수하고 초록빛을 눈으로 반사한다">
+    <title>초록색 물체에서 초록빛이 반사되어 눈에 들어오는 경로</title>
+    <circle cx="46" cy="67" r="19" fill="#ffffff"/><text x="46" y="31" fill="#e2e8f0" font-size="17" text-anchor="middle">백색광</text>
+    <path d="M63 81 L171 168" fill="none" stroke="#ffffff" stroke-width="5"/><polygon points="171,168 153,163 162,152" fill="#ffffff"/>
+    <text x="24" y="145" fill="#e2e8f0" font-size="16">R·G·B</text>
+    <rect x="115" y="170" width="140" height="65" rx="10" fill="#075c2e" stroke="#4ade80" stroke-width="2"/>
+    <path d="M178 171 L292 80" fill="none" stroke="#00ff00" stroke-width="5"/><polygon points="292,80 273,86 282,97" fill="#00ff00"/>
+    <text x="242" y="153" fill="#86efac" font-size="17">G 반사</text>
+    <path d="M285 74 Q303 54 324 74 Q303 94 285 74" fill="#f8fafc"/><circle cx="305" cy="74" r="7" fill="#38bdf8"/><circle cx="305" cy="74" r="3" fill="#0f172a"/>
+    <text x="305" y="111" fill="#e2e8f0" font-size="17" text-anchor="middle">눈</text>
+    <path d="M158 182 V213" stroke="#ff5050" stroke-width="4"/><polygon points="158,216 152,206 164,206" fill="#ff5050"/>
+    <path d="M211 182 V213" stroke="#7494ff" stroke-width="4"/><polygon points="211,216 205,206 217,206" fill="#7494ff"/>
+    <text x="184" y="263" fill="#cbd5e1" font-size="17" text-anchor="middle">R·B는 물체에서 흡수</text>
+    <text x="184" y="292" fill="#86efac" font-size="19" text-anchor="middle">초록색으로 보임</text>
+   </svg>
+   <figcaption>초록색 빛만 반사하는 물체로 단순화했습니다. 화살표는 빛이 진행하는 방향입니다.</figcaption>
+  </figure>
+  <figure class="ml-diagram">
+   <h4>빨간색 빛만 비추면</h4>
+   <svg class="ml-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 310" role="img" aria-label="같은 초록색 물체를 빨간색 빛만으로 비추면 빨간빛을 흡수하여 눈으로 가는 반사광이 없다">
+    <title>조명에 초록빛이 없으면 초록빛을 반사할 수 없다</title>
+    <circle cx="46" cy="67" r="19" fill="#ff0000"/><text x="54" y="31" fill="#fca5a5" font-size="17" text-anchor="middle">빨간색 조명</text>
+    <path d="M63 81 L171 168" fill="none" stroke="#ff5050" stroke-width="5"/><polygon points="171,168 153,163 162,152" fill="#ff5050"/>
+    <text x="24" y="145" fill="#fca5a5" font-size="17">R만 입사</text>
+    <rect x="115" y="170" width="140" height="65" rx="10" fill="#000000" stroke="#64748b" stroke-width="2" stroke-dasharray="5 4"/>
+    <path d="M179 182 V213" stroke="#ff5050" stroke-width="4"/><polygon points="179,216 173,206 185,206" fill="#ff5050"/>
+    <path d="M285 74 Q303 54 324 74 Q303 94 285 74" fill="#f8fafc"/><circle cx="305" cy="74" r="7" fill="#38bdf8"/><circle cx="305" cy="74" r="3" fill="#0f172a"/>
+    <text x="305" y="111" fill="#e2e8f0" font-size="17" text-anchor="middle">눈</text>
+    <text x="234" y="142" fill="#cbd5e1" font-size="17" text-anchor="middle">반사광 없음</text>
+    <text x="184" y="263" fill="#cbd5e1" font-size="17" text-anchor="middle">입사한 R을 모두 흡수</text>
+    <text x="184" y="292" fill="#e2e8f0" font-size="19" text-anchor="middle">검게 보임</text>
+   </svg>
+   <figcaption>주변의 다른 빛이 없다는 조건입니다. 점선은 어두워진 물체의 위치를 표시합니다.</figcaption>
+  </figure>
+ </div>
+ <p>조명에 초록빛이 없으면 초록빛을 반사할 수 없습니다. 실제 초록색 물체는 일부 빨간빛도 반사하여 완전한 검정 대신 어둡게 보일 수 있습니다.</p>
+ <p class="ml-key"><b>물체에서 눈으로 오는 빛 = 조명에 들어 있는 빛 중 물체가 반사한 빛</b><br>흰색 물체는 백색광의 여러 색을 고르게 잘 반사하여 희게 보입니다. 빨간 조명만 받으면 흰색 물체도 빨갛게 보입니다. 검은색 물체는 빛을 대부분 흡수하여 반사광이 적습니다. <b>검게 보인다고 ‘검은색 빛’이 나오는 것은 아닙니다.</b></p>
+</div>
+
+<div class="textbook-section">
+ <h3>빛을 함께 더하면 새로운 색으로 느껴진다</h3>
+ <p>두 가지 이상의 색의 빛이 함께 눈에 들어와 다른 색으로 보이는 현상을 <b>빛의 합성</b>이라고 합니다. 서로 다른 조명을 흰색 스크린의 같은 곳에 비추면, 겹친 부분에서 합성된 색을 볼 수 있습니다.</p>
+ <p>빛의 기본색은 <b>빨강(Red, R)·초록(Green, G)·파랑(Blue, B)</b>이며, 이를 <b>빛의 삼원색</b>이라고 합니다. 세 빛을 여러 비율로 합성하면 다양한 색을 나타낼 수 있습니다. 빛이 더해지는 방식이므로 <b>가산 혼합</b>이라고도 부릅니다.</p>
+ <div class="ml-study-grid">
+  <figure class="ml-diagram">
+   <h4>빛의 삼원색과 겹친 부분</h4>
+   <svg class="ml-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 300" role="img" aria-label="빨강과 초록의 겹침은 노랑, 초록과 파랑은 청록, 빨강과 파랑은 자홍, 세 빛의 겹침은 흰색">
+    <title>RGB 빛의 합성: 일곱 영역의 색</title>
+    <defs><clipPath id="lm-read-r"><circle cx="140" cy="110" r="80"/></clipPath><clipPath id="lm-read-g"><circle cx="220" cy="110" r="80"/></clipPath></defs>
+    <circle cx="140" cy="110" r="80" fill="#ff0000"/><circle cx="220" cy="110" r="80" fill="#00ff00"/><circle cx="180" cy="177" r="80" fill="#0000ff"/>
+    <g clip-path="url(#lm-read-r)"><circle cx="220" cy="110" r="80" fill="#ffff00"/><circle cx="180" cy="177" r="80" fill="#ff00ff"/></g>
+    <g clip-path="url(#lm-read-g)"><circle cx="180" cy="177" r="80" fill="#00ffff"/></g>
+    <g clip-path="url(#lm-read-r)"><g clip-path="url(#lm-read-g)"><circle cx="180" cy="177" r="80" fill="#ffffff"/></g></g>
+    <text x="104" y="102" fill="#ffffff" font-size="17" font-weight="700" text-anchor="middle">빨강</text><text x="256" y="102" fill="#052e16" font-size="17" font-weight="700" text-anchor="middle">초록</text><text x="180" y="224" fill="#ffffff" font-size="17" font-weight="700" text-anchor="middle">파랑</text>
+    <text x="180" y="78" fill="#111827" font-size="16" font-weight="700" text-anchor="middle">노랑</text><text x="128" y="167" fill="#111827" font-size="16" font-weight="700" text-anchor="middle">자홍</text><text x="232" y="167" fill="#111827" font-size="16" font-weight="700" text-anchor="middle">청록</text><text x="180" y="137" fill="#111827" font-size="16" font-weight="700" text-anchor="middle">흰색</text>
+    <text x="180" y="286" fill="#cbd5e1" font-size="16" text-anchor="middle">겹치지 않은 곳은 각 조명의 색</text>
+   </svg>
+   <figcaption>기준 밝기의 RGB 빛을 합성한 모형입니다. 청록은 하늘빛에 가까운 색, 자홍은 붉은 보랏빛에 가까운 색입니다.</figcaption>
+  </figure>
+  <div class="concept-box">
+   <h4>적절한 밝기로 합성할 때</h4>
+   <p><b>빨강 + 초록 → 노랑</b></p>
+   <p><b>초록 + 파랑 → 청록(Cyan, C)</b></p>
+   <p><b>빨강 + 파랑 → 자홍(Magenta, M)</b></p>
+   <p><b>빨강 + 초록 + 파랑 → 흰색</b></p>
+   
+  </div>
+ </div>
+ <p class="ml-key">빛을 더 비추면 눈에 도달하는 빛의 양이 늘어납니다. <b>빛의 합성과 물감 혼합의 결과를 그대로 바꾸어 적용하면 안 됩니다.</b> 조명을 겹치는 상황인지, 물감을 섞는 상황인지 먼저 구별하세요.</p>
+</div>
+
+<div class="textbook-section">
+ <h3>RGB의 비율과 밝기를 바꾸면</h3>
+ <p>각 빛의 <b>상대적인 밝기</b>를 바꾸면 다양한 색이 됩니다. 빨강·초록으로 만든 노랑에서 빨강의 비중을 높이면 주황색 계열로 바뀝니다.</p>
+ <p class="ml-key">흰색을 내도록 맞춘 화면에서 RGB를 <b>같은 값으로 함께</b> 낮추면 회색이 되고, 모두 끄면 검게 보입니다. <b>색의 비율</b>을 바꾸는 것과 <b>전체 밝기</b>를 바꾸는 것은 다릅니다.</p>
+</div>
+
+<div class="textbook-section">
+ <h3>‘색의 합성’과 ‘빛의 합성’은 어떻게 다를까?</h3>
+ <p><b>여기서 비교하는 ‘색의 합성’은 물감·잉크 같은 색 재료를 섞는 뜻</b>입니다. 색이라는 말 자체는 빛에도 쓰이지만, 색 재료의 혼합과 여러 빛을 합성하는 과정은 다릅니다.</p>
+ <p>물감은 스스로 빛을 보태지 않습니다. 백색광을 받으면 성분에 따라 일부 빛을 흡수하고 남은 빛을 반사합니다. 여러 색 재료를 섞으면 흡수되는 빛의 성분이 늘어나 대체로 더 어두워집니다. 이처럼 빛의 일부가 줄어드는 방식을 <b>감산 혼합</b>이라고 합니다.</p>
+ <div class="ml-table-wrap" role="region" aria-label="빛의 가산 혼합과 물감 잉크의 감산 혼합 비교" tabindex="0">
+  <table class="ml-concept-table"><thead><tr><th scope="col">비교</th><th scope="col">빛의 합성</th><th scope="col">물감·잉크의 혼합</th></tr></thead><tbody>
+   <tr><th scope="row">더하는 것</th><td>눈에 도달할 여러 색의 빛</td><td>일부 빛을 흡수하는 색 재료</td></tr>
+   <tr><th scope="row">기본색 모형</th><td>빨강·초록·파랑(RGB)</td><td>청록·자홍·노랑(CMY)</td></tr>
+   <tr><th scope="row">혼합 원리</th><td>빛을 더하는 가산 혼합</td><td>일부 빛을 줄이는 감산 혼합</td></tr>
+   <tr><th scope="row">세 기본색의 결과</th><td>적절히 합성하면 흰색</td><td>이상적으로 모두 흡수하면 검정에 가까움</td></tr>
+  </tbody></table>
+ </div>
+ <p class="ml-key">실제 물감의 혼합색은 재료와 양에 따라 달라집니다. <b>빛을 섞을 때의 결과를 물감 혼합에 그대로 적용하면 안 됩니다.</b></p>
+</div>
+
+<div class="textbook-section">
+ <h3>화면의 노란색을 확대하면 왜 빨강과 초록이 보일까?</h3>
+ <p>디지털 화면의 그림은 매우 작은 점인 <b>화소(픽셀)</b>들로 이루어집니다. 일반적인 RGB 화면에서는 한 화소 안에 빨강·초록·파랑 빛을 내거나 조절하는 작은 부분인 <b>서브픽셀</b>이 있습니다. 화면은 이 세 부분의 밝기를 각각 조절하여 여러 색을 나타냅니다.</p>
+ <figure class="ml-diagram ml-diagram-wide">
+  <svg class="ml-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 290" role="img" aria-label="노란 화면을 확대한 RGB 화소에서는 빨강과 초록 부분만 켜져 있고 파랑은 꺼져 있다">
+   <title>확대해 구별되는 RGB 부분과 멀리서 느끼는 노란색</title>
+   <text x="118" y="30" fill="#e2e8f0" font-size="18" text-anchor="middle">확대한 화면</text><text x="348" y="30" fill="#e2e8f0" font-size="18" text-anchor="middle">멀리서 보면</text>
+   <rect x="17" y="50" width="205" height="134" rx="5" fill="#000000" stroke="#475569" stroke-width="2"/>
+   <g fill="#ff0000"><rect x="22" y="56" width="28" height="56"/><rect x="122" y="56" width="28" height="56"/><rect x="22" y="121" width="28" height="56"/><rect x="122" y="121" width="28" height="56"/></g>
+   <g fill="#00ff00"><rect x="54" y="56" width="28" height="56"/><rect x="154" y="56" width="28" height="56"/><rect x="54" y="121" width="28" height="56"/><rect x="154" y="121" width="28" height="56"/></g>
+   <g fill="#000000" stroke="#475569"><rect x="86" y="56" width="28" height="56"/><rect x="186" y="56" width="28" height="56"/><rect x="86" y="121" width="28" height="56"/><rect x="186" y="121" width="28" height="56"/></g>
+   <text x="36" y="204" fill="#fca5a5" font-size="16" text-anchor="middle">R</text><text x="68" y="204" fill="#86efac" font-size="16" text-anchor="middle">G</text><text x="100" y="204" fill="#a5b4fc" font-size="16" text-anchor="middle">B</text>
+   <path d="M22 215 V223 H114 V215" fill="none" stroke="#94a3b8" stroke-width="2"/><text x="68" y="247" fill="#cbd5e1" font-size="16" text-anchor="middle">화소 1개</text>
+   <path d="M236 116 H281" stroke="#94a3b8" stroke-width="3"/><polygon points="281,116 271,110 271,122" fill="#94a3b8"/>
+   <rect x="297" y="50" width="104" height="134" rx="6" fill="#ffff00"/><text x="349" y="124" fill="#111827" font-size="20" font-weight="700" text-anchor="middle">노란색</text>
+   <text x="270" y="238" fill="#cbd5e1" font-size="16" text-anchor="middle">파랑 부분은 빛을 내지 않음</text>
+   <text x="210" y="280" fill="#e2e8f0" font-size="17" text-anchor="middle">빨강·초록 빛을 함께 받아 노랑으로 느낌</text>
+  </svg>
+  <figcaption>서브픽셀을 구별할 수 있도록 크게 그린 모식도입니다. 실제 배열과 모양은 화면의 종류에 따라 다릅니다.</figcaption>
+ </figure>
+ <p>노란 화면을 확대하면 <b>빨강과 초록 부분이 켜지고 파랑 부분은 꺼져 있습니다.</b> 멀리서 작은 부분을 구별하기 어려우면 두 빛을 합쳐 노란색으로 느낍니다.</p>
+ 
+</div>
+
+<div class="textbook-section">
+ <h3>조명·전광판·점묘화에 숨어 있는 원리</h3>
+ <div class="concept-card-grid">
+  <div class="concept-box"><h4>무대와 광고 조명</h4><p>여러 조명을 겹쳐 다양한 색을 연출합니다. 같은 조명에서도 옷이 반사하는 빛의 성분에 따라 서로 다른 색으로 보입니다.</p></div>
+  <div class="concept-box"><h4>대형 전광판과 디지털 화면</h4><p>작은 RGB 빛의 밝기를 조절하여 글자와 그림을 나타냅니다.</p></div>
+  <div class="concept-box"><h4>점묘화</h4><p>다른 색의 물감을 작은 점으로 <b>나란히</b> 찍습니다. 멀리서 보면 각 점에서 반사된 빛을 함께 받아 색을 느낍니다.</p><p>물감을 한 덩어리로 섞는 것과는 다릅니다.</p></div>
+ </div>
+</div>
+
+<details class="ml-advanced">
+ <summary><span>선택 심화 · 색 필터는 어떤 빛을 흡수할까?</span><span class="ml-fold"><span class="ml-fold-closed">펼치기 ▾</span><span class="ml-fold-open">감추기 ▴</span></span></summary>
+ <div class="ml-advanced-body">
+ <p>감산 혼합은 <b>이상적인 청록(C)·자홍(M)·노랑(Y)</b> 재료로 설명할 수 있습니다. 청록은 빨강을, 자홍은 초록을, 노랑은 파랑을 흡수한다고 생각합니다. 백색광에서 흡수된 성분을 제외하면 어떤 빛이 남는지 알 수 있습니다.</p>
+ <div class="ml-study-grid">
+  <figure class="ml-diagram">
+   <h4>청록 필터와 노랑 필터를 겹치면</h4>
+   <svg class="ml-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 290" role="img" aria-label="RGB 빛이 청록 필터에서 빨강을 잃고 노랑 필터에서 파랑을 잃어 초록빛만 통과한다">
+    <title>이상적인 두 색 필터의 감산 혼합</title>
+    <text x="63" y="31" fill="#e2e8f0" font-size="17" text-anchor="middle">백색광</text>
+    <rect x="133" y="58" width="34" height="123" fill="#00ffff" fill-opacity=".28" stroke="#00ffff" stroke-width="2"/>
+    <rect x="253" y="58" width="34" height="123" fill="#ffff00" fill-opacity=".28" stroke="#ffff00" stroke-width="2"/>
+    <path d="M30 84 H132" stroke="#ff5050" stroke-width="4"/><polygon points="132,84 122,78 122,90" fill="#ff5050"/>
+    <path d="M30 119 H393" stroke="#00ff00" stroke-width="4"/><polygon points="393,119 383,113 383,125" fill="#00ff00"/>
+    <path d="M30 154 H252" stroke="#7494ff" stroke-width="4"/><polygon points="252,154 242,148 242,160" fill="#7494ff"/>
+    <text x="18" y="89" fill="#fca5a5" font-size="16" text-anchor="middle">R</text><text x="18" y="124" fill="#86efac" font-size="16" text-anchor="middle">G</text><text x="18" y="159" fill="#a5b4fc" font-size="16" text-anchor="middle">B</text>
+    <path d="M141 77 L159 91 M141 91 L159 77" stroke="#ff5050" stroke-width="3"/><path d="M261 147 L279 161 M261 161 L279 147" stroke="#7494ff" stroke-width="3"/>
+    <text x="150" y="213" fill="#67e8f9" font-size="17" text-anchor="middle">청록(C)</text><text x="150" y="240" fill="#cbd5e1" font-size="16" text-anchor="middle">R 흡수</text>
+    <text x="270" y="213" fill="#fef08a" font-size="17" text-anchor="middle">노랑(Y)</text><text x="270" y="240" fill="#cbd5e1" font-size="16" text-anchor="middle">B 흡수</text>
+    <text x="365" y="84" fill="#86efac" font-size="17" text-anchor="middle">G만 통과</text>
+    <text x="210" y="279" fill="#e2e8f0" font-size="17" text-anchor="middle">남은 빛은 초록색</text>
+   </svg>
+   <figcaption>화살표는 필터를 통과하는 빛의 방향이고 ×는 흡수된 성분입니다. 실제 필터의 흡수 범위는 재료마다 다릅니다.</figcaption>
+  </figure>
+  <div class="concept-box">
+   <h4>흡수되지 않고 남는 성분 찾기</h4>
+   <p><b>청록 + 노랑 → 초록</b><br>빨강과 파랑이 흡수되고 초록이 남습니다.</p>
+   <p><b>자홍 + 노랑 → 빨강</b><br>초록과 파랑이 흡수되고 빨강이 남습니다.</p>
+   <p><b>청록 + 자홍 → 파랑</b><br>빨강과 초록이 흡수되고 파랑이 남습니다.</p>
+   <p><b>청록 + 자홍 + 노랑 → 어두움</b><br>이상적으로 세 성분을 모두 흡수하면 빛이 남지 않습니다.</p>
+  </div>
+ </div>
+ <p>필터에서는 흡수되지 않은 빛이 <b>통과</b>하고, 불투명한 물감 표면에서는 남은 빛 중 일부가 <b>반사</b>되어 눈에 들어옵니다. 빛의 일부가 흡수된다는 점을 이용해 두 경우를 설명할 수 있습니다.</p>
+ <p class="ml-key"><b>실제 물감의 혼합은 재료에 따라 달라집니다.</b> 물감에는 다양한 성분이 들어 있으므로 세 색을 섞어도 갈색·회색처럼 보일 수 있습니다. 위 CMY 결과는 원리를 설명하는 이상적인 모형이며, <b>두 물감의 화면 RGB 값을 단순히 평균 내는 것으로 실제 혼합색을 정확히 예측할 수는 없습니다.</b></p>
+ </div>
+</details>
+
+<details class="ml-advanced">
+ <summary><span>선택 심화 · 빨강과 초록이 합쳐지면 노란 파장이 새로 생길까?</span><span class="ml-fold"><span class="ml-fold-closed">펼치기 ▾</span><span class="ml-fold-open">감추기 ▴</span></span></summary>
+ <div class="ml-advanced-body">
+  <p>일상적인 빛의 합성에서 빨간빛과 초록빛이 합쳐졌다고 해서 두 빛이 새로운 노란 파장의 빛으로 바뀌는 것은 아닙니다. 원래의 빛들이 함께 눈에 들어오고, 눈과 뇌가 그 자극을 노란색으로 느낍니다. 따라서 <b>같은 색으로 보이는 빛도 실제로 포함한 파장들의 구성은 다를 수 있습니다.</b></p>
+  <p>RGB 빛을 적절히 합성한 흰색과 햇빛은 모두 희게 보일 수 있지만, 빛의 성분 구성이 완전히 같은 것은 아닙니다. 또한 특정한 RGB 광원 세 개로 사람이 볼 수 있는 모든 색을 완벽히 표현할 수 있는 것도 아닙니다. 표현할 수 있는 색의 범위는 사용하는 광원과 화면에 따라 달라집니다.</p>
+ </div>
+</details>
+<!-- ML:EDIT:STEP1_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step2" class="step-content">
+<div id="ml-step2-content">
+<!-- ML:EDIT:STEP2_CONTENT:START -->
+<h2 class="section-title">🌈 2단계. 빛을 섞어 보세요</h2>
+<p class="ml-intro">빨강·초록·파랑을 움직이면 겹친 색이 바로 바뀝니다.</p>
+<div class="mix-playground">
+ <div class="mix-board">
+  <div class="ml-scroll" role="region" aria-label="세 가지 빛이 겹치는 모형">
+<svg id="mix-scene2" class="ml-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 520" role="img" aria-labelledby="mix-svg-title2 mix-svg-desc2">
+  <title id="mix-svg-title2">세 가지 빛이 겹치는 부분의 색</title>
+  <desc id="mix-svg-desc2">R, G, B 원의 각 영역은 그곳에 도달하는 빛의 실제 RGB 값으로 표시됩니다.</desc>
+  <defs>
+   <clipPath id="mix-clip-r2"><circle cx="330" cy="185" r="135"/></clipPath>
+   <clipPath id="mix-clip-g2"><circle cx="500" cy="185" r="135"/></clipPath>
+   <clipPath id="mix-clip-b2"><circle cx="415" cy="315" r="135"/></clipPath>
+  </defs>
+  <rect width="840" height="520" fill="#000000"/>
+  <circle id="mix-region-r2" cx="330" cy="185" r="135" fill="rgb(255, 0, 0)"/>
+  <circle id="mix-region-g2" cx="500" cy="185" r="135" fill="rgb(0, 0, 0)"/>
+  <circle id="mix-region-b2" cx="415" cy="315" r="135" fill="rgb(0, 0, 0)"/>
+  <g clip-path="url(#mix-clip-r2)"><circle id="mix-region-rg2" cx="500" cy="185" r="135" fill="rgb(255, 0, 0)"/></g>
+  <g clip-path="url(#mix-clip-r2)"><circle id="mix-region-rb2" cx="415" cy="315" r="135" fill="rgb(255, 0, 0)"/></g>
+  <g clip-path="url(#mix-clip-g2)"><circle id="mix-region-gb2" cx="415" cy="315" r="135" fill="rgb(0, 0, 0)"/></g>
+  <g clip-path="url(#mix-clip-r2)"><g clip-path="url(#mix-clip-g2)"><circle id="mix-region-rgb2" cx="415" cy="315" r="135" fill="rgb(255, 0, 0)"/></g></g>
+  <g fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="5 5"><circle cx="330" cy="185" r="135"/><circle cx="500" cy="185" r="135"/><circle cx="415" cy="315" r="135"/></g>
+  <g fill="#e2e8f0" font-size="21" text-anchor="middle" font-weight="600">
+   <text x="235" y="33">빨간색 빛 R</text><text x="595" y="33">초록색 빛 G</text><text x="415" y="487">파란색 빛 B</text>
+  </g>
+  <g font-size="20" text-anchor="middle" font-weight="700">
+   <text id="mix-label-r2" x="285" y="168">R</text><text id="mix-label-g2" x="545" y="168">G</text><text id="mix-label-b2" x="415" y="375">B</text>
+   <text id="mix-label-rg2" x="415" y="132">R + G</text><text id="mix-label-rb2" x="331" y="289">R + B</text><text id="mix-label-gb2" x="499" y="289">G + B</text><text id="mix-label-rgb2" x="415" y="240">R+G+B</text>
+  </g>
+ </svg>
+  </div>
+  <p class="mix-color-name">가운데 합성색 · <strong id="mix-result-name2" aria-live="polite"></strong></p>
+ </div>
+ <div class="mix-console">
+  <div class="ml-controls mix-rgb-controls">
+   <div class="ml-control"><label class="mix-control-title" for="mix-r2"><b>R · 빨강</b><output id="mix-r-value2" for="mix-r2">255</output></label><input class="mix-slider" type="range" id="mix-r2" min="0" max="255" step="1" value="255" oninput="updateStep2Sim()"></div>
+   <div class="ml-control"><label class="mix-control-title" for="mix-g2"><b>G · 초록</b><output id="mix-g-value2" for="mix-g2">0</output></label><input class="mix-slider" type="range" id="mix-g2" min="0" max="255" step="1" value="0" oninput="updateStep2Sim()"></div>
+   <div class="ml-control"><label class="mix-control-title" for="mix-b2"><b>B · 파랑</b><output id="mix-b-value2" for="mix-b2">0</output></label><input class="mix-slider" type="range" id="mix-b2" min="0" max="255" step="1" value="0" oninput="updateStep2Sim()"></div>
+  </div>
+  <div class="ml-actions"><button type="button" class="sim-btn secondary" onclick="mixPreset2('off')">모두 끄기</button></div>
+  <p class="ml-caption">0은 끄기, 255는 최대 조절값입니다. 실제 빛의 세기 단위는 아닙니다.</p>
+ </div>
+</div>
+<details class="textbook-section mix-option-panel" id="mix-challenge-panel2">
+ <summary>🎯 색 맞추기 도전</summary>
+ <div class="mix-target"><span id="mix-target-swatch2" class="mix-target-swatch" role="img" aria-label="도전 색"></span><strong id="mix-target-name2"></strong><button type="button" class="sim-btn secondary" onclick="mixNextChallenge2()">다른 색</button></div>
+ <p id="mix-challenge-feedback2" class="mix-challenge-feedback" aria-live="polite"></p>
+</details>
+<!-- ML:EDIT:STEP2_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step3" class="step-content">
+<div id="ml-step3-content">
+<!-- ML:EDIT:STEP3_CONTENT:START -->
+<h2 class="section-title">🔦 3단계. 조명을 바꾸면?</h2>
+<p class="ml-intro">같은 물체에 다른 색의 빛을 비춰 보세요.</p>
+<div class="ml-controls">
+ <label class="ml-control" for="mix3-light"><b>조명의 색</b><select id="mix3-light" onchange="updateStep3Data()"><option value="white">흰색 조명</option><option value="red">빨간색 조명</option><option value="green">초록색 조명</option><option value="blue">파란색 조명</option><option value="yellow">노란색 조명</option><option value="cyan">청록색 조명</option><option value="magenta">자홍색 조명</option><option value="off">조명 끄기</option><option value="custom" id="mix3-custom-option" disabled>2단계에서 가져온 빛</option></select></label>
+ <label class="ml-control" for="mix3-material"><b>물체 바꾸기 · 백색광에서의 색</b><select id="mix3-material" onchange="updateStep3Data()"><option value="white">흰색 물체</option><option value="red" selected>빨간색 물체</option><option value="green">초록색 물체</option><option value="blue">파란색 물체</option><option value="yellow">노란색 물체</option><option value="cyan">청록색 물체</option><option value="magenta">자홍색 물체</option><option value="black">검은색 물체</option></select></label>
+</div>
+<div class="ml-scroll" role="region" aria-label="조명에서 물체를 거쳐 눈으로 들어오는 빛"><svg id="mix3-reflection" class="ml-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 290" role="img" aria-label="빛의 반사 모형"></svg></div>
+<p class="ml-result" aria-live="polite"><strong id="mix3-result"></strong><br><span id="mix3-reason"></span></p>
+<details class="textbook-section mix-option-panel">
+ <summary>🔍 내가 만든 빛 비추기 · 화소 살펴보기</summary>
+ <div class="ml-actions"><button type="button" class="sim-btn secondary" onclick="mix3Import()">2단계의 빛 비추기</button><span class="ml-caption" id="mix3-import-status" aria-live="polite"></span></div>
+ <div class="ml-scroll" role="region" aria-label="화면의 색과 확대된 RGB 화소 모형"><svg id="mix3-pixels" class="ml-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 260" role="img" aria-label="화면과 RGB 화소"></svg></div>
+ <p class="ml-caption" id="mix3-pixel-note"></p>
+</details>
+<p class="ml-caption">물체 이름은 백색광에서의 색입니다. 특정 RGB 성분을 반사하고 나머지를 흡수하는 모형이며, 실제 물체의 반사 정도는 다를 수 있습니다.</p>
+<!-- ML:EDIT:STEP3_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step4" class="step-content">
+<!-- ML:EDIT:STEP4_INTRO:START -->
+<h2 class="section-title">📝 4단계. 빛의 합성 — 형성평가 4문항</h2>
+<p style="margin-bottom:15px; color:#cbd5e1;">4문항을 풀고 학번·이름을 확인한 뒤 제출하세요. <b>처음 고른 답으로 제출</b>되며, 제출 후에는 다시 풀어 볼 수 있습니다.</p>
+<!-- ML:EDIT:STEP4_INTRO:END -->
+
+            <div class="student-info-box">
+                <div class="student-info-group">
+                    <label for="studentIdInput">학번: </label>
+                    <input type="text" id="studentIdInput" placeholder="예: 20301" style="width: 110px;">
+                </div>
+                <div class="student-info-group">
+                    <label for="studentNameInput">이름: </label>
+                    <input type="text" id="studentNameInput" placeholder="예: 홍길동" style="width: 110px;">
+                </div>
+                <button class="submit-btn" id="quizSubmitBtn" onclick="submitQuizResults()">📤 문제풀이 결과 교사에게 제출</button>
+            </div>
+
+<div id="ml-quiz-items">
+<!-- ML:EDIT:QUIZ_HTML:START -->
+<div class="quiz-item" id="quiz-block-1">
+ <div class="quiz-q">Q1. 다른 빛이 없는 곳에서 흰색 스크린의 같은 부분에 빨간색 빛과 초록색 빛을 적절한 밝기로 비추었습니다. 두 빛이 겹친 부분은 무슨 색으로 보일까요?</div>
+ <div class="quiz-opt" onclick="handleQuiz(1,this,1)">① 파란색</div>
+ <div class="quiz-opt" onclick="handleQuiz(1,this,2)">② 노란색</div>
+ <div class="quiz-opt" onclick="handleQuiz(1,this,3)">③ 자홍색</div>
+ <div class="quiz-opt" onclick="handleQuiz(1,this,4)">④ 검은색</div>
+ <div id="fb-1" class="quiz-feedback-box">
+  <div id="fb-title-1" class="fb-header"></div>
+  <div class="fb-detail-card"><div id="fb-content-1"></div><button class="goto-sim-btn" onclick="trySwitchStep(2)">🔎 2단계 빛의 합성 다시 관찰하기 ➔</button></div>
+ </div>
+</div>
+
+<div class="quiz-item" id="quiz-block-2">
+ <div class="quiz-q">Q2. 빛의 합성과 물감·잉크 혼합의 차이에 대한 설명으로 옳은 것은? 물감·잉크는 백색광 아래에서 비교하며, 청록·자홍·노랑은 이상적인 색 재료로 생각합니다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(2,this,1)">① 빛의 삼원색은 청록·자홍·노랑이다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(2,this,2)">② 빨강·초록·파랑 빛을 적절히 합성하면 검은색 빛이 만들어진다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(2,this,3)">③ 청록·자홍·노랑 색 재료를 섞을수록 반사되는 빛이 늘어나 흰색에 가까워진다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(2,this,4)">④ 빛의 합성은 눈에 도달하는 빛을 더하고, 색 재료의 혼합은 일부 빛의 흡수를 늘려 반사되는 빛을 줄인다.</div>
+ <div id="fb-2" class="quiz-feedback-box">
+  <div id="fb-title-2" class="fb-header"></div>
+  <div class="fb-detail-card"><div id="fb-content-2"></div><button class="goto-sim-btn" onclick="trySwitchStep(1)">🔎 1단계 빛과 물감 비교 복습 ➔</button></div>
+ </div>
+</div>
+
+<div class="quiz-item" id="quiz-block-3">
+ <div class="quiz-q">Q3. 초록색 빛만 반사하고 빨간색·파란색 빛은 모두 흡수하는 이상적인 초록색 물체가 있습니다. 주변의 다른 빛 없이 빨간색 빛만 이 물체에 비추면 어떻게 보일까요?</div>
+ <div class="quiz-opt" onclick="handleQuiz(3,this,1)">① 반사되어 눈에 오는 빛이 없으므로 검게 보인다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(3,this,2)">② 초록색 물체이므로 어떤 조명에서도 초록색으로 보인다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(3,this,3)">③ 조명과 같은 빨간색으로 보인다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(3,this,4)">④ 빨간색 조명과 물체의 초록색이 합성되어 노란색으로 보인다.</div>
+ <div id="fb-3" class="quiz-feedback-box">
+  <div id="fb-title-3" class="fb-header"></div>
+  <div class="fb-detail-card"><div id="fb-content-3"></div><button class="goto-sim-btn" onclick="trySwitchStep(3)">🔎 3단계 조명과 물체색 다시 비교하기 ➔</button></div>
+ </div>
+</div>
+
+<div class="quiz-item" id="quiz-block-4">
+ <div class="quiz-q">Q4. RGB 화면의 노란색 부분을 크게 확대했습니다. 노란색을 나타내는 한 화소의 빨강(R)·초록(G)·파랑(B) 부분은 어떤 상태일까요? 주변 빛은 무시합니다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(4,this,1)">① 파랑만 켜져 있다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(4,this,2)">② 빨강과 파랑이 켜지고, 초록은 꺼져 있다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(4,this,3)">③ 빨강과 초록이 적절한 밝기로 켜지고, 파랑은 꺼져 있다.</div>
+ <div class="quiz-opt" onclick="handleQuiz(4,this,4)">④ 빨강·초록·파랑이 모두 꺼져 있다.</div>
+ <div id="fb-4" class="quiz-feedback-box">
+  <div id="fb-title-4" class="fb-header"></div>
+  <div class="fb-detail-card"><div id="fb-content-4"></div><button class="goto-sim-btn" onclick="trySwitchStep(1)">🔎 1단계 RGB 화소 원리 복습 ➔</button></div>
+ </div>
+</div>
+<!-- ML:EDIT:QUIZ_HTML:END -->
+</div>
+
+        </div>
+
+    </div>
+
+    <!-- 우측 하단 관리자 로그인 버튼 -->
+    <button class="admin-float-btn" onclick="openAdminModal()">⚙️ 교사용 단계 잠금 관리</button>
+
+    <!-- 관리자 인증 모달 -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔑 관리자 비밀번호 인증</h3>
+            <p>교사용 관리자 비밀번호를 입력하면 수업 단계별 실시간 잠금 제어 바가 활성화됩니다.</p>
+            <input type="password" id="adminPwInput" placeholder="비밀번호 입력" autocomplete="off">
+            <div class="modal-btn-group">
+                <button class="modal-cancel" onclick="closeAdminModal()">취소</button>
+                <button class="modal-confirm" id="adminModalConfirmBtn" onclick="submitAdminAuth()">인증하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 페이지 공통 학생/교사 로그인 모달 -->
+    <div id="pageLoginModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔑 로그인</h3>
+            <p>학번 또는 관리자 ID와 비밀번호를 입력해 주세요.</p>
+            <input type="text" id="pageLoginId" maxlength="10" placeholder="학번(4자리) 또는 ID(admin)" autocomplete="username">
+            <input type="password" id="pageLoginPw" placeholder="비밀번호 입력" autocomplete="current-password">
+            <div class="modal-btn-group">
+                <button class="modal-cancel" onclick="closePageLoginModal()">닫기</button>
+                <button class="modal-confirm" id="btnSubmitPageLogin" onclick="submitPageLogin()">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p data-ml-text="footer"></p>
+    </footer>
+
+    <script src="./assets/lesson-core.js"></script>
+<script src="./assets/content-client.js"></script>
+<script src="./assets/lesson-content.js"></script>
+<script src="./assets/lesson-quiz.js"></script>
+<script src="./assets/lesson-sim-u3_l6.js"></script>
+    <script src="./admin-quick-points.js"></script>
+
+<link rel="stylesheet" href="./assets/lesson-worksheet.css">
+<!-- LESSON_WORKSHEET_DRAWER_START -->
+<div id="ctw-root" data-worksheet-version="2026-09-13.3" class="ctw-tools-collapsed" data-lesson="" data-pdf="">
+  <button id="ctw-toggle" class="ctw-toggle" type="button" aria-controls="ctw-panel" aria-expanded="false" title="이 차시 학습지 펼치기">▤ <span>학습지</span></button>
+  <aside id="ctw-panel" class="ctw-panel" aria-labelledby="ctw-title" aria-hidden="true" inert hidden>
+    <div id="ctw-resizer" class="ctw-resizer" role="separator" aria-label="학습지 패널 너비" aria-orientation="vertical" aria-valuemin="340" aria-valuemax="800" aria-valuenow="480" tabindex="0"></div>
+    <div class="ctw-head">
+      <div><div class="ctw-eyebrow">수업과 함께 보는 학습지</div><h2 id="ctw-title"></h2></div>
+    </div>
+    <div class="ctw-quickbar" role="group" aria-label="학습지 빠른 도구">
+      <button id="ctw-controls-toggle" type="button" aria-controls="ctw-controls" aria-expanded="false" aria-label="도구 펼치기" title="파일·페이지 도구 펼치기">도구 ▾</button>
+    <div class="ctw-tools" role="group" aria-label="학습지 필기 도구">
+      <button type="button" data-tool="move" aria-pressed="true" data-pdf-control disabled>이동</button>
+      <button type="button" data-tool="pen" aria-pressed="false" data-pdf-control disabled>펜</button>
+      <button type="button" data-tool="highlight" aria-pressed="false" data-pdf-control disabled>형광펜</button>
+      <button type="button" data-tool="text" aria-pressed="false" data-pdf-control disabled>글자</button>
+      <label class="ctw-color-label">색 <input id="ctw-color" type="color" value="#dc2626" aria-label="펜·형광펜·글자 색" data-pdf-control disabled></label>
+      <button id="ctw-undo" type="button" aria-label="되돌리기" title="이 페이지의 마지막 필기 지우기" data-pdf-control disabled>↶</button>
+      <button id="ctw-clear" type="button" data-pdf-control disabled>쪽 지우기</button>
+    </div>
+      <button id="ctw-quick-prev" class="ctw-quick-page" type="button" aria-label="이전 페이지" title="이전 페이지" data-pdf-control disabled>‹</button>
+      <button id="ctw-quick-next" class="ctw-quick-page" type="button" aria-label="다음 페이지" title="다음 페이지" data-pdf-control disabled>›</button>
+      <button id="ctw-close" class="ctw-close" type="button" aria-label="학습지 접기" title="학습지 접기 (Esc)">✕</button>
+    </div>
+    <div id="ctw-controls" class="ctw-controls" hidden>
+    <div id="ctw-lock-status" class="ctw-lock-status" role="status" aria-live="polite">학습지 공개 상태 확인 중</div>
+    <div id="ctw-lock-admin" class="ctw-lock-admin" role="group" aria-label="관리자 학습지 잠금" hidden>
+      <button id="ctw-lock-item" type="button" disabled>이 학습지 잠금</button>
+      <button id="ctw-lock-unit" type="button" disabled>단원 잠금</button>
+      <button id="ctw-lock-archive" type="button" disabled>보관함 전체 잠금</button>
+    </div>
+    <div class="ctw-toolbar" aria-label="학습지 파일">
+      <button id="ctw-default" type="button" title="이 차시의 등록된 학습지 다시 열기">차시 학습지</button>
+      <button id="ctw-local" type="button">내 PDF 열기</button>
+      <button id="ctw-print" type="button" disabled>필기 포함 인쇄</button>
+      <input id="ctw-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+    <div id="ctw-source" class="ctw-source"></div>
+    <div class="ctw-toolbar" aria-label="학습지 페이지와 확대">
+      <button id="ctw-prev" type="button" aria-label="이전 페이지" data-pdf-control disabled>‹</button>
+      <label class="ctw-page-label"><input id="ctw-page" type="number" min="1" value="1" aria-label="학습지 페이지" data-pdf-control disabled> <span id="ctw-pages">/ — 쪽</span></label>
+      <button id="ctw-next" type="button" aria-label="다음 페이지" data-pdf-control disabled>›</button>
+      <label>확대 <select id="ctw-zoom" aria-label="학습지 확대" data-pdf-control disabled><option value="1">100% · 너비 맞춤</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+    </div>
+
+    </div>
+    <form id="ctw-text-form" class="ctw-text-form" hidden>
+      <label for="ctw-text">누른 위치에 넣을 글자</label><span id="ctw-text-help" class="ctw-text-help">Enter 넣기 · Shift+Enter 줄바꿈</span>
+      <textarea id="ctw-text" aria-describedby="ctw-text-help" rows="2" maxlength="500" placeholder="함께 정리할 내용을 입력하세요"></textarea>
+      <div class="ctw-text-actions">
+        <label class="ctw-text-size-label" for="ctw-text-size">글자 크기 <input id="ctw-text-size" type="number" min="50" max="300" step="1" value="100" inputmode="numeric" aria-label="글자 크기, 기존 크기의 백분율">%</label>
+        <button id="ctw-text-size-reset" type="button" title="기존 글자 크기 100%로 되돌리기">기본</button>
+        <button type="submit">넣기</button><button id="ctw-text-cancel" type="button">취소</button>
+      </div>
+    </form>
+    <div id="ctw-status" class="ctw-status" role="status" aria-live="polite">학습지를 펼치면 이 차시의 PDF를 불러옵니다.</div>
+    <div class="ctw-view-shell">
+    <div id="ctw-zoom-toast" class="ctw-zoom-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="ctw-view" class="ctw-view" tabindex="0" aria-label="학습지 보기 영역">
+      <div id="ctw-empty" class="ctw-empty"><p id="ctw-empty-message">학습지를 준비하고 있습니다.</p><button id="ctw-lock-retry" type="button">다시 확인</button></div>
+      <div id="ctw-stage" class="ctw-stage" hidden>
+        <canvas id="ctw-pdf" role="img" aria-label="학습지 PDF 페이지"></canvas>
+        <canvas id="ctw-ink" aria-label="학습지 필기 영역"></canvas>
+      </div>
+    </div>
+    </div>
+    <div class="ctw-foot"><span id="ctw-save-note">필기: 이 기기·브라우저에 저장 (아이디별 아님, 자동 만료 없음). 사이트 데이터 삭제 시 사라집니다.</span></div>
+  </aside>
+</div>
+<!-- LESSON_WORKSHEET_DRAWER_END -->
+
+<script id="ml-bind">window.MasterLessonRuntime.bind();</script>
+<script src="./assets/lesson-worksheet.js"></script>
+</body>
+</html>

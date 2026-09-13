@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script src="./platform-config.js"></script>
+<script src="./lock-realtime-client.js"></script>
+<script>window.LESSON_CONFIG=Object.freeze({"templateMode": false, "unitKey": "unit3", "lessonKey": "u3_l5", "lessonName": "3단원 5차시 - 거울과 렌즈", "pageTitle": "중2 과학 3단원 - 거울과 렌즈", "headerTag": "중학교 2학년 과학 - 3. 빛과 파동", "title": "🔎 거울과 렌즈", "subtitle": "모양과 물체의 거리에 따라 상은 어떻게 달라질까요?", "tabs": ["1단계: 개념 학습", "2단계: 상 바꿔 보기", "3단계: 알맞은 도구 찾기", "4단계: 형성평가 & 결과 제출"], "worksheetPath": "", "worksheetTitle": "3단원 5차시 · 거울과 렌즈 학습지", "footer": "© 중2 과학 거울과 렌즈 탐구 프로그램 · 교과서 106~111쪽", "fallbackSchoolYear": 2026, "trustedBuiltin": true});window.MASTER_LESSON_CONFIG=window.LESSON_CONFIG;</script>
+<script src="./assets/lesson-master.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중2 과학 수업 공통 마스터</title>
+    <!-- MASTER_LESSON_VERSION: 2026-09-12.4
+물체를 보는 과정의 승인된 수업 내용과 공통 UI를 예시로 담은 제작용 마스터입니다.
+1단계는 개념·원리·그림 중심. 학습목표·학습지 작성법·2/3단계 활동 예고는 넣지 않습니다.
+심화는 기본 접힘. 학습지는 교사가 제작하며 요청 없이 만들지 않습니다.
+새 차시 제작 시 ML:EDIT 주석 내부 9곳만 수정하세요. 나머지는 공통 기능·디자인입니다.
+NEW_LESSON_PROMPT.txt와 함께 사용하고 validate_masterlesson.py로 고정 영역을 비교하세요.
+-->
+
+
+
+    <!-- ================= [차시 및 단계 실시간 잠금 가드 스크립트] ================= -->
+    <script src="./assets/lesson-locks.js"></script>
+    <!-- ============================================================= -->
+
+    <link rel="stylesheet" href="./assets/lesson-base.css">
+<link rel="stylesheet" href="./assets/lesson-style-u3_l5.css">
+<style id="ml-template-style">
+#ml-template-banner { margin:0; padding:9px 16px; color:#fef3c7; background:#493619; border-bottom:1px solid #9b792d; font:13px/1.6 sans-serif; }
+#ml-template-banner[hidden] { display:none !important; }
+</style>
+<style id="ml-content-style">
+/* ML:EDIT:LESSON_CSS:START */
+#ml-step2-content .optic-scene-label { fill:#e2e8f0; font-size:18px; text-anchor:middle; }
+#ml-step2-content .optic-scene-note { fill:#a8b8cc; font-size:16px; text-anchor:middle; }
+#ml-step2-content .optic-scene-key { fill:#7dd3fc; font-size:19px; font-weight:700; text-anchor:middle; }
+#ml-step3-content .optic-tools { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0; }
+#ml-step3-content .optic-tool-choice { flex:1 1 145px; min-height:52px; margin:0; }
+#ml-step3-content .optic-tool-choice[aria-pressed="true"] { outline:3px solid #fbbf24; outline-offset:2px; }
+#ml-step3-content #optic-result3[data-correct="true"] { color:#6ee7b7; }
+#ml-step3-content #optic-result3[data-correct="false"] { color:#fbbf24; }
+#ml-step2-content .optic-model-note { margin:12px 0; color:#a8b8cc; font-size:.88rem; line-height:1.7; }
+#ml-step2-content .optic-model-note summary { cursor:pointer; }
+#ml-step2-content svg.ml-svg { min-width:0; }
+
+#ml-step2-content .optic-comparison { max-width:850px; margin:0 auto; }
+#ml-step3-content .optic-case { border-color:#0e7490; }
+#ml-step3-content .optic-case-index { color:#7dd3fc; font-size:.88rem; }
+#ml-step3-content .optic-case h3 { margin-top:12px; }
+/* ML:EDIT:LESSON_CSS:END */
+
+/* MASTER_CONTENT_UI: fixed across all lessons. */
+#ml-step2-content .ml-intro, #ml-step3-content .ml-intro { color:#cbd5e1; margin-bottom:18px; line-height:1.8; }
+#ml-step2-content .ml-controls, #ml-step3-content .ml-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; padding:18px; background:#131b2e; border:1px solid #334155; border-radius:12px; margin-bottom:16px; }
+#ml-step2-content .ml-control, #ml-step3-content .ml-control { display:flex; flex-direction:column; gap:8px; color:#e2e8f0; min-width:0; }
+#ml-step2-content .ml-control select, #ml-step3-content .ml-control select { width:100%; background:#0f172a; color:#f8fafc; border:1px solid #475569; border-radius:8px; padding:10px; font:inherit; }
+#ml-step2-content .ml-control select:disabled { opacity:.6; }
+#ml-step2-content .ml-toggles, #ml-step3-content .ml-toggles { display:flex; align-items:center; flex-wrap:wrap; gap:16px; }
+#ml-step2-content .ml-toggles label, #ml-step3-content .ml-toggles label { display:flex; align-items:center; gap:7px; min-height:36px; cursor:pointer; }
+#ml-step2-content .ml-toggles input, #ml-step3-content .ml-toggles input { accent-color:#38bdf8; width:18px; height:18px; }
+#ml-step3-content .ml-control input[type="range"] { width:100%; min-height:32px; accent-color:#38bdf8; }
+#ml-step2-content .ml-wide, #ml-step3-content .ml-wide { grid-column:1 / -1; }
+#ml-step2-content .ml-scroll, #ml-step3-content .ml-scroll { overflow-x:auto; max-width:100%; border:1px solid #334155; border-radius:12px; background:#0f172a; margin-bottom:12px; }
+#ml-step2-content .ml-svg, #ml-step3-content .ml-svg { display:block; width:100%; min-width:620px; height:auto; font-family:inherit; }
+#ml-step2-content .ml-caption, #ml-step3-content .ml-caption { font-size:.88rem; color:#a8b8cc; line-height:1.7; margin:10px 0 16px; }
+#ml-step2-content .ml-result, #ml-step3-content .ml-result { background:#182238; border:1px solid #334155; border-radius:12px; padding:16px; margin:14px 0 20px; color:#e2e8f0; line-height:1.8; }
+#ml-step2-content .ml-result strong[data-visible="true"] { color:#6ee7b7; }
+#ml-step2-content .ml-result strong[data-visible="false"] { color:#fda4af; }
+#ml-step2-content .ml-actions, #ml-step3-content .ml-actions { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:12px 0; }
+#ml-step2-content .ml-table, #ml-step3-content .ml-table { width:100%; min-width:560px; border-collapse:collapse; color:#e2e8f0; font-size:.92rem; }
+#ml-step2-content .ml-table th, #ml-step2-content .ml-table td, #ml-step3-content .ml-table th, #ml-step3-content .ml-table td { padding:10px 12px; text-align:left; border-bottom:1px solid #334155; }
+#ml-step2-content .ml-table th, #ml-step3-content .ml-table th { color:#7dd3fc; background:#182238; }
+#ml-step3-content .ml-order { display:flex; flex-wrap:wrap; gap:10px 25px; min-height:55px; margin:16px 0 16px 28px; }
+#ml-step3-content .ml-order li { padding:7px 12px; background:#0f172a; border:1px solid #38bdf8; border-radius:7px; color:#e2e8f0; }
+#ml-step3-content .ml-actions button:disabled { opacity:.45; cursor:default; transform:none; }
+@media (max-width:650px) {
+  #ml-step2-content .ml-controls, #ml-step3-content .ml-controls { grid-template-columns:1fr; padding:14px; }
+  #ml-step2-content .ml-actions .sim-btn, #ml-step3-content .ml-actions .sim-btn { min-height:42px; }
+}
+
+#ml-step1-content .ml-key { border-left:3px solid #38bdf8; padding:12px 15px; background:#0f172a; border-radius:0 8px 8px 0; line-height:1.8; }
+#ml-step1-content .ml-study-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:15px; margin:18px 0; }
+#ml-step1-content .ml-diagram { margin:0; padding:16px; border:1px solid #334155; border-radius:12px; background:#0f172a; min-width:0; }
+#ml-step1-content .ml-diagram h4 { color:#7dd3fc; font-size:1rem; margin-bottom:12px; }
+#ml-step1-content .ml-study-svg { display:block; width:100%; height:auto; font-family:inherit; }
+#ml-step1-content .ml-diagram figcaption { margin-top:12px; color:#94a3b8; font-size:.88rem; line-height:1.7; text-align:center; }
+#ml-step1-content .ml-diagram-wide { margin:16px 0; }
+#ml-step1-content .ml-diagram-wide .ml-study-svg { max-width:760px; margin:auto; }
+#ml-step1-content .ml-table-wrap { overflow-x:auto; margin:16px 0; border:1px solid #334155; border-radius:10px; }
+#ml-step1-content .ml-concept-table { border-collapse:collapse; width:100%; color:#cbd5e1; font-size:.94rem; line-height:1.7; }
+#ml-step1-content .ml-concept-table th, #ml-step1-content .ml-concept-table td { text-align:left; padding:12px 14px; border-bottom:1px solid #334155; vertical-align:top; }
+#ml-step1-content .ml-concept-table thead th { background:#182238; color:#7dd3fc; }
+#ml-step1-content .ml-concept-table tbody th { color:#e2e8f0; width:27%; }
+#ml-step1-content .ml-concept-table tbody tr:last-child th, #ml-step1-content .ml-concept-table tbody tr:last-child td { border-bottom:0; }
+#ml-step1-content .ml-flow { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin:16px 0; padding:14px; border:1px solid #334155; border-radius:10px; color:#7dd3fc; background:#0f172a; font-size:.95rem; font-weight:700; }
+#ml-step1-content .ml-flow span { max-width:100%; }
+#ml-step1-content .ml-advanced { background:#131b2e; border:1px solid #475569; border-radius:12px; margin:16px 0; overflow:hidden; }
+#ml-step1-content .ml-advanced summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 20px; color:#c4b5fd; background:#182238; font-weight:bold; cursor:pointer; list-style:none; }
+#ml-step1-content .ml-advanced summary::-webkit-details-marker { display:none; }
+#ml-step1-content .ml-advanced summary:hover { background:#233047; }
+#ml-step1-content .ml-advanced summary:focus-visible { outline:3px solid #38bdf8; outline-offset:-4px; }
+#ml-step1-content .ml-fold { flex-shrink:0; font-size:.86rem; color:#cbd5e1; }
+#ml-step1-content .ml-fold-open { display:none; }
+#ml-step1-content .ml-advanced[open] .ml-fold-open { display:inline; }
+#ml-step1-content .ml-advanced[open] .ml-fold-closed { display:none; }
+#ml-step1-content .ml-advanced-body { padding:20px; color:#cbd5e1; line-height:1.85; }
+#ml-step1-content .ml-advanced-body p { margin-bottom:14px; font-size:.96rem; }
+#ml-step1-content .ml-advanced-body p:last-child { margin-bottom:0; }
+#ml-step1-content .ml-advanced-body .ml-optional { font-size:.86rem; color:#a5b4c8; }
+@media (max-width:600px) {
+ #ml-step1-content .concept-card-grid { grid-template-columns:minmax(0,1fr); }
+ #ml-step1-content .ml-advanced summary { align-items:flex-start; padding:14px; }
+ #ml-step1-content .ml-advanced-body { padding:16px; }
+ #ml-step1-content .ml-concept-table th, #ml-step1-content .ml-concept-table td { padding:9px 8px; font-size:.87rem; }
+ #ml-step1-content .ml-diagram { padding:10px; }
+}
+/* MASTER_CONTENT_UI_END */
+</style>
+</head>
+<body>
+<div id="ml-template-banner" hidden>마스터 미리보기 · 아래 옴의 법칙은 교체할 예시 내용입니다. 로그인·제출·포인트·잠금 서버 작업은 실행하지 않습니다.</div>
+
+    <!-- [교사용 상단 원터치 잠금 통제 바] -->
+    <div id="adminStepBar" class="admin-step-bar">
+        <div class="admin-step-bar-inner">
+            <div class="admin-title">
+                <span>🛠️ <b>수업 단계 잠금 제어기</b></span>
+                <span id="syncStatusTag" style="font-size:0.78rem; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:12px; color:#a5b4fc;">실시간 동기화 켬</span>
+            </div>
+            <div class="admin-btn-group">
+                <button class="admin-toggle-chip unlocked" id="admBtn1" onclick="toggleStepLock(1)">1단계: 🔓공개</button>
+                <button class="admin-toggle-chip locked" id="admBtn2" onclick="toggleStepLock(2)">2단계: 🔒잠김</button>
+                <button class="admin-toggle-chip locked" id="admBtn3" onclick="toggleStepLock(3)">3단계: 🔒잠김</button>
+                <button class="admin-toggle-chip locked" id="admBtn4" onclick="toggleStepLock(4)">4단계: 🔒잠김</button>
+                <button class="admin-exit-btn admin-quick-point-launch" onclick="if (window.MasterLessonRuntime.allowServerAction()) window.AdminQuickPoints && window.AdminQuickPoints.open()">⭐ 빠른 포인트</button>
+                <button class="admin-exit-btn" onclick="exitAdminMode()">관리자 모드 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <span class="header-tag" data-ml-text="headerTag"></span>
+        <h1 data-ml-text="title"></h1>
+        <p class="subtitle" data-ml-text="subtitle"></p>
+        <div class="header-login-area">
+            <span id="headerLoginStatus" class="header-login-status">👤 미로그인</span>
+            <button id="headerLoginBtn" class="header-login-btn" onclick="openPageLoginModal()">🔑 로그인</button>
+            <button id="headerLogoutBtn" class="header-logout-btn" onclick="logoutPageUser()">로그아웃</button>
+        </div>
+    </header>
+
+    <div class="step-nav">
+        <button class="step-btn active" id="tabBtn1" onclick="trySwitchStep(1)">
+            <span data-ml-tab="0"></span>
+            <span class="lock-badge-icon" id="tabLockIcon1"></span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn2" onclick="trySwitchStep(2)">
+            <span data-ml-tab="1"></span>
+            <span class="lock-badge-icon" id="tabLockIcon2">🔒</span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn3" onclick="trySwitchStep(3)">
+            <span data-ml-tab="2"></span>
+            <span class="lock-badge-icon" id="tabLockIcon3">🔒</span>
+        </button>
+        <button class="step-btn is-locked" id="tabBtn4" onclick="trySwitchStep(4)">
+            <span data-ml-tab="3"></span>
+            <span class="lock-badge-icon" id="tabLockIcon4">🔒</span>
+        </button>
+    </div>
+
+    <div class="container">
+
+        <div id="step1" class="step-content active">
+<div id="ml-step1-content">
+<!-- ML:EDIT:STEP1_CONTENT:START -->
+<h2 class="section-title">📖 1단계. 거울과 렌즈 (교과서 p.106~111)</h2>
+<div class="textbook-section">
+ <h3>1. 반사하는 거울, 굴절시키는 렌즈</h3>
+ <p>거울에 비치거나 렌즈를 통해 보이는 물체의 모습을 <b>상</b>이라고 합니다. 물체에서 온 빛이 거울·렌즈를 거쳐 눈에 들어오면 상을 볼 수 있습니다.</p>
+ <div class="concept-card-grid">
+  <div class="concept-box"><h4>거울 · 빛의 반사</h4><p>빛이 표면에서 되돌아 나아갑니다. <b>반사면의 모양</b>에 따라 평면거울·볼록 거울·오목 거울로 구분합니다.</p></div>
+  <div class="concept-box"><h4>렌즈 · 빛의 굴절</h4><p>빛이 투명한 렌즈를 통과할 때 경계에서 진행 방향이 바뀝니다. <b>가운데와 가장자리의 두께</b>를 비교해 볼록 렌즈·오목 렌즈로 구분합니다.</p></div>
+ </div>
+<div class="ml-study-grid">
+  <figure class="ml-diagram"><h4>거울 · 물체 쪽을 향한 면을 확인</h4>
+   <svg class="ml-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 260" role="img" aria-label="물체가 왼쪽에 있을 때 볼록 거울은 반사면 가운데가 왼쪽으로 튀어나오고, 오목 거울은 가운데가 안쪽으로 들어간다.">
+    <title>볼록 거울과 오목 거울의 옆모양</title>
+    <text x="80" y="25" text-anchor="middle" font-size="18" fill="#7dd3fc">볼록 거울</text><text x="240" y="25" text-anchor="middle" font-size="18" fill="#7dd3fc">오목 거울</text>
+    <path d="M104 55 Q52 122 104 190 L114 190 Q62 122 114 55 Z" fill="#475569"/><path d="M104 55 Q52 122 104 190" fill="none" stroke="#7dd3fc" stroke-width="5"/>
+    <path d="M224 55 Q276 122 224 190 L234 190 Q286 122 234 55 Z" fill="#475569"/><path d="M224 55 Q276 122 224 190" fill="none" stroke="#7dd3fc" stroke-width="5"/>
+    <text x="34" y="111" text-anchor="middle" font-size="17" fill="#fbbf24">물체</text><text x="34" y="134" text-anchor="middle" font-size="17" fill="#fbbf24">쪽 →</text>
+    <text x="194" y="111" text-anchor="middle" font-size="17" fill="#fbbf24">물체</text><text x="194" y="134" text-anchor="middle" font-size="17" fill="#fbbf24">쪽 →</text>
+    <text x="80" y="220" text-anchor="middle" font-size="17" fill="#cbd5e1">가운데가 튀어나옴</text><text x="240" y="220" text-anchor="middle" font-size="17" fill="#cbd5e1">가운데가 들어감</text>
+    <text x="160" y="250" text-anchor="middle" font-size="17" fill="#7dd3fc">파란 선: 빛을 반사하는 면</text>
+   </svg>
+   <figcaption>거울을 옆에서 본 단면입니다. 회색은 뒷면이며, 반사면이 물체 쪽으로 굽은 모양을 비교합니다.</figcaption>
+  </figure>
+  <figure class="ml-diagram"><h4>렌즈 · 가운데와 가장자리 두께 비교</h4>
+   <svg class="ml-study-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 260" role="img" aria-label="볼록 렌즈는 가운데가 가장자리보다 두껍고, 오목 렌즈는 가운데가 가장자리보다 얇다.">
+    <title>볼록 렌즈와 오목 렌즈의 옆모양</title>
+    <text x="80" y="25" text-anchor="middle" font-size="18" fill="#7dd3fc">볼록 렌즈</text><text x="240" y="25" text-anchor="middle" font-size="18" fill="#7dd3fc">오목 렌즈</text>
+    <path d="M80 55 Q22 122 80 190 Q138 122 80 55 Z" fill="#0e749066" stroke="#7dd3fc" stroke-width="3"/>
+    <path d="M213 55 Q251 122 213 190 H267 Q229 122 267 55 Z" fill="#0e749066" stroke="#7dd3fc" stroke-width="3"/>
+    <line x1="51" y1="122" x2="109" y2="122" stroke="#fbbf24" stroke-width="3"/><line x1="51" y1="115" x2="51" y2="129" stroke="#fbbf24" stroke-width="3"/><line x1="109" y1="115" x2="109" y2="129" stroke="#fbbf24" stroke-width="3"/>
+    <line x1="232" y1="122" x2="248" y2="122" stroke="#fbbf24" stroke-width="3"/><line x1="232" y1="115" x2="232" y2="129" stroke="#fbbf24" stroke-width="3"/><line x1="248" y1="115" x2="248" y2="129" stroke="#fbbf24" stroke-width="3"/>
+    <text x="80" y="220" text-anchor="middle" font-size="17" fill="#cbd5e1">가운데가 두꺼움</text><text x="240" y="220" text-anchor="middle" font-size="17" fill="#cbd5e1">가운데가 얇음</text>
+    <text x="160" y="250" text-anchor="middle" font-size="17" fill="#fbbf24">노란 선: 가운데 부분의 두께</text>
+   </svg>
+   <figcaption>공기 중에서 사용하는 보통의 유리·플라스틱 렌즈를 나타냈습니다. 빛은 렌즈 안으로 들어가고 밖으로 나옵니다.</figcaption>
+  </figure>
+ </div>
+ <p class="ml-key">같은 ‘볼록’이라도 <b>볼록 거울은 반사면이 튀어나온 기구</b>, <b>볼록 렌즈는 가운데가 두꺼운 기구</b>입니다. 이름이 비슷해도 빛에 작용하는 방식은 다릅니다.</p>
+</div>
+<div class="textbook-section">
+ <h3>2. 상의 크기와 방향은 어떻게 달라질까?</h3>
+ <p>상의 크기는 <b>실제 물체와 비교</b>합니다. ‘바로 선 상’은 물체의 위아래 방향이 유지된 상, ‘거꾸로 선 상’은 위아래가 뒤집힌 상입니다. 아래의 거리는 <b>물체와 거울·렌즈 사이</b>의 거리입니다.</p>
+ <div class="ml-table-wrap" role="region" aria-label="물체의 거리에 따른 거울과 렌즈의 상 비교" tabindex="0"><table class="ml-concept-table"><thead><tr><th scope="col">기구</th><th scope="col">물체가 아주 가까이</th><th scope="col">물체가 충분히 멀리</th></tr></thead><tbody>
+  <tr><th scope="row">평면거울</th><td>같은 크기 · 바로 섬</td><td>같은 크기 · 바로 섬</td></tr>
+  <tr><th scope="row">볼록 거울</th><td>작음 · 바로 섬</td><td>더 작아짐 · 바로 섬</td></tr>
+  <tr><th scope="row">오목 거울</th><td><b>큼 · 바로 섬</b></td><td><b>작음 · 거꾸로 섬</b></td></tr>
+  <tr><th scope="row">볼록 렌즈</th><td><b>큼 · 바로 섬</b></td><td><b>작음 · 거꾸로 섬</b></td></tr>
+  <tr><th scope="row">오목 렌즈</th><td>작음 · 바로 섬</td><td>더 작아짐 · 바로 섬</td></tr>
+ </tbody></table></div>
+ <p><b>평면거울</b>의 상은 물체와 같은 크기이며, 거울에서 물체까지의 거리만큼 거울 뒤쪽에 있는 것처럼 보입니다. <b>볼록 거울과 오목 렌즈</b>는 언제나 작고 바로 선 상을 만듭니다.</p>
+ <p class="ml-key"><b>오목 거울과 볼록 렌즈는 거리에 따라 상이 달라집니다.</b> 아주 가까우면 크고 바로 서지만, 충분히 멀면 작고 거꾸로 섭니다. 중간 거리에서는 크고 거꾸로 선 상도 생기므로 ‘멀어지면 언제나 작아진다’고 말할 수는 없습니다.</p>
+</div>
+<div class="textbook-section">
+ <h3>3. 필요한 성질을 골라 이용합니다</h3>
+ <div class="concept-card-grid">
+  <div class="concept-box"><h4>넓게 보기 · 볼록 거울</h4><p>상이 작아지는 대신 같은 크기의 평면거울보다 <b>넓은 범위</b>를 볼 수 있어 굽은 도로와 매장의 보안 거울에 쓰입니다.</p></div>
+  <div class="concept-box"><h4>가까운 물체 확대하기</h4><p><b>오목 거울</b>은 가까운 물체를 크게 비추고, 돋보기의 <b>볼록 렌즈</b>는 가까운 물체를 크게 보이게 합니다.</p></div>
+  <div class="concept-box"><h4>빛을 모으거나 퍼뜨리기</h4><p>공기 중에서 보통의 <b>볼록 렌즈는 나란히 들어온 빛을 모으고</b>, <b>오목 렌즈는 퍼뜨립니다.</b> 일반적으로 원시 교정에는 볼록 렌즈, 근시 교정에는 오목 렌즈를 이용합니다.</p></div>
+ </div>
+ <p>현미경은 작은 물체를 확대하고, 사진기는 물체의 상을 센서나 필름에 맺히게 합니다. 실제 기구에는 여러 렌즈가 조합되어 쓰입니다.</p>
+</div>
+<details class="ml-advanced" id="mirrors-advanced-focus">
+ <summary><span>🔬 심화학습 · ‘아주 가까이’와 ‘충분히 멀리’의 경계</span><span class="ml-fold"><span class="ml-fold-closed">▼ 펼치기</span><span class="ml-fold-open">▲ 감추기</span></span></summary>
+ <div class="ml-advanced-body">
+  <p class="ml-optional">거리 조건을 더 정확히 알고 싶을 때 읽는 선택 내용입니다.</p>
+  <p>오목 거울이나 볼록 렌즈에 중심 방향으로 나란히 들어오는 빛은 반사 또는 굴절 뒤 한곳 가까이 모입니다. 이 지점을 <b>초점</b>, 거울의 가운데 또는 얇은 렌즈의 중심에서 초점까지의 거리를 <b>초점 거리 f</b>라고 합니다. 여기서는 이상적인 구면거울·얇은 렌즈의 중심 부근을 지나는 빛을 생각합니다.</p>
+  <p>오목 거울과 볼록 렌즈 모두 물체가 <b>초점 안쪽</b>에 있으면 크고 바로 선 상을 만듭니다. 물체가 <b>초점 거리의 두 배보다 먼 곳</b>에 있으면 작고 거꾸로 선 상을 만듭니다. 기본 설명의 ‘아주 가까이’와 ‘충분히 멀리’는 이 두 조건을 가리킵니다.</p>
+  <p>물체가 <b>초점과 초점 거리의 두 배 사이</b>에 있으면 크고 거꾸로 선 상, 정확히 두 배인 곳에 있으면 물체와 같은 크기의 거꾸로 선 상을 만듭니다. 초점에 있는 물체에서 온 빛은 기구를 거친 뒤 나란히 진행하므로, 가까운 유한한 위치에 선명한 상이 맺히지 않습니다. 이 때문에 모든 거리를 ‘큰 바로 선 상’과 ‘작은 거꾸로 선 상’ 두 가지로만 나누면 정확하지 않습니다.</p>
+ </div>
+</details>
+
+<details class="ml-advanced" id="mirrors-advanced-image">
+ <summary><span>🔬 심화학습 · 실상과 허상은 무엇이 다를까?</span><span class="ml-fold"><span class="ml-fold-closed">▼ 펼치기</span><span class="ml-fold-open">▲ 감추기</span></span></summary>
+ <div class="ml-advanced-body">
+  <p class="ml-optional">상이 생기는 위치에서 빛이 실제로 모이는지 살펴보는 선택 내용입니다.</p>
+  <p><b>실상</b>은 반사되거나 굴절한 빛이 실제로 모여 만드는 상입니다. 알맞은 위치에 스크린을 놓으면 상을 받을 수 있습니다. 하나의 오목 거울이나 볼록 렌즈로 실제 물체를 볼 때 생기는 <b>거꾸로 선 상</b>이 이에 해당합니다.</p>
+  <p><b>허상</b>은 그 위치에 빛이 실제로 모이지 않지만, 그곳에서 빛이 오는 것처럼 보여 생기는 상입니다. 평면거울의 상, 볼록 거울과 오목 렌즈의 상, 그리고 오목 거울·볼록 렌즈에 아주 가까운 물체의 바로 선 상이 이에 해당합니다. 상이 보이는 위치에 스크린을 놓아도 그 기구가 만든 상을 직접 받을 수 없습니다.</p>
+  <p>허상도 <b>눈에 들어오는 실제 빛으로 보는 모습</b>입니다. ‘허상’이라는 이름이 빛이 없거나 눈을 속여서만 보인다는 뜻은 아닙니다.</p>
+ </div>
+</details>
+<!-- ML:EDIT:STEP1_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step2" class="step-content">
+<div id="ml-step2-content">
+<!-- ML:EDIT:STEP2_CONTENT:START -->
+<h2 class="section-title">🧪 2단계. 가까이, 멀리 — 상 바꾸기</h2>
+<p class="ml-intro">거울·렌즈와 거리를 바꾸면 <b>상의 크기와 방향</b>이 바로 달라집니다.</p>
+<div class="ml-controls">
+ <label class="ml-control" for="optic-device2"><b>거울·렌즈</b><select id="optic-device2" onchange="updateStep2Sim()"><option value="convexmirror">볼록 거울</option><option value="concavemirror">오목 거울</option><option value="convexlens">볼록 렌즈</option><option value="concavelens">오목 렌즈</option></select></label>
+ <label class="ml-control" for="optic-distance2"><b>물체와 거울·렌즈 사이</b><select id="optic-distance2" onchange="updateStep2Sim()"><option value="near">아주 가까이</option><option value="far">충분히 멀리</option></select></label>
+</div>
+<div class="ml-scroll optic-comparison" tabindex="0" role="region" aria-label="물체와 상의 크기 및 방향 비교"><svg id="optic-comparison2" class="ml-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 330" role="img" aria-label="물체와 상의 비교"></svg></div>
+<div class="ml-result" aria-live="polite"><strong id="optic-result2"></strong></div>
+<p class="ml-caption">노랑: 실제 물체 · 파랑: 상. 같은 척도로 비교한 모습이며 상의 실제 위치를 뜻하지는 않습니다.</p>
+<details class="optic-model-note"><summary>거리 조건 더 알아보기</summary><p>‘아주 가까이’는 초점 안쪽, ‘충분히 멀리’는 초점 거리의 두 배보다 먼 대표 위치입니다. 중간 거리의 상은 이 모형에 포함하지 않았습니다.</p></details>
+<!-- ML:EDIT:STEP2_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step3" class="step-content">
+<div id="ml-step3-content">
+<!-- ML:EDIT:STEP3_CONTENT:START -->
+<h2 class="section-title">🔎 3단계. 이럴 땐 어떤 도구?</h2>
+<p class="ml-intro">알맞은 도구를 골라 보세요. 바로 바꿔 골라도 좋습니다.</p>
+<div class="textbook-section optic-case" aria-live="polite"><span class="optic-case-index" id="optic-case-index3"></span><h3 id="optic-case-title3"></h3><p id="optic-case-description3"></p></div>
+<div class="optic-tools" role="group" aria-label="사용할 거울이나 렌즈">
+ <button type="button" class="sim-btn secondary optic-tool-choice" data-device="planemirror" aria-pressed="false" onclick="opticChoose3('planemirror')">평면거울</button>
+ <button type="button" class="sim-btn secondary optic-tool-choice" data-device="convexmirror" aria-pressed="false" onclick="opticChoose3('convexmirror')">볼록 거울</button>
+ <button type="button" class="sim-btn secondary optic-tool-choice" data-device="concavemirror" aria-pressed="false" onclick="opticChoose3('concavemirror')">오목 거울</button>
+ <button type="button" class="sim-btn secondary optic-tool-choice" data-device="convexlens" aria-pressed="false" onclick="opticChoose3('convexlens')">볼록 렌즈</button>
+ <button type="button" class="sim-btn secondary optic-tool-choice" data-device="concavelens" aria-pressed="false" onclick="opticChoose3('concavelens')">오목 렌즈</button>
+</div>
+<div class="ml-result" aria-live="polite"><strong id="optic-result3">어떤 도구가 알맞을까요?</strong><p id="optic-reason3"></p></div>
+<div class="ml-actions"><button type="button" class="sim-btn" onclick="opticNextCase3()">다른 상황 →</button></div>
+<!-- ML:EDIT:STEP3_CONTENT:END -->
+</div>
+        </div>
+
+        <div id="step4" class="step-content">
+<!-- ML:EDIT:STEP4_INTRO:START -->
+<h2 class="section-title">📝 4단계. 거울과 렌즈 — 형성평가 4문항</h2>
+<p style="margin-bottom:15px; color:#cbd5e1;">4문항을 풀고 결과를 제출하세요. <b>처음 선택한 답</b>으로 채점하며, 제출 후에는 다시 선택하며 복습할 수 있습니다. 포인트는 기존 플랫폼 기준으로 지급됩니다.</p>
+<!-- ML:EDIT:STEP4_INTRO:END -->
+
+            <div class="student-info-box">
+                <div class="student-info-group">
+                    <label for="studentIdInput">학번: </label>
+                    <input type="text" id="studentIdInput" placeholder="예: 20301" style="width: 110px;">
+                </div>
+                <div class="student-info-group">
+                    <label for="studentNameInput">이름: </label>
+                    <input type="text" id="studentNameInput" placeholder="예: 홍길동" style="width: 110px;">
+                </div>
+                <button class="submit-btn" id="quizSubmitBtn" onclick="submitQuizResults()">📤 문제풀이 결과 교사에게 제출</button>
+            </div>
+
+<div id="ml-quiz-items">
+<!-- ML:EDIT:QUIZ_HTML:START -->
+<div class="quiz-item" id="quiz-block-1">
+    <div class="quiz-q">Q1. 거울과 렌즈의 모양 및 빛이 진행하는 과정에 대한 설명으로 옳은 것은?</div>
+    <div class="quiz-opt" onclick="handleQuiz(1,this,1)">① 거울은 빛을 통과시켜 굴절시키는 원리로 상을 만든다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(1,this,2)">② 거울은 빛의 반사를 이용하며, 볼록 렌즈는 가운데가 가장자리보다 두껍다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(1,this,3)">③ 오목 거울은 빛을 반사하는 면이 바깥쪽으로 불룩하다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(1,this,4)">④ 오목 렌즈는 가운데가 가장자리보다 두껍다.</div>
+    <div id="fb-1" class="quiz-feedback-box">
+        <div id="fb-title-1" class="fb-header"></div>
+        <div class="fb-detail-card">
+            <div id="fb-content-1"></div>
+            <button class="goto-sim-btn" onclick="trySwitchStep(1)">🔎 1단계 반사·굴절과 모양 복습 ➔</button>
+        </div>
+    </div>
+</div>
+
+<div class="quiz-item" id="quiz-block-2">
+    <div class="quiz-q">Q2. 볼록 거울 앞의 물체와 오목 렌즈를 통해 보는 물체를 각각 가까운 곳에서 먼 곳으로 옮겼습니다. 두 경우에 공통으로 나타나는 상의 특징은?</div>
+    <div class="quiz-opt" onclick="handleQuiz(2,this,1)">① 가까이 있을 때는 물체보다 크고 바로 선 상이 생긴다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(2,this,2)">② 멀리 있을 때는 물체보다 작고 거꾸로 선 상이 생긴다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(2,this,3)">③ 거리가 바뀌어도 물체와 같은 크기의 바로 선 상이 생긴다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(2,this,4)">④ 가까이 있어도 멀리 있어도 물체보다 작고 바로 선 상이 생긴다.</div>
+    <div id="fb-2" class="quiz-feedback-box">
+        <div id="fb-title-2" class="fb-header"></div>
+        <div class="fb-detail-card">
+            <div id="fb-content-2"></div>
+            <button class="goto-sim-btn" onclick="trySwitchStep(1)">🔎 1단계 네 종류의 상 비교표 복습 ➔</button>
+        </div>
+    </div>
+</div>
+
+<div class="quiz-item" id="quiz-block-3">
+    <div class="quiz-q">Q3. 오목 거울과 볼록 렌즈에서 물체가 <b>아주 가까이 있을 때</b>와 <b>충분히 멀리 있을 때</b>를 비교합니다. 각각의 상을 관찰할 수 있는 위치에서 보았을 때, 두 도구에 공통인 설명은?</div>
+    <div class="quiz-opt" onclick="handleQuiz(3,this,1)">① 아주 가까이 있으면 물체보다 크고 바로 서며, 충분히 멀리 있으면 물체보다 작고 거꾸로 선다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(3,this,2)">② 아주 가까이 있어도 충분히 멀리 있어도 물체보다 크고 바로 선다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(3,this,3)">③ 아주 가까이 있으면 물체보다 작고 바로 서며, 충분히 멀리 있으면 물체보다 크고 거꾸로 선다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(3,this,4)">④ 아주 가까이 있어도 충분히 멀리 있어도 물체보다 작고 바로 선다.</div>
+    <div id="fb-3" class="quiz-feedback-box">
+        <div id="fb-title-3" class="fb-header"></div>
+        <div class="fb-detail-card">
+            <div id="fb-content-3"></div>
+            <button class="goto-sim-btn" onclick="trySwitchStep(1)">🔎 1단계 가까울 때·충분히 멀 때 비교 ➔</button>
+        </div>
+    </div>
+</div>
+
+<div class="quiz-item" id="quiz-block-4">
+    <div class="quiz-q">Q4. 굽은 길의 모퉁이에서 주변 상황을 더 넓은 범위에 걸쳐 살펴볼 수 있도록 거울을 설치하려고 합니다. 거울의 선택과 그 이유로 가장 적절한 것은?</div>
+    <div class="quiz-opt" onclick="handleQuiz(4,this,1)">① 오목 거울 — 물체가 어느 거리에 있어도 작고 바로 선 상을 만들기 때문이다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(4,this,2)">② 평면거울 — 물체를 항상 크게 확대하여 보여 주기 때문이다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(4,this,3)">③ 볼록 거울 — 물체는 작게 보이지만 넓은 범위를 살펴볼 수 있기 때문이다.</div>
+    <div class="quiz-opt" onclick="handleQuiz(4,this,4)">④ 볼록 거울 — 물체가 어느 거리에 있어도 크고 거꾸로 선 상을 만들기 때문이다.</div>
+    <div id="fb-4" class="quiz-feedback-box">
+        <div id="fb-title-4" class="fb-header"></div>
+        <div class="fb-detail-card">
+            <div id="fb-content-4"></div>
+            <button class="goto-sim-btn" onclick="trySwitchStep(1)">🔎 1단계 생활 속 도구 선택 복습 ➔</button>
+        </div>
+    </div>
+</div>
+<!-- ML:EDIT:QUIZ_HTML:END -->
+</div>
+
+        </div>
+
+    </div>
+
+    <!-- 우측 하단 관리자 로그인 버튼 -->
+    <button class="admin-float-btn" onclick="openAdminModal()">⚙️ 교사용 단계 잠금 관리</button>
+
+    <!-- 관리자 인증 모달 -->
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔑 관리자 비밀번호 인증</h3>
+            <p>교사용 관리자 비밀번호를 입력하면 수업 단계별 실시간 잠금 제어 바가 활성화됩니다.</p>
+            <input type="password" id="adminPwInput" placeholder="비밀번호 입력" autocomplete="off">
+            <div class="modal-btn-group">
+                <button class="modal-cancel" onclick="closeAdminModal()">취소</button>
+                <button class="modal-confirm" id="adminModalConfirmBtn" onclick="submitAdminAuth()">인증하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 페이지 공통 학생/교사 로그인 모달 -->
+    <div id="pageLoginModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🔑 로그인</h3>
+            <p>학번 또는 관리자 ID와 비밀번호를 입력해 주세요.</p>
+            <input type="text" id="pageLoginId" maxlength="10" placeholder="학번(4자리) 또는 ID(admin)" autocomplete="username">
+            <input type="password" id="pageLoginPw" placeholder="비밀번호 입력" autocomplete="current-password">
+            <div class="modal-btn-group">
+                <button class="modal-cancel" onclick="closePageLoginModal()">닫기</button>
+                <button class="modal-confirm" id="btnSubmitPageLogin" onclick="submitPageLogin()">로그인</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p data-ml-text="footer"></p>
+    </footer>
+
+    <script src="./assets/lesson-core.js"></script>
+<script src="./assets/content-client.js"></script>
+<script src="./assets/lesson-content.js"></script>
+<script src="./assets/lesson-quiz.js"></script>
+<script src="./assets/lesson-sim-u3_l5.js"></script>
+    <script src="./admin-quick-points.js"></script>
+
+<link rel="stylesheet" href="./assets/lesson-worksheet.css">
+<!-- LESSON_WORKSHEET_DRAWER_START -->
+<div id="ctw-root" data-worksheet-version="2026-09-13.3" class="ctw-tools-collapsed" data-lesson="" data-pdf="">
+  <button id="ctw-toggle" class="ctw-toggle" type="button" aria-controls="ctw-panel" aria-expanded="false" title="이 차시 학습지 펼치기">▤ <span>학습지</span></button>
+  <aside id="ctw-panel" class="ctw-panel" aria-labelledby="ctw-title" aria-hidden="true" inert hidden>
+    <div id="ctw-resizer" class="ctw-resizer" role="separator" aria-label="학습지 패널 너비" aria-orientation="vertical" aria-valuemin="340" aria-valuemax="800" aria-valuenow="480" tabindex="0"></div>
+    <div class="ctw-head">
+      <div><div class="ctw-eyebrow">수업과 함께 보는 학습지</div><h2 id="ctw-title"></h2></div>
+    </div>
+    <div class="ctw-quickbar" role="group" aria-label="학습지 빠른 도구">
+      <button id="ctw-controls-toggle" type="button" aria-controls="ctw-controls" aria-expanded="false" aria-label="도구 펼치기" title="파일·페이지 도구 펼치기">도구 ▾</button>
+    <div class="ctw-tools" role="group" aria-label="학습지 필기 도구">
+      <button type="button" data-tool="move" aria-pressed="true" data-pdf-control disabled>이동</button>
+      <button type="button" data-tool="pen" aria-pressed="false" data-pdf-control disabled>펜</button>
+      <button type="button" data-tool="highlight" aria-pressed="false" data-pdf-control disabled>형광펜</button>
+      <button type="button" data-tool="text" aria-pressed="false" data-pdf-control disabled>글자</button>
+      <label class="ctw-color-label">색 <input id="ctw-color" type="color" value="#dc2626" aria-label="펜·형광펜·글자 색" data-pdf-control disabled></label>
+      <button id="ctw-undo" type="button" aria-label="되돌리기" title="이 페이지의 마지막 필기 지우기" data-pdf-control disabled>↶</button>
+      <button id="ctw-clear" type="button" data-pdf-control disabled>쪽 지우기</button>
+    </div>
+      <button id="ctw-quick-prev" class="ctw-quick-page" type="button" aria-label="이전 페이지" title="이전 페이지" data-pdf-control disabled>‹</button>
+      <button id="ctw-quick-next" class="ctw-quick-page" type="button" aria-label="다음 페이지" title="다음 페이지" data-pdf-control disabled>›</button>
+      <button id="ctw-close" class="ctw-close" type="button" aria-label="학습지 접기" title="학습지 접기 (Esc)">✕</button>
+    </div>
+    <div id="ctw-controls" class="ctw-controls" hidden>
+    <div id="ctw-lock-status" class="ctw-lock-status" role="status" aria-live="polite">학습지 공개 상태 확인 중</div>
+    <div id="ctw-lock-admin" class="ctw-lock-admin" role="group" aria-label="관리자 학습지 잠금" hidden>
+      <button id="ctw-lock-item" type="button" disabled>이 학습지 잠금</button>
+      <button id="ctw-lock-unit" type="button" disabled>단원 잠금</button>
+      <button id="ctw-lock-archive" type="button" disabled>보관함 전체 잠금</button>
+    </div>
+    <div class="ctw-toolbar" aria-label="학습지 파일">
+      <button id="ctw-default" type="button" title="이 차시의 등록된 학습지 다시 열기">차시 학습지</button>
+      <button id="ctw-local" type="button">내 PDF 열기</button>
+      <button id="ctw-print" type="button" disabled>필기 포함 인쇄</button>
+      <input id="ctw-file" type="file" accept="application/pdf,.pdf" hidden>
+    </div>
+    <div id="ctw-source" class="ctw-source"></div>
+    <div class="ctw-toolbar" aria-label="학습지 페이지와 확대">
+      <button id="ctw-prev" type="button" aria-label="이전 페이지" data-pdf-control disabled>‹</button>
+      <label class="ctw-page-label"><input id="ctw-page" type="number" min="1" value="1" aria-label="학습지 페이지" data-pdf-control disabled> <span id="ctw-pages">/ — 쪽</span></label>
+      <button id="ctw-next" type="button" aria-label="다음 페이지" data-pdf-control disabled>›</button>
+      <label>확대 <select id="ctw-zoom" aria-label="학습지 확대" data-pdf-control disabled><option value="1">100% · 너비 맞춤</option><option value="1.25">125%</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+    </div>
+
+    </div>
+    <form id="ctw-text-form" class="ctw-text-form" hidden>
+      <label for="ctw-text">누른 위치에 넣을 글자</label><span id="ctw-text-help" class="ctw-text-help">Enter 넣기 · Shift+Enter 줄바꿈</span>
+      <textarea id="ctw-text" aria-describedby="ctw-text-help" rows="2" maxlength="500" placeholder="함께 정리할 내용을 입력하세요"></textarea>
+      <div class="ctw-text-actions">
+        <label class="ctw-text-size-label" for="ctw-text-size">글자 크기 <input id="ctw-text-size" type="number" min="50" max="300" step="1" value="100" inputmode="numeric" aria-label="글자 크기, 기존 크기의 백분율">%</label>
+        <button id="ctw-text-size-reset" type="button" title="기존 글자 크기 100%로 되돌리기">기본</button>
+        <button type="submit">넣기</button><button id="ctw-text-cancel" type="button">취소</button>
+      </div>
+    </form>
+    <div id="ctw-status" class="ctw-status" role="status" aria-live="polite">학습지를 펼치면 이 차시의 PDF를 불러옵니다.</div>
+    <div class="ctw-view-shell">
+    <div id="ctw-zoom-toast" class="ctw-zoom-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="ctw-view" class="ctw-view" tabindex="0" aria-label="학습지 보기 영역">
+      <div id="ctw-empty" class="ctw-empty"><p id="ctw-empty-message">학습지를 준비하고 있습니다.</p><button id="ctw-lock-retry" type="button">다시 확인</button></div>
+      <div id="ctw-stage" class="ctw-stage" hidden>
+        <canvas id="ctw-pdf" role="img" aria-label="학습지 PDF 페이지"></canvas>
+        <canvas id="ctw-ink" aria-label="학습지 필기 영역"></canvas>
+      </div>
+    </div>
+    </div>
+    <div class="ctw-foot"><span id="ctw-save-note">필기: 이 기기·브라우저에 저장 (아이디별 아님, 자동 만료 없음). 사이트 데이터 삭제 시 사라집니다.</span></div>
+  </aside>
+</div>
+<!-- LESSON_WORKSHEET_DRAWER_END -->
+
+<script id="ml-bind">window.MasterLessonRuntime.bind();</script>
+<script src="./assets/lesson-worksheet.js"></script>
+</body>
+</html>
