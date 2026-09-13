@@ -416,6 +416,14 @@
       const lockOptions = linkedLocks(item); if (lockOptions) info.append(lockOptions);
       const actions = el('div', 'scm-row-actions');
       const view = el('a', 'scm-button', '열기'); view.href = client.contentUrl(item); actions.append(view, button('수정', () => edit(item)));
+      if (item.kind === 'lesson' && item.format === 'lesson-pack') {
+        actions.prepend(button('수업 미리보기', async () => {
+          if (!canManage()) return;
+          if (!window.ScienceContentPreview?.openSaved) { message('수업 미리보기를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', true); return; }
+          try { await window.ScienceContentPreview.openSaved(item); }
+          catch (error) { if (canManage()) message(error.message, true); }
+        }));
+      }
       actions.append(button('본문·버전 관리', () => window.ScienceContentEditor?.open(item)));
       if (item.kind !== 'answer') actions.append(button(item.published && item.student_access ? '교사 전용으로' : '학생 공개', () => publication(item)));
       actions.append(button('보관', () => archive(item))); row.append(info, actions); target.append(row);
@@ -442,7 +450,7 @@
     dialogs.innerHTML = `<dialog class="scm-dialog" id="scmLibrary" aria-labelledby="scmLibraryTitle"><div class="scm-dialog-header"><div><h2 id="scmLibraryTitle">서버 자료실</h2><p>등록된 수업·학습지·평가 자료를 현재 권한에 맞게 보여 줍니다.</p></div><button class="scm-button" type="button" data-close="scmLibrary">닫기</button></div><div class="scm-filter" id="scmFilters"></div><div class="scm-grid" id="scmLibraryItems"></div></dialog>
       <dialog class="scm-dialog" id="scmManager" aria-labelledby="scmManagerTitle"><div class="scm-dialog-header"><div><h2 id="scmManagerTitle">교사 자료 관리</h2><p>파일을 올리고 미리 확인한 뒤 공개하세요. 공통 수업 화면은 그대로 유지됩니다.</p><p><a class="scm-button" href="device-check.html" target="_blank" rel="noopener">기기 점검</a></p><p class="scm-status" id="scmCatalogStatus" role="status" aria-live="polite"></p></div><button class="scm-button" type="button" data-close="scmManager">닫기</button></div>
       <div class="scm-manager-tabs" role="group" aria-label="자료 관리 목록"><button class="scm-button" type="button" id="scmActiveTab" aria-pressed="true">사용 중</button><button class="scm-button" type="button" id="scmArchiveTab" aria-pressed="false">보관함</button></div>
-      <div class="scm-import-tools" id="scmImportTools"><div><strong>내용만 넣어 새 차시 만들기</strong><p>수업 내용·실험·문항을 확인하고 등록하면 공통 수업 화면에 연결됩니다.</p></div><button class="scm-button scm-primary" type="button" id="scmImportLesson" aria-haspopup="dialog">수업자료 가져오기</button></div>
+      <div class="scm-import-tools" id="scmImportTools"><div><strong>내용만 넣어 새 차시 만들기</strong><p>자료 선택 → 실제 수업 미리보기 → 교사 전용 저장 → 학생 공개 순서로 진행하세요. 미리보기에서는 실험·문항을 조작해도 제출 기록이나 포인트가 바뀌지 않습니다.</p></div><button class="scm-button scm-primary" type="button" id="scmImportLesson" aria-haspopup="dialog">수업자료 가져오기</button></div>
       <form class="scm-editor" id="scmForm"><label>자료 종류<select id="scmKind"><option value="lesson">수업자료</option><option value="worksheet">학습지 PDF</option><option value="assessment">수행평가</option><option value="answer">교사용 모범답안</option></select></label><label>자료 제목<input id="scmTitle" required maxlength="160"></label>
       <label>단원 ID<input id="scmUnit" value="unit3" required maxlength="64" list="scmUnits"><datalist id="scmUnits"><option value="unit3">3단원</option><option value="unit7">7단원</option><option value="unit3_eval">3단원 수행평가</option><option value="unit4_eval">4단원 수행평가</option></datalist></label><label>단원 이름<input id="scmUnitTitle" maxlength="120" placeholder="3단원. 빛과 파동"></label>
       <label class="scm-wide">수업 ID (선택)<input id="scmLessonId" maxlength="64" placeholder="예: u3_l1 · 기존 수업/학습지 잠금과 연결할 때 입력"></label><label class="scm-wide">설명<textarea id="scmDescription" rows="2" maxlength="2000"></textarea></label>

@@ -84,12 +84,12 @@
     const codeDetails = el('details', 'sce-advanced'); codeDetails.append(el('summary', '', '실험 HTML 원문 편집 (고급)'));
     const sourceLabel = source.parentElement; sourceLabel.replaceWith(codeDetails); codeDetails.append(sourceLabel);
   }
-  // Previews deliberately never execute imported script, including prior-version previews.
+  // Legacy/static previews do not execute scripts. V3 uses the isolated shared preview host.
   function previewDocument(html, css = '') {
     return '<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; style-src \'unsafe-inline\'; img-src data: blob:; connect-src \'none\'; form-action \'none\'; base-uri \'none\'"><style>body{font-family:system-ui,sans-serif;line-height:1.6;padding:20px;color:#17243a;background:white;overflow-wrap:anywhere}table{border-collapse:collapse}td,th{border:1px solid #b5c1d1;padding:8px}' + String(css).replace(/<\/style/gi, '<\\/style') + '</style></head><body>' + String(html) + '</body></html>';
   }
   function showPreview(content, title = '저장 전 본문 미리보기') {
-    const target = byId('scePreviewArea'); target.replaceChildren(); target.append(el('h3', '', title), el('p', 'sce-help', '본문 모양만 확인합니다. 이 편집기 안에서는 실험 스크립트와 마이크를 실행하지 않습니다. 저장 후 자료 열기에서 실제 실험을 확인하세요.'));
+    const target = byId('scePreviewArea'); target.replaceChildren(); target.append(el('h3', '', title), el('p', 'sce-help', '이 화면은 본문 모양만 확인합니다. 공통 수업 형식은 실제 수업 미리보기에서 단계·실험·형성평가를 조작할 수 있습니다.'));
     const frame = el('iframe', 'sce-preview'); frame.title = title; frame.setAttribute('sandbox', ''); frame.referrerPolicy = 'no-referrer';
     const escape = text => String(text || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
     const html = typeof content === 'string' ? content : (content?.steps || []).map((s, i) => `<section id="step${i + 1}"><h2>${escape(s.title)}</h2>${s.html || ''}</section>`).join('') + (content?.simulation?.html || '');
@@ -100,6 +100,11 @@
     const root = byId('sceForm'); root.replaceChildren(); refs = {steps: [], quiz: [], simulation: {}};
     const item = state.item; byId('sceTitle').textContent = item ? '본문 편집 · ' + item.title : '화면에서 새 수업 작성';
     const metadata = section(root, '기본 정보', '저장하면 교사 전용의 새 버전이 됩니다. 내용을 확인한 뒤 자료 관리에서 학생 공개를 선택하세요.');
+    if (state.content?.schema === 'science-lesson/v3') {
+      const reviewActions = el('div', 'sce-actions'); reviewActions.append(button('실제 수업 미리보기', previewCurrent, true));
+      if (item?.id && item.version > 0) reviewActions.append(button('저장된 수업 미리보기', previewSaved));
+      metadata.append(reviewActions, el('p', 'sce-help', '현재 편집한 내용으로 수업을 확인하고, 미리보기를 닫아 편집을 계속하세요. 미리보기는 저장·학생 공개·실제 포인트 지급을 하지 않습니다. 저장된 수업 미리보기에는 아직 저장하지 않은 수정이 반영되지 않습니다.'));
+    }
     const grid = el('div', 'sce-grid'); metadata.append(grid);
     refs.title = field(grid, '자료 제목', item?.title || '', {max: 160});
     refs.unit = field(grid, '단원 ID', item?.unit_id || 'unit3', {max: 64});
@@ -163,7 +168,8 @@
     }
     const actions = el('div', 'sce-actions'); root.append(actions);
     const save = button('교사 전용 새 버전으로 저장', saveCurrent, true); save.id = 'sceSave'; save.disabled = state.busy; actions.append(save);
-    if (item?.format !== 'pdf') actions.append(button('본문 미리보기', () => { try { capture(); showPreview(state.content); } catch (error) { status(error.message, true); } }));
+    if (state.content?.schema === 'science-lesson/v3') actions.append(button('실제 수업 미리보기', previewCurrent));
+    else if (item?.format !== 'pdf') actions.append(button('본문 미리보기', () => { try { capture(); showPreview(state.content); } catch (error) { status(error.message, true); } }));
     actions.append(button('서버 최신 내용 다시 불러오기', async () => { if (!state.item) return; if (state.dirty && !confirm('저장하지 않은 내용을 버리고 서버 최신 버전을 불러올까요?')) return; await open(state.item); }));
     setBusy(state.busy);
   }
@@ -225,6 +231,40 @@
     if (item.format !== 'pdf') { payload.content = clone(state.content); payload.quiz_data = clone(state.keys); }
     return payload;
   }
+  function previewBundle(item, content, keys, label) {
+    if (!window.ScienceContentPreview?.open) throw new Error('수업 미리보기를 불러오지 못했습니다. 페이지를 새로고침해 주세요.');
+    if (content?.schema !== 'science-lesson/v3') throw new Error('실제 수업 미리보기는 공통 수업 형식에서 사용할 수 있습니다.');
+    validatePack(content, keys);
+    // A history snapshot can contain private fields. Pass metadata explicitly,
+    // and keep the preview's local answers independent of the edited source.
+    const metadata = {};
+    for (const key of ['id', 'version', 'kind', 'format', 'title', 'description', 'unit_id', 'unit_title', 'lesson_id', 'published', 'student_access']) if (item?.[key] !== undefined) metadata[key] = item[key];
+    return {item: metadata, content: clone(content), quiz_data: clone(keys), label};
+  }
+  async function previewCurrent() {
+    const generation = state.generation; if (!current(generation) || state.busy) return false;
+    let bundle;
+    try { capture(); buildPayload(); bundle = previewBundle(state.item, state.content, state.keys, '저장 전 편집 내용 미리보기'); }
+    catch (error) { status(error.message, true); return false; }
+    setBusy(true); status('현재 편집한 내용으로 수업 미리보기를 열고 있습니다…');
+    try {
+      const opened = await window.ScienceContentPreview.open(bundle); if (!current(generation)) return false;
+      status(opened === false ? '미리보기를 열지 못했습니다. 교사 권한과 자료를 확인해 주세요.' : '미리보기를 닫으면 편집을 계속할 수 있습니다. 변경 내용을 반영하려면 별도로 저장하세요.', opened === false);
+      return opened !== false;
+    } catch (error) { if (current(generation)) handleError(error); return false; }
+    finally { if (current(generation)) setBusy(false); }
+  }
+  async function previewSaved() {
+    const generation = state.generation; if (!current(generation) || state.busy || !state.item?.version) return false;
+    if (!window.ScienceContentPreview?.openSaved) { status('수업 미리보기를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', true); return false; }
+    setBusy(true);
+    try {
+      const opened = await window.ScienceContentPreview.openSaved({id: state.item.id}); if (!current(generation)) return false;
+      status(opened === false ? '저장된 수업 미리보기를 열지 못했습니다.' : '서버에 저장된 수업을 확인합니다. 저장하지 않은 편집 내용은 이 화면에 유지됩니다.', opened === false);
+      return opened !== false;
+    } catch (error) { if (current(generation)) handleError(error); return false; }
+    finally { if (current(generation)) setBusy(false); }
+  }
   async function changed() { window.dispatchEvent(new CustomEvent('science-content-changed')); await window.ScienceContentManager?.refresh(); }
   async function saveCurrent() {
     const generation = state.generation; if (!current(generation) || state.busy) return;
@@ -258,7 +298,18 @@
   }
   async function inspectVersion(version) {
     const generation = state.generation; if (!current(generation) || state.busy) return; setBusy(true);
-    try { const response = await client.request('get_version', {id: state.item.id, version}); if (!current(generation)) return; const snapshot = response.snapshot; if (!snapshot) throw new Error('이전 내용이 없습니다.'); if (snapshot.format === 'pdf') { byId('scePreviewArea').replaceChildren(el('p', 'sce-help', `v${version} PDF · ${snapshot.title}. PDF 본문은 되돌린 뒤 자료 열기에서 확인할 수 있습니다.`)); } else showPreview(snapshot.content, `v${version} 본문 확인`); status(`v${version} 내용을 확인하고 있습니다. 아직 현재 내용은 바뀌지 않았습니다.`); }
+    try {
+      const response = await client.request('get_version', {id: state.item.id, version}); if (!current(generation)) return;
+      const snapshot = response.snapshot; if (!snapshot) throw new Error('이전 내용이 없습니다.');
+      if (snapshot.format === 'pdf') { byId('scePreviewArea').replaceChildren(el('p', 'sce-help', `v${version} PDF · ${snapshot.title}. PDF 본문은 되돌린 뒤 자료 열기에서 확인할 수 있습니다.`)); }
+      else if (snapshot.content?.schema === 'science-lesson/v3') {
+        const bundle = previewBundle({...snapshot, id: state.item.id, version}, snapshot.content, snapshot.quiz_data, `v${version} 이전 수업 미리보기`);
+        const opened = await window.ScienceContentPreview.open(bundle);
+        if (!current(generation)) return;
+        if (opened === false) { status('이전 수업 미리보기를 열지 못했습니다. 현재 편집 내용은 유지됩니다.', true); return; }
+      } else showPreview(snapshot.content, `v${version} 본문 확인`);
+      status(`v${version} 내용을 확인하고 있습니다. 현재 편집 내용과 공개 상태는 바뀌지 않았습니다.`);
+    }
     catch (error) { if (current(generation)) handleError(error); } finally { if (current(generation)) setBusy(false); }
   }
   async function restoreVersion(version) {

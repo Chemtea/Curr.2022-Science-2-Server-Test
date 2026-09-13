@@ -1,4 +1,4 @@
-/* Teacher source data → shared lesson engine. Imported HTML/JS never runs here. */
+/* Teacher source data → shared lesson engine. Interactive preview uses the isolated shared host. */
 (() => {
   'use strict';
   const MAX_INPUT = 8 * 1024 * 1024, MAX_TOTAL = 12 * 1024 * 1024, MAX_ENTRY = 2 * 1024 * 1024, MAX_ENTRIES = 256;
@@ -148,6 +148,8 @@
       const data = convertSource(source.manifest, source.files), grid = node('div', 'sce-grid');
       const title = field(grid, '자료 제목', data.metadata.title, 160), unit = field(grid, '단원 ID', data.metadata.unit_id, 64), unitTitle = field(grid, '단원 이름', data.metadata.unit_title, 200), lesson = field(grid, '수업 ID', data.metadata.lesson_id, 64);
       ui.form.append(grid, node('p', 'sce-help', `학습 ${data.content.steps.length}단계 · 형성평가 ${data.content.quiz.length}문항 · 선택지별 피드백·복습 연결 포함`));
+      const interactive = node('button', 'sce-button sce-primary', '실제 수업 미리보기'); interactive.type = 'button'; interactive.addEventListener('click', previewSelected);
+      ui.form.append(interactive, node('p', 'sce-help', '등록 전에 본문·실험·형성평가를 직접 눌러 확인하세요. 미리보기는 저장·학생 공개·실제 포인트 지급을 하지 않습니다. 닫으면 이 화면으로 돌아옵니다.'));
       const list = node('ol', 'sci-stages'); for (const step of data.content.steps) list.append(node('li', '', step.title)); list.append(node('li', '', data.content.display.tabs[3])); ui.form.append(list);
       for (const warning of data.warnings) ui.form.append(node('p', 'sci-notice', warning));
       const preview = node('button', 'sce-button', '본문 모양 미리보기'); preview.type = 'button'; preview.addEventListener('click', () => {
@@ -155,15 +157,37 @@
         const frame = node('iframe', 'sce-preview'); frame.title = '가져올 수업 본문 미리보기'; frame.setAttribute('sandbox', ''); frame.referrerPolicy = 'no-referrer';
         const css = data.content.simulation.css.replace(/<\/style/gi, '<\\/style');
         frame.srcdoc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; style-src \'unsafe-inline\'; img-src data:; form-action \'none\'; base-uri \'none\'"><style>body{font:16px/1.6 system-ui;padding:20px;background:#fff;color:#17243a}section{margin:24px 0}' + css + '</style></head><body>' + data.content.steps.map(s => '<section>' + s.html + '</section>').join('') + '</body></html>';
-        target.append(node('p', 'sce-help', '본문만 표시합니다. 실험·마이크는 등록 후 수업에서 확인하세요.'), frame); ui.form.append(target);
+        target.append(node('p', 'sce-help', '이 화면은 본문 모양만 표시합니다. 실험과 형성평가 조작은 위의 실제 수업 미리보기에서 확인하세요.'), frame); ui.form.append(target);
       }); ui.form.append(preview);
-      selected = {data, title, unit, unitTitle, lesson}; ui.save.disabled = false; status('자료 형식 검증을 마쳤습니다. 제목과 연결 정보를 확인한 뒤 교사 전용으로 등록하세요.');
+      selected = {data, title, unit, unitTitle, lesson}; ui.save.disabled = false; status('자료 형식 검증을 마쳤습니다. 실제 수업 미리보기로 확인한 뒤 교사 전용으로 등록하세요.');
     } catch (error) { status(error.message, true); }
+  }
+  function captureSelected() {
+    if (!selected) throw new Error('가져올 수업을 먼저 선택해 주세요.');
+    const s = selected;
+    return {id: requestId, expected_version: 0, kind: 'lesson', format: 'lesson-pack', title: text(s.title.value.trim(), '자료 제목', 160), unit_id: id(s.unit.value.trim(), '단원 ID'), unit_title: s.unitTitle.value.trim(), lesson_id: id(s.lesson.value.trim(), '수업 ID'), description: s.data.metadata.description, content: s.data.content, quiz_data: s.data.quiz_data, published: true, student_access: false};
+  }
+  async function previewSelected() {
+    const g = generation; if (!active(g) || busy || !selected) return false;
+    let payload;
+    try {
+      if (!window.ScienceContentPreview?.open) throw new Error('수업 미리보기를 불러오지 못했습니다. 페이지를 새로고침해 주세요.');
+      payload = captureSelected();
+    } catch (error) { status(error.message, true); return false; }
+    const {content, quiz_data, expected_version, ...metadata} = payload;
+    setBusy(true); status('실제 수업 미리보기를 열고 있습니다…');
+    try {
+      const opened = await window.ScienceContentPreview.open({item: {...metadata, version: expected_version}, content: JSON.parse(JSON.stringify(content)), quiz_data: JSON.parse(JSON.stringify(quiz_data)), label: '등록 전 수업 미리보기'});
+      if (!active(g)) return false;
+      status(opened === false ? '미리보기를 열지 못했습니다. 교사 권한과 자료를 확인해 주세요.' : '미리보기를 닫으면 이 화면에서 교사 전용 등록을 계속할 수 있습니다.', opened === false);
+      return opened !== false;
+    } catch (error) { if (active(g)) status(error.message, true); return false; }
+    finally { if (active(g)) setBusy(false); }
   }
   async function save() {
     const g = generation; if (!active(g) || busy || !selected) return;
     let payload;
-    try { const s = selected; payload = {id: requestId, expected_version: 0, kind: 'lesson', format: 'lesson-pack', title: text(s.title.value.trim(), '자료 제목', 160), unit_id: id(s.unit.value.trim(), '단원 ID'), unit_title: s.unitTitle.value.trim(), lesson_id: id(s.lesson.value.trim(), '수업 ID'), description: s.data.metadata.description, content: s.data.content, quiz_data: s.data.quiz_data, published: true, student_access: false}; }
+    try { payload = captureSelected(); }
     catch (error) { status(error.message, true); return; }
     setBusy(true); status('교사 권한과 기존 수업을 확인하고 있습니다…');
     try {
@@ -173,7 +197,14 @@
       status('수업과 비공개 정답을 서버에 저장하고 있습니다…');
       const response = await client().request('save_content', payload); if (!active(g)) return;
       const item = response.item; selected = null; setBusy(false); ui.form.replaceChildren(node('p', 'sci-success', '교사 전용으로 등록했습니다. 수업에서 실험과 형성평가를 확인한 뒤 자료 관리에서 학생 공개를 선택하세요.'));
-      if (item) { const edit = node('button', 'sce-button', '본문·피드백 편집'); edit.type = 'button'; edit.addEventListener('click', () => { close(); window.ScienceContentEditor?.open(item); }); const link = node('a', 'sce-button', '등록한 수업 열기'); link.href = client().contentUrl(item); link.target = '_blank'; link.rel = 'noopener'; ui.form.append(edit, link); }
+      if (item) { const edit = node('button', 'sce-button', '본문·피드백 편집'); edit.type = 'button'; edit.addEventListener('click', () => { close(); window.ScienceContentEditor?.open(item); }); const preview = node('button', 'sce-button', '등록한 수업 미리보기'); preview.type = 'button'; preview.addEventListener('click', async () => {
+        if (!active(g) || busy) return;
+        if (!window.ScienceContentPreview?.openSaved) { status('수업 미리보기를 불러오지 못했습니다. 페이지를 새로고침해 주세요.', true); return; }
+        setBusy(true);
+        try { await window.ScienceContentPreview.openSaved(item); }
+        catch (error) { if (active(g)) status(error.message, true); }
+        finally { if (active(g)) setBusy(false); }
+      }); ui.form.append(preview, edit, node('p', 'sce-help', '확인 후 이 창을 닫고 자료 관리 목록에서 학생 공개를 선택하세요. 미리보기는 현재 화면의 교사 로그인으로 열립니다.')); }
       status('새 수업 등록을 완료했습니다.'); window.dispatchEvent(new CustomEvent('science-content-changed')); await window.ScienceContentManager?.refresh();
     } catch (error) { if (active(g)) status(error.status === 409 ? '같은 등록 요청이 이미 저장되었거나 같은 ID가 있습니다. 자료 목록을 새로고침해 확인해 주세요.' : error.message, true); }
     finally { if (active(g)) setBusy(false); }

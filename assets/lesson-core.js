@@ -361,6 +361,7 @@
         function switchStep(stepNum) {
             if (!Number.isInteger(stepNum) || stepNum < 1 || stepNum > 4) return;
             currentActiveStep = stepNum;
+            if (window.ScienceLessonNavigation) { window.ScienceLessonNavigation.show(stepNum); return; }
             document.querySelectorAll('.step-btn').forEach((btn, idx) => {
                 btn.classList.toggle('active', idx === stepNum - 1);
             });

@@ -1,0 +1,30 @@
+/* The trusted preview wrapper is separate from the sandboxed lesson experiment. */
+dialog.scp-dialog { box-sizing: border-box; position: fixed; inset: 0; margin: auto; width: min(1440px, calc(100vw - 32px)); max-width: none; height: min(1000px, calc(100dvh - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 2px solid #b8c9df; border-radius: 18px; background: #f1f5fa; color: #17243a; box-shadow: 0 28px 100px #081e4759; font: 15px/1.5 system-ui, -apple-system, 'Noto Sans KR', sans-serif; text-align: left; overflow: hidden; }
+dialog.scp-dialog[open] { display: flex; flex-direction: column; }
+dialog.scp-dialog:not([open]) { display: none; }
+dialog.scp-dialog::backdrop { background: #10213db3; backdrop-filter: blur(4px); }
+.scp-dialog *, .scp-dialog *::before, .scp-dialog *::after { box-sizing: border-box; }
+.scp-dialog .scp-header { display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; gap: 20px; padding: 15px 22px; background: #fff; border-bottom: 1px solid #d3deeb; }
+.scp-dialog .scp-heading { min-width: 0; }
+.scp-dialog .scp-tag { display: inline-block; color: #255db9; font: 750 12px/1.4 system-ui, sans-serif; margin-bottom: 4px; }
+.scp-dialog h2 { margin: 0; color: #19385d; font: 800 20px/1.4 system-ui, sans-serif; overflow-wrap: anywhere; }
+.scp-dialog .scp-toolbar { flex: 0 0 auto; padding: 12px 22px 8px; background: #fff; border-bottom: 1px solid #dbe4ef; }
+.scp-dialog .scp-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.scp-dialog .scp-width-label { display: flex; align-items: center; gap: 9px; color: #324c6c; font-weight: 650; }
+.scp-dialog .scp-width { border: 1px solid #b4c5da; border-radius: 8px; padding: 8px 10px; min-height: 40px; background: #fff; color: #19385d; font: 600 14px/1.4 system-ui, sans-serif; }
+.scp-dialog .scp-button { border: 1px solid #abc0d8; border-radius: 8px; padding: 9px 13px; min-height: 40px; background: #fff; color: #264e7c; cursor: pointer; font: 700 14px/1.4 system-ui, sans-serif; text-align: center; }
+.scp-dialog .scp-button:hover { background: #edf4fc; border-color: #678dbc; }
+.scp-dialog .scp-button:disabled { cursor: wait; opacity: .55; }
+.scp-dialog .scp-button[hidden] { display: none; }
+.scp-dialog .scp-back { flex: 0 0 auto; background: #eef4fb; }
+.scp-dialog .scp-primary { background: #255db9; color: #fff; border-color: #255db9; }
+.scp-dialog .scp-primary:hover { background: #194d9f; }
+.scp-dialog .scp-button:focus-visible, .scp-dialog .scp-width:focus-visible { outline: 3px solid #80b7f3; outline-offset: 2px; }
+.scp-dialog .scp-description { margin: 8px 0 0; color: #566b84; font-size: 13px; line-height: 1.5; }
+.scp-dialog .scp-status { flex: 0 0 auto; margin: 0; min-height: 32px; padding: 6px 22px; color: #3b5979; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.scp-dialog .scp-status[data-error="true"] { color: #9b2339; font-weight: 650; }
+.scp-dialog .scp-stage { display: flex; flex: 1 1 auto; justify-content: center; min-height: 0; padding: 0 12px 12px; overflow: auto; }
+.scp-dialog .scp-frame { display: block; width: 100%; max-width: 100%; height: 100%; min-height: 250px; flex: 0 0 auto; border: 1px solid #c3d0e1; border-radius: 9px; background: #fff; box-shadow: 0 3px 14px #1e3d6514; }
+.scp-dialog .scp-stage[data-width="tablet"] .scp-frame { width: 820px; }
+.scp-dialog .scp-stage[data-width="mobile"] .scp-frame { width: 390px; }
+@media (max-width: 640px) { dialog.scp-dialog { width: calc(100vw - 12px); height: calc(100dvh - 12px); max-height: calc(100dvh - 12px); border-radius: 12px; } .scp-dialog .scp-header { padding: 12px; gap: 10px; } .scp-dialog h2 { font-size: 17px; } .scp-dialog .scp-back { max-width: 100px; padding: 8px 9px; font-size: 13px; } .scp-dialog .scp-toolbar { padding: 9px 12px 7px; } .scp-dialog .scp-controls { gap: 7px; } .scp-dialog .scp-width-label { font-size: 13px; gap: 6px; } .scp-dialog .scp-width, .scp-dialog .scp-button { font-size: 13px; } .scp-dialog .scp-description { font-size: 12px; } .scp-dialog .scp-status { padding: 6px 12px; font-size: 12px; } .scp-dialog .scp-stage { padding: 0 6px 6px; } }
