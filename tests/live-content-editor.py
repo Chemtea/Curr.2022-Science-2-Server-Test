@@ -221,7 +221,10 @@ def run(directory):
     pdf_fields = {'id': c['pdf_id'], 'kind': 'worksheet', 'format': 'pdf', 'title': 'Synthetic PDF history', 'description': MARKER, 'unit_id': 'editor_synthetic_unit', 'unit_title': 'Synthetic verification', 'lesson_id': 'editor_synthetic_lesson', 'quiz_data': [], 'published': True, 'student_access': False}
 
     def pdf_save(index):
-        saved = save(dict(pdf_fields, expected_version=index, file_base64=base64.b64encode(pdf_bytes[index]).decode()))
+        if state.get('pdf_version') == index + 1:
+            saved = {'version': state['pdf_version']}
+        else:
+            saved = save(dict(pdf_fields, expected_version=index, file_base64=base64.b64encode(pdf_bytes[index]).decode()))
         assert saved['version'] == index + 1
         state['pdf_version'] = saved['version']
         snapshot = fetch('get_version', {'id': c['pdf_id'], 'version': index + 1})['snapshot']
