@@ -310,3 +310,22 @@
             border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 20px;
         }
     
+/* Shared v3 quiz and responsive lesson shell. */
+.container,.step-nav,.admin-step-bar-inner,.science-server-experiment{max-width:var(--lesson-max-width,1050px)}
+.science-server-experiment{margin:0 auto;padding:0 15px}
+.quiz-guide{padding:16px 18px;margin-bottom:16px;border:1px solid #334155;border-radius:12px;background:#131b2e;color:#cbd5e1;font-size:.95rem}
+.quiz-status{margin:12px 0 18px;color:#bae6fd;min-height:1.7em}
+.quiz-context{margin:0 0 16px;padding:16px 20px;border:1px solid #475569;border-radius:10px;background:#0f172a;color:#e2e8f0}
+.quiz-context>div:last-child,.quiz-context>p:last-child{margin-bottom:0}
+.quiz-opt{display:flex;gap:12px;width:100%;text-align:left;line-height:1.6;align-items:flex-start;font:inherit;font-size:.94rem}
+.quiz-choice-number{flex:0 0 1.25em;color:#94a3b8}
+.quiz-opt.correct .quiz-choice-number,.quiz-opt.incorrect .quiz-choice-number{color:inherit}
+.quiz-opt:disabled{cursor:default;opacity:1}.quiz-opt:disabled:hover{background:#0f172a;color:#cbd5e1}
+.quiz-opt:focus-visible,.goto-sim-btn:focus-visible,.step-btn:focus-visible{outline:3px solid #7dd3fc;outline-offset:3px}
+.quiz-review-note{margin-top:12px;color:#a5b4fc;font-size:.88rem}
+.quiz-result-summary{padding:18px;border:1px solid #10b981;border-radius:12px;background:#064e3b55;color:#d1fae5}
+.student-info-group input{max-width:180px;min-width:0}.student-info-box{margin-top:24px;margin-bottom:16px}
+.science-common-media{margin-bottom:14px;padding:14px;border:1px solid #475569;border-radius:12px;background:#172033}.science-common-media[hidden]{display:none}
+.science-common-media p{margin-top:8px;color:#cbd5e1;font-size:.9rem}.science-common-media button{margin-right:8px}
+footer a{display:inline-block;margin-top:8px;color:#7dd3fc}footer{padding-inline:20px}
+@media(max-width:700px){.step-content{padding:18px}.quiz-item{padding:16px}.quiz-opt{padding:11px 12px}.student-info-box{padding:14px;gap:12px}.student-info-group{flex:1 1 120px}.student-info-group input{width:100%}.submit-btn{width:100%;margin-left:0}.step-btn{min-width:140px;font-size:.82rem;padding:10px}.step-nav{gap:8px}.quiz-context{padding:12px}}

@@ -110,28 +110,45 @@
     else if (typeof state.content === 'string') refs.html = htmlField(section(root, '문서 본문', 'HTML 원문을 편집할 수 있습니다. 미리보기에서는 스크립트가 실행되지 않습니다.'), '문서', state.content, false);
     else if (state.content?.builtin_id) section(root, '기존 수업', '이 자료는 아직 기존 HTML을 참조합니다. 실험 이관이 끝나면 단계별 본문을 이 화면에서 편집할 수 있습니다. 현재는 기본 정보만 수정됩니다.');
     else if (state.content) {
-      const pack = state.content, isV2 = pack.schema === 'science-lesson/v2';
-      const steps = section(root, '단계별 수업 본문', isV2 ? '실험과 연결된 HTML의 ID·버튼 호출은 유지해 주세요. 공통 로그인·채점·제출 기능은 이 편집 대상에 포함되지 않습니다.' : '본문을 직접 입력하거나 붙여 넣으세요. 문단·목록·표를 사용할 수 있습니다.');
+      const pack = state.content, isV3 = pack.schema === 'science-lesson/v3', hasSimulation = ['science-lesson/v2', 'science-lesson/v3'].includes(pack.schema);
+      if (isV3) {
+        const display = section(root, '차시 제목과 표시', '제목·분류·부제목·하단 문구만 편집합니다. 화면의 공통 기능과 기본 디자인은 유지됩니다.'); refs.display = {};
+        refs.pageTitle = field(display, '페이지 제목', pack.title || item?.title || '', {max: 300});
+        for (const [key, label] of [['titleHtml', '화면 제목'], ['headerTag', '상단 분류'], ['subtitleHtml', '부제목'], ['footerHtml', '하단 문구']]) refs.display[key] = field(display, label, pack.display?.[key] || '', {multiline: true, rows: 2, max: 10000});
+        refs.display.contentMaxWidth = field(display, '본문 최대 너비 (px)', pack.display?.contentMaxWidth || 1050, {type: 'number'}); refs.display.contentMaxWidth.min = '700'; refs.display.contentMaxWidth.max = '1400';
+        refs.quizTab = field(display, '형성평가 탭 이름', pack.display?.tabs?.[3] || '4단계: 형성평가', {max: 200});
+      }
+      const steps = section(root, '단계별 수업 본문', hasSimulation ? '실험과 연결된 HTML의 ID·버튼 호출은 유지해 주세요. 공통 로그인·채점·제출 기능은 이 편집 대상에 포함되지 않습니다.' : '본문을 직접 입력하거나 붙여 넣으세요. 문단·목록·표를 사용할 수 있습니다.');
       (pack.steps || []).forEach((step, index) => {
         const box = el('details', 'sce-stage'); box.open = index === 0; box.append(el('summary', '', `${index + 1}단계 · ${step.title}`)); steps.append(box);
-        const title = field(box, '단계 제목', step.title, {max: 200}); const html = htmlField(box, `${index + 1}단계 본문`, step.html, !isV2);
-        if (isV2) textOnlyEditor(box, html);
+        const title = field(box, '단계 제목', step.title, {max: 200}); const html = htmlField(box, `${index + 1}단계 본문`, step.html, !hasSimulation);
+        if (hasSimulation) textOnlyEditor(box, html);
         refs.steps.push({title, html});
-        if ((pack.steps || []).length > 1) box.append(button('이 단계 삭제', () => { try { capture(); state.content.steps.splice(index, 1); dirty(); render(); } catch (error) { status(error.message, true); } }));
+        if (!isV3 && (pack.steps || []).length > 1) box.append(button('이 단계 삭제', () => { try { capture(); state.content.steps.splice(index, 1); dirty(); render(); } catch (error) { status(error.message, true); } }));
       });
-      if ((pack.steps || []).length < 4) steps.append(button('단계 추가', () => { try { capture(); state.content.steps.push({title: '새 단계', html: '<p>내용을 입력하세요.</p>'}); dirty(); render(); } catch (error) { status(error.message, true); } }));
-      const quizzes = section(root, '형성평가 문항과 교사용 정답', '정답·해설은 비공개 서버 데이터로 저장됩니다. 학생에게는 제출한 뒤 서버가 허용한 채점 결과만 전달됩니다.');
+      if (!isV3 && (pack.steps || []).length < 4) steps.append(button('단계 추가', () => { try { capture(); state.content.steps.push({title: '새 단계', html: '<p>내용을 입력하세요.</p>'}); dirty(); render(); } catch (error) { status(error.message, true); } }));
+      const quizzes = section(root, '형성평가 문항과 교사용 정답', isV3 ? '학생의 최초 선택은 서버에 고정되고 해당 선택의 피드백이 즉시 표시됩니다. 최종 제출 후에는 기록·포인트를 바꾸지 않고 복습할 수 있습니다. 정답·해설 전체는 교사 전용으로 저장됩니다.' : '정답·해설은 비공개 서버 데이터로 저장됩니다. 학생에게는 제출한 뒤 서버가 허용한 채점 결과만 전달됩니다.');
       (pack.quiz || []).forEach((q, index) => {
         const box = el('details', 'sce-stage'); box.append(el('summary', '', `문항 ${index + 1}`)); quizzes.append(box);
-        const question = field(box, '문제', q.question, {multiline: true, max: 10000});
-        const choices = q.choices.map((choice, ci) => field(box, `선택지 ${ci + 1}`, choice, {max: 4000}));
+        const question = isV3 ? htmlField(box, '문제', q.promptHtml, true) : field(box, '문제', q.question, {multiline: true, max: 10000});
+        const context = isV3 ? htmlField(box, '문제의 보기 (선택)', q.contextHtml || '', true) : null;
+        const choices = q.choices.map((choice, ci) => isV3 ? htmlField(box, `선택지 ${ci + 1}`, choice.html, true) : field(box, `선택지 ${ci + 1}`, choice, {max: 4000}));
         const correct = field(box, '정답 선택지 번호 (1부터)', state.keys[index]?.correct || 1, {type: 'number'}); correct.min = '1'; correct.max = String(choices.length);
-        const explanation = field(box, '제출 후 해설', state.keys[index]?.explanation || '', {multiline: true, max: 10000}); refs.quiz.push({question, choices, correct, explanation});
-        box.append(button('문항 삭제', () => { try { capture(); state.content.quiz.splice(index, 1); state.keys.splice(index, 1); dirty(); render(); } catch (error) { status(error.message, true); } }));
-        if (choices.length < 6) box.append(button('선택지 추가', () => { try { capture(); state.content.quiz[index].choices.push('새 선택지'); state.keys[index].choices++; dirty(); render(); } catch (error) { status(error.message, true); } }));
+        const explanation = isV3 ? htmlField(box, '상세 해설', state.keys[index]?.explanationHtml || state.keys[index]?.explanation || '', true) : field(box, '제출 후 해설', state.keys[index]?.explanation || '', {multiline: true, max: 10000});
+        const record = {question, context, choices, correct, explanation};
+        if (isV3) {
+          record.correctTitle = htmlField(box, '정답 피드백 제목', state.keys[index]?.correctTitleHtml || '', true);
+          record.wrongHint = htmlField(box, '오답 힌트', state.keys[index]?.wrongHintHtml || '', true);
+          record.reviewStep = field(box, '복습 단계 ID (step1, step2, step3)', q.review?.stepId || 'step1', {max: 5});
+          record.reviewLabel = field(box, '복습 이동 버튼 문구', q.review?.label || '관련 단계 복습', {max: 200});
+          record.wrongReasons = q.choices.map((choice, ci) => htmlField(box, `선택지 ${ci + 1}을 골랐을 때 오답 이유 (정답 선지는 생략 가능)`, state.keys[index]?.wrongReasons?.[choice.id] || '', true));
+        }
+        refs.quiz.push(record);
+        box.append(button('문항 삭제', () => { try { capture(); state.content.quiz.splice(index, 1); state.keys.splice(index, 1); renumberV3(); dirty(); render(); } catch (error) { status(error.message, true); } }));
+        if (choices.length < 6) box.append(button('선택지 추가', () => { try { capture(); state.content.quiz[index].choices.push(isV3 ? {id: `q${index + 1}-c${choices.length + 1}`, html: '새 선택지'} : '새 선택지'); state.keys[index].choices++; dirty(); render(); } catch (error) { status(error.message, true); } }));
       });
-      if ((pack.quiz || []).length < 5) quizzes.append(button('문항 추가', () => { try { capture(); state.content.quiz ||= []; state.content.quiz.push({question: '새 문항', choices: ['선택지 1', '선택지 2', '선택지 3', '선택지 4']}); state.keys.push({correct: 1, choices: 4, explanation: ''}); dirty(); render(); } catch (error) { status(error.message, true); } }));
-      if (isV2 && pack.simulation) {
+      if ((pack.quiz || []).length < 5) quizzes.append(button('문항 추가', () => { try { capture(); state.content.quiz ||= []; const qid = 'q' + (state.content.quiz.length + 1); state.content.quiz.push(isV3 ? {id: qid, promptHtml: '새 문항', contextHtml: '', choices: [1,2,3,4].map(n => ({id: qid + '-c' + n, html: '선택지 ' + n})), review: {stepId: 'step1', label: '관련 단계 복습'}} : {question: '새 문항', choices: ['선택지 1', '선택지 2', '선택지 3', '선택지 4']}); state.keys.push(isV3 ? {questionId: qid, correct: 1, choices: 4, explanation: '', explanationHtml: '', correctTitleHtml: '', wrongHintHtml: '', wrongReasons: {}} : {correct: 1, choices: 4, explanation: ''}); dirty(); render(); } catch (error) { status(error.message, true); } }));
+      if (hasSimulation && pack.simulation) {
         const advanced = el('details', 'sce-advanced'); advanced.append(el('summary', '', '실험 HTML · CSS · JavaScript 편집 (고급)')); root.append(advanced);
         advanced.append(el('p', 'sce-help', '이 차시의 격리된 실험 코드만 편집합니다. 공통 로그인·잠금·채점·제출 코드는 서버와 공통 화면에서 유지됩니다.'));
         for (const [key, label] of [['html', '추가 실험 HTML'], ['css', '실험 CSS'], ['js', '실험 JavaScript']]) { refs.simulation[key] = field(advanced, label, pack.simulation[key] || '', {multiline: true, rows: 8}); refs.simulation[key].classList.add('sce-code'); }
@@ -154,25 +171,50 @@
     const item = state.item || {id: state.newId, version: 0, kind: 'lesson', format: 'lesson-pack'};
     state.item = {...item, title: refs.title.value.trim(), description: refs.description.value, unit_id: refs.unit.value.trim(), unit_title: refs.unitTitle.value.trim(), lesson_id: refs.lesson.value.trim() || null};
   }
+  function renumberV3() {
+    if (state.content?.schema !== 'science-lesson/v3') return;
+    state.content.quiz.forEach((q, i) => {
+      const key = state.keys[i], reasons = {}, qid = 'q' + (i + 1);
+      q.choices.forEach((choice, n) => { const next = qid + '-c' + (n + 1); if (key?.wrongReasons && Object.prototype.hasOwnProperty.call(key.wrongReasons, choice.id)) reasons[next] = key.wrongReasons[choice.id]; choice.id = next; });
+      q.id = qid; if (key) { key.questionId = qid; key.wrongReasons = reasons; }
+    });
+  }
   function capture() {
     if (refs.rawDirty) throw new Error('JSON을 직접 수정했습니다. 먼저 ‘수정한 JSON을 편집 화면에 적용’을 눌러 주세요.');
     captureMetadata();
     if (refs.html) state.content = refs.html.value;
     else if (state.content && !state.content.builtin_id && typeof state.content === 'object') {
       state.content.steps = refs.steps.map((r, i) => ({...state.content.steps[i], title: r.title.value, html: r.html.value}));
-      state.content.quiz = refs.quiz.map((r, i) => ({...state.content.quiz?.[i], question: r.question.value, choices: r.choices.map(c => c.value)}));
-      state.keys = refs.quiz.map((r, i) => ({...state.keys[i], correct: Number(r.correct.value), explanation: r.explanation.value, choices: r.choices.length}));
+      if (state.content.schema === 'science-lesson/v3') {
+        state.content.quiz = refs.quiz.map((r, i) => ({...state.content.quiz[i], promptHtml: r.question.value, contextHtml: r.context.value, choices: r.choices.map((c, n) => ({...state.content.quiz[i].choices[n], html: c.value})), review: {...state.content.quiz[i].review, stepId: r.reviewStep.value.trim(), label: r.reviewLabel.value}}));
+        state.keys = refs.quiz.map((r, i) => ({...state.keys[i], questionId: state.content.quiz[i].id, correct: Number(r.correct.value), choices: r.choices.length, explanation: r.explanation.value, explanationHtml: r.explanation.value, correctTitleHtml: r.correctTitle.value, wrongHintHtml: r.wrongHint.value, wrongReasons: Object.fromEntries(r.wrongReasons.map((reason, n) => [state.content.quiz[i].choices[n].id, reason.value]).filter(([, value]) => value.trim()))}));
+        state.content.title = refs.pageTitle.value;
+        state.content.display = {...state.content.display, ...Object.fromEntries(Object.entries(refs.display).map(([k, input]) => [k, k === 'contentMaxWidth' ? Number(input.value) : input.value])), tabs: [...state.content.steps.map(s => s.title), refs.quizTab.value]};
+        renumberV3();
+      } else {
+        state.content.quiz = refs.quiz.map((r, i) => ({...state.content.quiz?.[i], question: r.question.value, choices: r.choices.map(c => c.value)}));
+        state.keys = refs.quiz.map((r, i) => ({...state.keys[i], correct: Number(r.correct.value), explanation: r.explanation.value, choices: r.choices.length}));
+      }
       if (state.content.simulation) { for (const key of ['html', 'css', 'js']) if (refs.simulation[key]) state.content.simulation[key] = refs.simulation[key].value; if (refs.dependencies) state.content.simulation.dependencies = refs.dependencies.value.split('\n').map(v => v.trim()).filter(Boolean); }
     }
   }
   function validatePack(pack, keys) {
-    if (!pack || !['science-lesson/v1', 'science-lesson/v2'].includes(pack.schema)) throw new Error('지원하는 수업팩 형식이 아닙니다.');
+    if (!pack || !['science-lesson/v1', 'science-lesson/v2', 'science-lesson/v3'].includes(pack.schema)) throw new Error('지원하는 수업팩 형식이 아닙니다.');
     if (pack.builtin_id) return;
     if (!Array.isArray(pack.steps) || pack.steps.length < 1 || pack.steps.length > 4 || pack.steps.some(s => !s || typeof s.title !== 'string' || !s.title.trim() || typeof s.html !== 'string')) throw new Error('수업 단계는 제목과 본문이 있는 1~4개로 작성해 주세요.');
     const quiz = pack.quiz || [];
     if (!Array.isArray(quiz) || quiz.length > 5 || !Array.isArray(keys) || keys.length !== quiz.length) throw new Error('문항은 최대 5개이며 문항 수와 비공개 정답 수가 같아야 합니다.');
-    quiz.forEach((q, i) => { const k = keys[i]; if (!q || typeof q.question !== 'string' || !q.question.trim() || !Array.isArray(q.choices) || q.choices.length < 2 || q.choices.length > 6 || q.choices.some(c => typeof c !== 'string' || !c.trim()) || !k || !Number.isInteger(k.correct) || k.correct < 1 || k.correct > q.choices.length || k.choices !== q.choices.length) throw new Error(`문항 ${i + 1}의 문제·선택지·정답 번호를 확인해 주세요.`); });
-    if (pack.schema === 'science-lesson/v2') { const s = pack.simulation; if (!s || ['html', 'css', 'js'].some(k => typeof s[k] !== 'string') || !Array.isArray(s.dependencies)) throw new Error('실험 HTML·CSS·JavaScript 형식을 확인해 주세요.'); if (s.dependencies.length) throw new Error('외부 라이브러리 연결은 지원하지 않습니다. dependencies는 빈 배열이어야 합니다.'); }
+    const isV3 = pack.schema === 'science-lesson/v3';
+    quiz.forEach((q, i) => { const k = keys[i], prompt = isV3 ? q?.promptHtml : q?.question; if (!q || typeof prompt !== 'string' || !prompt.trim() || !Array.isArray(q.choices) || q.choices.length < 2 || q.choices.length > 6 || q.choices.some(c => typeof (isV3 ? c?.html : c) !== 'string' || !(isV3 ? c.html : c).trim()) || !k || !Number.isInteger(k.correct) || k.correct < 1 || k.correct > q.choices.length || k.choices !== q.choices.length) throw new Error(`문항 ${i + 1}의 문제·선택지·정답 번호를 확인해 주세요.`); });
+    if (isV3) {
+      if (pack.steps.length !== 3 || pack.steps.some((s, i) => s.id !== 'step' + (i + 1)) || !quiz.length) throw new Error('공통 수업은 학습 본문 3단계와 형성평가 1~5문항으로 구성해 주세요.');
+      const display = pack.display; if (!display || !Number.isInteger(display.contentMaxWidth) || display.contentMaxWidth < 700 || display.contentMaxWidth > 1400 || !Array.isArray(display.tabs) || display.tabs.length !== 4) throw new Error('차시 표시 정보와 4개 탭 이름을 확인해 주세요.');
+      quiz.forEach((q, i) => {
+        const k = keys[i]; if (q.id !== 'q' + (i + 1) || k.questionId !== q.id || q.choices.some((c, n) => c.id !== q.id + '-c' + (n + 1)) || !['step1', 'step2', 'step3'].includes(q.review?.stepId) || !q.review?.label?.trim()) throw new Error(`문항 ${i + 1}의 ID·선택지 ID·복습 연결을 확인해 주세요.`);
+        if (![k.correctTitleHtml, k.explanationHtml, k.wrongHintHtml].every(v => typeof v === 'string' && v.trim()) || q.choices.some((c, n) => n + 1 !== k.correct && !k.wrongReasons?.[c.id]?.trim())) throw new Error(`문항 ${i + 1}의 정답 제목·상세 해설·힌트·선택지별 오답 이유를 모두 입력해 주세요.`);
+      });
+    }
+    if (['science-lesson/v2', 'science-lesson/v3'].includes(pack.schema)) { const s = pack.simulation; if (!s || ['html', 'css', 'js'].some(k => typeof s[k] !== 'string') || !Array.isArray(s.dependencies)) throw new Error('실험 HTML·CSS·JavaScript 형식을 확인해 주세요.'); if (s.dependencies.length) throw new Error('외부 라이브러리 연결은 지원하지 않습니다. dependencies는 빈 배열이어야 합니다.'); if (isV3 && s.hostContract !== 'science-experiment-content/v1') throw new Error('공통 실험 연결 규격을 확인해 주세요.'); }
   }
   function buildPayload() {
     const item = state.item; if (!item?.title?.trim()) throw new Error('자료 제목을 입력해 주세요.');
@@ -232,7 +274,7 @@
     setBusy(true); byId('sceTitle').textContent = '교사 권한과 자료를 확인하고 있습니다'; byId('sceDialog').showModal(); status('서버에서 편집 권한을 확인하고 있습니다…');
     try {
       if (item?.id) { const response = await client.request('get_editable', {id: item.id}); if (!current(generation)) return false; state.item = response.item; state.content = response.content == null ? null : clone(response.content); state.keys = clone(response.quiz_data || []); }
-      else { const response = await client.request('catalog'); if (!current(generation)) return false; if (response.role !== 'admin') throw Object.assign(new Error('교사 권한이 필요합니다.'), {status: 403}); state.item = null; state.content = {schema: 'science-lesson/v1', steps: [{title: '학습 목표', html: '<h2>오늘의 학습 목표</h2><p>수업 내용을 입력하세요.</p>'}], quiz: []}; state.keys = []; }
+      else { const response = await client.request('catalog'); if (!current(generation)) return false; if (response.role !== 'admin') throw Object.assign(new Error('교사 권한이 필요합니다.'), {status: 403}); state.item = null; state.content = {schema: 'science-lesson/v3', title: '', display: {titleHtml: '', headerTag: '', subtitleHtml: '', footerHtml: '', contentMaxWidth: 1050, tabs: ['1단계: 개념 학습', '2단계: 탐구 활동', '3단계: 적용과 정리', '4단계: 형성평가']}, steps: ['개념 학습', '탐구 활동', '적용과 정리'].map((title, i) => ({id: 'step' + (i + 1), title: `${i + 1}단계: ${title}`, html: '<p>수업 내용을 입력하세요.</p>'})), quiz: [], simulation: {html: '', css: '', js: '', dependencies: [], hostContract: 'science-experiment-content/v1', microphone: false}}; state.keys = []; }
       render(); status('본문을 편집하고 저장하면 교사 전용의 새 버전이 만들어집니다.'); await loadVersions(generation); return current(generation);
     } catch (error) { if (current(generation)) handleError(error); return false; }
     finally { if (current(generation)) setBusy(false); }

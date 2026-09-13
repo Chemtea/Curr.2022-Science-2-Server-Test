@@ -45,6 +45,12 @@
 
         let clientIpAddress = "알 수 없음";
 
+        let lessonAccountFingerprint = null;
+        function emitLessonAccountChange() {
+            const next = JSON.stringify(window.ScienceContentClient.auth());
+            if (lessonAccountFingerprint !== null && next !== lessonAccountFingerprint) window.dispatchEvent(new Event('science-account-change'));
+            lessonAccountFingerprint = next;
+        }
         function checkAndApplyStudentAuth() {
             const rawUser = window.platformSessionStorage.getItem("current_student");
             const sIdInput = document.getElementById("studentIdInput");
@@ -101,6 +107,7 @@
                     if (user.isAdmin === true) {
                         activateAdminModeFromSession(false);
                     }
+                    emitLessonAccountChange();
                     return;
                 } catch (error) {
                     console.warn("current_student 정보를 읽는 중 오류 발생:", error);
@@ -108,23 +115,11 @@
                 }
             }
 
-            // 미로그인 사용자는 4단계에서 학번과 이름을 직접 입력하고 그대로 제출할 수 있음
-            if (sIdInput) {
-                sIdInput.readOnly = false;
-                sIdInput.placeholder = "학번 직접 입력";
-                sIdInput.style.backgroundColor = "";
-                sIdInput.style.color = "";
-                sIdInput.style.fontWeight = "";
-                sIdInput.style.cursor = "text";
-            }
-
-            if (sNameInput) {
-                sNameInput.readOnly = false;
-                sNameInput.placeholder = "이름 직접 입력";
-                sNameInput.style.backgroundColor = "";
-                sNameInput.style.color = "";
-                sNameInput.style.fontWeight = "";
-                sNameInput.style.cursor = "text";
+            // Submission always uses the authenticated account, never typed identity.
+            for (const input of [sIdInput, sNameInput]) {
+                if (!input) continue;
+                input.value = ''; input.readOnly = true; input.placeholder = '로그인 후 자동 입력';
+                input.style.cssText = '';
             }
 
             if (headerLoginStatus) {
@@ -134,6 +129,7 @@
             }
             if (headerLoginBtn) headerLoginBtn.style.display = "inline-block";
             if (headerLogoutBtn) headerLogoutBtn.style.display = "none";
+            emitLessonAccountChange();
         }
 
         function logoutPageUser() {
@@ -312,8 +308,8 @@
         // 서버에서 받아온 잠금 상태 동기화
         window.handleStepLocksSync = function(cloudData) {
             fullCloudLocks = cloudData || {};
-            if (cloudData.step_locks && cloudData.step_locks[THIS_LESSON_KEY]) {
-                const cloudSteps = cloudData.step_locks[THIS_LESSON_KEY];
+            if (fullCloudLocks.step_locks && fullCloudLocks.step_locks[THIS_LESSON_KEY]) {
+                const cloudSteps = fullCloudLocks.step_locks[THIS_LESSON_KEY];
                 for (let i = 1; i <= 4; i++) {
                     if (cloudSteps[i] !== undefined) {
                         stepLocks[i] = cloudSteps[i] === true;
@@ -353,6 +349,7 @@
 
         // 학생/교사의 탭 클릭 처리
         function trySwitchStep(stepNum) {
+            if (!Number.isInteger(stepNum) || stepNum < 1 || stepNum > 4) return;
             if (!isAdminActive && stepLocks[stepNum] === true) {
                 alert(`🔒 ${stepNum}단계는 현재 선생님에 의해 잠겨 있습니다.\n선생님의 수업 안내에 따라 순서대로 학습해 주세요!`);
                 return;
@@ -362,6 +359,7 @@
 
         // 실제 탭 전환
         function switchStep(stepNum) {
+            if (!Number.isInteger(stepNum) || stepNum < 1 || stepNum > 4) return;
             currentActiveStep = stepNum;
             document.querySelectorAll('.step-btn').forEach((btn, idx) => {
                 btn.classList.toggle('active', idx === stepNum - 1);

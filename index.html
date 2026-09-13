@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>중2 과학 디지털 탐구 플랫폼 · 서버 구조 테스트</title>
-    <script src="./platform-config.js"></script>
+    <script src="./platform-config.js?v=20260913-common3"></script>
     <script src="./lock-realtime-client.js"></script>
     <style>
         * {
@@ -2757,7 +2757,7 @@
 @media(prefers-reduced-motion:reduce){.classroom-point-fx,.classroom-point-fx *{animation:none!important;transition:none!important;}.classroom-point-fx-particles{display:none;}}
 
 </style>
-    <link rel="stylesheet" href="./assets/content-manager.css">
+    <link rel="stylesheet" href="./assets/content-manager.css?v=20260913-common3">
 </head>
 <body>
     <!-- ===== 테스트 서버 ENVIRONMENT MARKER ===== -->
@@ -7957,6 +7957,7 @@ window.addEventListener('storage',event=>{
         }
 
         function refreshLockViews() {
+            window.ScienceContentManager?.locksChanged();
             updateEvalHallAdminControls();
             renderUnitHub();
             if (currentUnitKey && defaultCurriculum[currentUnitKey]) renderLessonCards(defaultCurriculum[currentUnitKey]);
@@ -10216,10 +10217,11 @@ window.addEventListener('storage',event=>{
         });
 
 </script>
-    <script src="./assets/content-client.js"></script>
-    <script src="./assets/content-manager.js"></script>
-    <link rel="stylesheet" href="./assets/content-editor.css">
-    <script src="./assets/content-editor.js"></script>
+    <script src="./assets/content-client.js?v=20260913-common3"></script>
+    <script src="./assets/content-manager.js?v=20260913-common3"></script>
+    <link rel="stylesheet" href="./assets/content-editor.css?v=20260913-common3">
+    <script src="./assets/content-editor.js?v=20260913-common3"></script>
+    <script src="./assets/content-importer.js?v=20260913-common3"></script>
     <script src="./assets/account-activation.js"></script>
 </body>
 </html>

@@ -16,9 +16,10 @@ const IDENTIFIER = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
 const RESERVED_IDS = new Set(['__proto__', 'prototype', 'constructor']);
 const BUILTIN = /^(u3_l[1235678]|u7_l[1-8])$/;
 const metadataColumns = 'id,kind,title,description,unit_id,unit_title,lesson_id,format,published,student_access,version,updated_at,created_at,archived_at,has_quiz';
+type BackendDiagnostic = { operation: string; kind: 'http' | 'network' | 'timeout' | 'invalid_response'; httpStatus: number; backendCode: string | null; retried: boolean };
 export class HttpError extends Error {
-  status: number; code: string;
-  constructor(message: string, status = 400, code = 'INVALID_REQUEST') { super(message); this.status = status; this.code = code; }
+  status: number; code: string; diagnostic?: BackendDiagnostic;
+  constructor(message: string, status = 400, code = 'INVALID_REQUEST', diagnostic?: BackendDiagnostic) { super(message); this.status = status; this.code = code; this.diagnostic = diagnostic; }
 }
 export const object = (v: unknown): v is Row => !!v && typeof v === 'object' && !Array.isArray(v);
 export async function hash(value: string): Promise<string> {
@@ -78,12 +79,86 @@ export function quizData(value: unknown): Row[] {
   return value.map(q => {
     if (!object(q) || !Number.isInteger(q.correct) || !Number.isInteger(q.choices) || q.choices < 2 || q.choices > 10 || q.correct < 1 || q.correct > q.choices) throw new HttpError('퀴즈 정답 형식이 올바르지 않습니다.');
     if (typeof q.explanation !== 'string' || q.explanation.length > 10000) throw new HttpError('퀴즈 해설 형식이 올바르지 않습니다.');
-    return { correct: q.correct, choices: q.choices, explanation: q.explanation };
+    const result: Row = { correct: q.correct, choices: q.choices, explanation: q.explanation };
+    if (q.questionId != null) {
+      if (typeof q.questionId !== 'string' || !IDENTIFIER.test(q.questionId) || RESERVED_IDS.has(q.questionId)) throw new HttpError('문항 ID를 확인해 주세요.');
+      result.questionId = q.questionId;
+      for (const field of ['correctTitleHtml', 'explanationHtml', 'wrongHintHtml']) result[field] = richHtml(q[field] ?? '', '피드백', 20000);
+      if (!object(q.wrongReasons) || Object.keys(q.wrongReasons).length > 10) throw new HttpError('선지별 오답 설명을 확인해 주세요.');
+      result.wrongReasons = {};
+      for (const [id, html] of Object.entries(q.wrongReasons)) {
+        if (!IDENTIFIER.test(id) || RESERVED_IDS.has(id)) throw new HttpError('선지 ID를 확인해 주세요.');
+        result.wrongReasons[id] = richHtml(html, '오답 설명', 20000);
+      }
+    }
+    return result;
   });
+}
+/** Rich text outside the isolated experiment cannot carry executable markup. */
+export function richHtml(value: unknown, label: string, max = 20000): string {
+  if (typeof value !== 'string' || value.length > max || value.includes('\0')) throw new HttpError(`${label} 형식을 확인해 주세요.`);
+  if (/<\s*\/?\s*(script|iframe|object|embed|form|input|button|textarea|select|svg|math|link|meta|base|style)\b/i.test(value) || /\s(on[a-z]+|srcdoc)\s*=/i.test(value) || /(?:javascript|vbscript|data)\s*:/i.test(value) || /(?:expression\s*\(|@import|url\s*\()/i.test(value)) throw new HttpError(`${label}에는 실행 코드나 외부 삽입을 넣을 수 없습니다.`);
+  return value;
+}
+function onlyKeys(row: Row, keys: string[]): void {
+  if (Object.keys(row).some(key => !keys.includes(key))) throw new HttpError('수업 내용에 지원하지 않는 항목이 있습니다. 정답·해설은 별도 quiz_data에 넣어 주세요.');
+}
+function packV3(value: Row, questions: Row[]): Row {
+  onlyKeys(value, ['schema', 'title', 'display', 'steps', 'quiz', 'simulation']);
+  if (!object(value.display)) throw new HttpError('수업 표시 정보를 확인해 주세요.');
+  onlyKeys(value.display, ['titleHtml', 'headerTag', 'subtitleHtml', 'footerHtml', 'contentMaxWidth', 'tabs']);
+  const display: Row = {};
+  for (const key of ['titleHtml', 'subtitleHtml', 'footerHtml']) display[key] = richHtml(value.display[key] ?? '', '수업 표시', 20000);
+  display.headerTag = String(value.display.headerTag ?? '').slice(0, 300);
+  if (!Number.isInteger(value.display.contentMaxWidth) || value.display.contentMaxWidth < 700 || value.display.contentMaxWidth > 1400) throw new HttpError('수업 화면 폭은 700~1400으로 지정해 주세요.');
+  display.contentMaxWidth = value.display.contentMaxWidth;
+  if (value.display.tabs != null) {
+    if (!Array.isArray(value.display.tabs) || value.display.tabs.length !== 4) throw new HttpError('탭은 1~4단계로 작성해 주세요.');
+    display.tabs = value.display.tabs.map((tab: unknown, i: number) => {
+      if (typeof tab === 'string') return stringValue(tab, '탭 제목', 200);
+      if (!object(tab)) throw new HttpError('탭 형식을 확인해 주세요.');
+      onlyKeys(tab, ['id', 'title']);
+      if (tab.id !== `step${i + 1}`) throw new HttpError('탭 순서를 확인해 주세요.');
+      return { id: tab.id, title: stringValue(tab.title, '탭 제목', 200) };
+    });
+  }
+  if (!Array.isArray(value.steps) || value.steps.length !== 3) throw new HttpError('공통 수업은 학습 3단계와 형성평가로 구성합니다.');
+  const steps = value.steps.map((step: unknown, i: number) => {
+    if (!object(step)) throw new HttpError('수업 단계 형식을 확인해 주세요.');
+    onlyKeys(step, ['id', 'title', 'html']);
+    if (step.id !== `step${i + 1}` || typeof step.html !== 'string' || step.html.length > 400000) throw new HttpError('수업 단계 순서 또는 크기를 확인해 주세요.');
+    return { id: step.id, title: stringValue(step.title, '단계 제목', 200), html: step.html };
+  });
+  if (!Array.isArray(value.quiz) || value.quiz.length < 1 || value.quiz.length > 5 || value.quiz.length !== questions.length) throw new HttpError('공개 문항과 비공개 정답의 문항 수가 일치해야 합니다.');
+  const quiz = value.quiz.map((q: unknown, i: number) => {
+    if (!object(q)) throw new HttpError('문항 형식을 확인해 주세요.');
+    onlyKeys(q, ['id', 'promptHtml', 'contextHtml', 'choices', 'review']);
+    if (q.id !== `q${i + 1}` || questions[i].questionId !== q.id || !Array.isArray(q.choices) || q.choices.length < 2 || q.choices.length > 6 || q.choices.length !== questions[i].choices) throw new HttpError('문항·선지·정답의 연결을 확인해 주세요.');
+    const choices = q.choices.map((choice: unknown, n: number) => {
+      if (!object(choice)) throw new HttpError('선지 형식을 확인해 주세요.');
+      onlyKeys(choice, ['id', 'html']);
+      if (choice.id !== `${q.id}-c${n + 1}`) throw new HttpError('선지 순서를 확인해 주세요.');
+      return { id: choice.id, html: richHtml(choice.html, '선지', 8000) };
+    });
+    if (Object.keys(questions[i].wrongReasons).some(id => !choices.some((choice: Row) => choice.id === id))) throw new HttpError('오답 설명이 알 수 없는 선지를 가리킵니다.');
+    for (const field of ['correctTitleHtml', 'explanationHtml', 'wrongHintHtml']) if (!String(questions[i][field] ?? '').trim()) throw new HttpError('정답 해설·힌트·피드백 제목을 모두 작성해 주세요.');
+    for (const [index, choice] of choices.entries()) if (index + 1 !== questions[i].correct && !String(questions[i].wrongReasons[choice.id] ?? '').trim()) throw new HttpError('모든 오답 선지에 이유를 작성해 주세요.');
+    if (!object(q.review)) throw new HttpError('복습 단계를 지정해 주세요.');
+    onlyKeys(q.review, ['stepId', 'label']);
+    if (!['step1', 'step2', 'step3'].includes(q.review.stepId)) throw new HttpError('복습 단계는 1~3단계입니다.');
+    return { id: q.id, promptHtml: richHtml(q.promptHtml, '문제', 20000), contextHtml: richHtml(q.contextHtml ?? '', '보기', 20000), choices, review: { stepId: q.review.stepId, label: stringValue(q.review.label, '복습 안내', 200) } };
+  });
+  const sim = value.simulation;
+  if (!object(sim)) throw new HttpError('실험 구성을 확인해 주세요.');
+  onlyKeys(sim, ['html', 'css', 'js', 'dependencies', 'hostContract', 'microphone']);
+  if (sim.hostContract !== 'science-experiment-content/v1' || !Array.isArray(sim.dependencies) || sim.dependencies.length !== 0 || typeof sim.microphone !== 'boolean') throw new HttpError('공통 실험 계약을 확인해 주세요.');
+  for (const key of ['html', 'css', 'js']) if (typeof sim[key] !== 'string' || sim[key].length > 900000) throw new HttpError('실험 내용 형식 또는 크기를 확인해 주세요.');
+  return { schema: 'science-lesson/v3', title: stringValue(value.title, '수업 제목'), display, steps, quiz, simulation: { html: sim.html, css: sim.css, js: sim.js, dependencies: [], hostContract: sim.hostContract, microphone: sim.microphone } };
 }
 /** Public lesson payload has a strict schema; answer keys have a separate column. */
 export function publicPack(value: unknown, questions: Row[], lessonId: string | null): Row {
-  if (!object(value) || !['science-lesson/v1', 'science-lesson/v2'].includes(value.schema)) throw new HttpError('수업 묶음 버전을 확인해 주세요.');
+  if (!object(value) || !['science-lesson/v1', 'science-lesson/v2', 'science-lesson/v3'].includes(value.schema)) throw new HttpError('수업 묶음 버전을 확인해 주세요.');
+  if (value.schema === 'science-lesson/v3') return packV3(value, questions);
   const only = (row: Row, keys: string[]) => {
     if (Object.keys(row).some(key => !keys.includes(key))) throw new HttpError('수업 내용에 지원하지 않는 항목이 있습니다. 정답·해설은 별도 quiz_data에 넣어 주세요.');
   };
@@ -144,19 +219,77 @@ function encode(bytes: Uint8Array): string {
 }
 export class RestStore {
   url: string; private key: string; private transport: typeof fetch;
-  constructor(url: string, key: string, transport: typeof fetch = fetch) { this.url = url; this.key = key; this.transport = transport; }
+  private requestBudgetMs: number; private log: (diagnostic: BackendDiagnostic) => void;
+  constructor(url: string, key: string, transport: typeof fetch = fetch, options: { requestBudgetMs?: number; log?: (diagnostic: BackendDiagnostic) => void } = {}) {
+    this.url = url; this.key = key; this.transport = transport;
+    this.requestBudgetMs = Math.max(10, Math.min(20000, Math.floor(options.requestBudgetMs ?? 20000)));
+    this.log = options.log ?? (diagnostic => console.warn('[content-api.backend]', JSON.stringify(diagnostic)));
+  }
   async request(path: string, query: Row = {}, body?: unknown, method = body === undefined ? 'GET' : 'POST'): Promise<any> {
     const target = new URL(`/rest/v1/${path}`, this.url);
     Object.entries(query).forEach(([key, value]) => target.searchParams.set(key, String(value)));
-    const response = await this.transport(target, { method, headers: { apikey: this.key, Authorization: `Bearer ${this.key}`, 'Content-Type': 'application/json', Prefer: 'return=representation' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-    const data = await response.json().catch(() => null);
+    // Retrying a read cannot repeat a submission, credit, publication or save.
+    // Never retry RPCs or requests with a body, including a caller-supplied GET.
+    const readOnly = method === 'GET' && body === undefined && !path.startsWith('rpc/');
+    const operations: Record<string, string> = { app_settings: 'settings_read', app_sessions: 'sessions_read', app_users: 'accounts_read', content_items: 'content_read', content_versions: 'versions_read', 'rpc/content_quiz_engine': 'quiz_rpc', 'rpc/content_record_quiz': 'quiz_rpc', 'rpc/content_save_atomic': 'content_save_rpc', 'rpc/content_restore_version': 'content_restore_rpc' };
+    const operation = operations[path] ?? (readOnly ? 'rest_read' : 'rest_write');
+    const deadline = Date.now() + this.requestBudgetMs;
+    let response: Response | undefined, data: any, diagnostic: BackendDiagnostic | undefined;
+    for (let attempt = 0; attempt < (readOnly ? 2 : 1); attempt++) {
+      const remaining = Math.max(1, deadline - Date.now());
+      const budget = readOnly && attempt === 0 ? Math.max(1, Math.floor(remaining / 2)) : remaining;
+      const controller = new AbortController();
+      let timedOut = false;
+      let timer: ReturnType<typeof setTimeout>;
+      try {
+        const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => { timedOut = true; controller.abort(); reject(new Error('REST_DEADLINE')); }, budget); });
+        const call = (async () => {
+          const res = await this.transport(target, { method, signal: controller.signal, headers: { apikey: this.key, Authorization: `Bearer ${this.key}`, 'Content-Type': 'application/json', Prefer: 'return=representation' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+          let parsed: any; let validJson = true;
+          try { parsed = await res.json(); } catch { validJson = false; parsed = null; }
+          return { response: res, data: parsed, validJson };
+        })();
+        const outcome = await Promise.race([call, timeout]);
+        response = outcome.response; data = outcome.data;
+        const backendCode = typeof data?.code === 'string' && /^(?:PGRST[0-9]{3}|[0-9A-Z]{5})$/.test(data.code) ? data.code : null;
+        if (!response.ok || !outcome.validJson) {
+          diagnostic = { operation, kind: response.ok ? 'invalid_response' : 'http', httpStatus: response.status, backendCode, retried: attempt > 0 };
+          this.log(diagnostic);
+          if (readOnly && attempt === 0 && [502, 503, 504].includes(response.status) && Date.now() < deadline) continue;
+          if (response.ok) throw new HttpError('자료 서버의 응답을 확인할 수 없습니다. 다시 시도해 주세요.', 503, 'BACKEND_UNAVAILABLE', diagnostic);
+        }
+        break;
+      } catch (error) {
+        if (error instanceof HttpError) throw error;
+        // Never expose fetch exceptions, target URLs, response text, SQL detail,
+        // account IDs, session hashes, headers, keys or submitted content.
+        diagnostic = { operation, kind: timedOut ? 'timeout' : 'network', httpStatus: 0, backendCode: null, retried: attempt > 0 };
+        this.log(diagnostic);
+        if (readOnly && attempt === 0 && Date.now() < deadline) continue;
+        throw new HttpError('자료 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.', 503, 'BACKEND_UNAVAILABLE', diagnostic);
+      } finally { clearTimeout(timer!); }
+    }
+    if (!response) throw new HttpError('자료 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.', 503, 'BACKEND_UNAVAILABLE', diagnostic);
     if (!response.ok) {
+      if (String(data?.message ?? '').startsWith('QUIZ_')) {
+        const errors: Record<string, [number, string]> = {
+          QUIZ_STUDENT_REQUIRED: [403, '사용 가능한 학생 계정으로 로그인해 주세요.'], QUIZ_CONTENT_LOCKED: [403, '형성평가가 잠겨 있습니다.'],
+          QUIZ_ANSWER_LOCKED: [409, '처음 선택한 답은 제출 전에는 바꿀 수 없습니다.'], QUIZ_ALREADY_SUBMITTED: [409, '이미 제출했습니다. 복습 기능을 이용해 주세요.'],
+          QUIZ_ATTEMPT_REQUIRED: [409, '형성평가를 다시 열어 주세요.'], QUIZ_ATTEMPT_NOT_FOUND: [404, '본인의 형성평가 기록을 찾을 수 없습니다.'],
+          QUIZ_ATTEMPT_VERSION_CONFLICT: [409, '시작한 형성평가 버전과 다릅니다. 페이지를 다시 열어 주세요.'], QUIZ_INCOMPLETE: [400, '모든 문항을 선택한 뒤 제출해 주세요.'],
+          QUIZ_REVIEW_NOT_READY: [409, '최종 제출 후 자유롭게 복습할 수 있습니다.'], QUIZ_SCHEMA_REQUIRED: [400, '공통 수업 자료 형식이 필요합니다.'],
+          QUIZ_INVALID_REQUEST: [400, '형성평가 요청 형식을 확인해 주세요.'], QUIZ_INVALID_ANSWERS: [400, '선택 번호를 확인해 주세요.'],
+          QUIZ_INVALID_KEY: [409, '교사에게 문항 구성을 확인해 달라고 요청해 주세요.'], QUIZ_RETRY_CONFLICT: [409, '같은 요청 번호로 다른 답안을 보낼 수 없습니다.'],
+        };
+        const found = errors[data.message];
+        if (found) throw new HttpError(found[1], found[0], data.message);
+      }
       if (data?.message === 'CONTENT_VERSION_CONFLICT') throw new HttpError('다른 작업에서 수정되었습니다. 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
       if (data?.message === 'CONTENT_ARCHIVED') throw new HttpError('보관함에서 자료를 먼저 복원해 주세요.', 409, 'CONTENT_ARCHIVED');
       if (['CONTENT_VERSION_NOT_FOUND', 'CONTENT_NOT_FOUND'].includes(data?.message)) throw new HttpError('해당 자료 또는 내용 버전을 찾을 수 없습니다.', 404, 'VERSION_NOT_FOUND');
       if (data?.message === 'CONTENT_VERSION_INVALID') throw new HttpError('버전 번호를 확인해 주세요.');
       if (data?.message === 'QUIZ_RETRY_CONFLICT') throw new HttpError('같은 요청 번호로 다른 답안을 보낼 수 없습니다.', 409);
-      throw new HttpError('자료 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.', 503, 'BACKEND_UNAVAILABLE');
+      throw new HttpError('자료 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.', 503, 'BACKEND_UNAVAILABLE', diagnostic);
     }
     return data;
   }
@@ -244,9 +377,9 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       const db = deps.store ?? new RestStore(url, key, deps.fetch);
       if (body.action === 'health') {
         await db.request('content_items', { select: 'id', limit: 1 });
-        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 3, databaseReady: true, quizPointsEnabled: true, archiveRestoreEnabled: true, contentEditorEnabled: true, serverExperimentsEnabled: true });
+        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 4, backendDiagnosticsVersion: 1, commonQuizEngineEnabled: true, learningImportVersion: 3, databaseReady: true, quizPointsEnabled: true, archiveRestoreEnabled: true, contentEditorEnabled: true, serverExperimentsEnabled: true });
       }
-      if (!['catalog', 'list_archived', 'get_content', 'get_editable', 'list_versions', 'get_version', 'restore_version', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'submit_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
+      if (!['catalog', 'list_archived', 'get_content', 'get_editable', 'list_versions', 'get_version', 'restore_version', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'submit_quiz', 'begin_quiz', 'answer_quiz', 'review_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
       const context = await authenticate(body, db, (deps.now ?? Date.now)());
       const mutation = ['save_content', 'set_publication', 'delete_content', 'restore_content', 'restore_version'].includes(body.action);
       const editorAction = ['get_editable', 'list_versions', 'get_version', 'restore_version'].includes(body.action);
@@ -290,6 +423,19 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
         if (!canRead(existing!, context.role, locks)) throw new HttpError('공개되지 않았거나 접근할 수 없는 자료입니다.', 403, 'CONTENT_LOCKED');
         if (existing!.format === 'pdf') return json({ success: true, item: metadata(existing!), file_base64: encode(await db.storage(existing!.storage_path) as Uint8Array), mime: 'application/pdf' });
         return json({ success: true, item: metadata(existing!), content: existing!.content, mime: existing!.format === 'html' ? 'text/html' : 'application/json' });
+      }
+      if (['begin_quiz', 'answer_quiz', 'review_quiz'].includes(body.action) || (body.action === 'submit_quiz' && (existing!.content?.schema === 'science-lesson/v3' || body.attempt_id != null))) {
+        if (context.role !== 'student' || context.user?.account_type === 'manager' || existing!.kind !== 'lesson' || !canRead(existing!, context.role, locks)) throw new HttpError('학생에게 공개된 수업에서만 형성평가를 이용할 수 있습니다.', 403, 'QUIZ_STUDENT_REQUIRED');
+        const step4 = object(locks) ? locks.step_locks?.[existing!.lesson_id]?.['4'] : undefined;
+        if (step4 === true || (BUILTIN.test(String(existing!.lesson_id)) && step4 !== false)) throw new HttpError('형성평가가 잠겨 있습니다.', 403, 'QUIZ_CONTENT_LOCKED');
+        if (!Number.isInteger(body.version) || body.version < 1) throw new HttpError('불러온 자료 버전이 필요합니다.');
+        if (body.action !== 'begin_quiz' && (typeof body.attempt_id !== 'string' || !UUID.test(body.attempt_id))) throw new HttpError('형성평가를 먼저 시작해 주세요.', 409, 'QUIZ_ATTEMPT_REQUIRED');
+        if (body.attempt_id != null && (typeof body.attempt_id !== 'string' || !UUID.test(body.attempt_id))) throw new HttpError('형성평가 기록 번호를 확인해 주세요.');
+        if (['answer_quiz', 'review_quiz'].includes(body.action) && (!Number.isInteger(body.question) || body.question < 1 || body.question > 5 || !Number.isInteger(body.choice) || body.choice < 1 || body.choice > 6)) throw new HttpError('문항·선택 번호를 확인해 주세요.');
+        const requestId = body.request_id ?? body.requestId ?? crypto.randomUUID();
+        if (typeof requestId !== 'string' || !UUID.test(requestId)) throw new HttpError('요청 번호를 확인해 주세요.');
+        const result = await db.request('rpc/content_quiz_engine', {}, { p_action: body.action, p_content_id: id, p_account_id: context.user!.id, p_content_version: body.version, p_attempt_id: body.attempt_id ?? null, p_question: body.question ?? null, p_choice: body.choice ?? null, p_request_id: requestId });
+        return json({ success: true, ...result });
       }
       if (body.action === 'submit_quiz') {
         if (context.role !== 'student' || context.user?.account_type === 'manager' || existing!.kind !== 'lesson' || !canRead(existing!, context.role, locks)) throw new HttpError('학생에게 공개된 수업에서만 제출할 수 있습니다.', 403);
@@ -358,7 +504,7 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       return json({ success: true, item: metadata(saved) });
     } catch (error) {
       const e = error instanceof HttpError ? error : new HttpError('요청을 처리하지 못했습니다.', 500, 'INTERNAL_ERROR');
-      return json({ success: false, message: e.message, code: e.code, sessionExpired: e.code === 'SESSION_EXPIRED', permissionDenied: e.status === 403 }, e.status);
+      return json({ success: false, message: e.message, code: e.code, sessionExpired: e.code === 'SESSION_EXPIRED', permissionDenied: e.status === 403, ...(e.diagnostic ? { diagnostic: e.diagnostic } : {}) }, e.status);
     }
   };
 }
