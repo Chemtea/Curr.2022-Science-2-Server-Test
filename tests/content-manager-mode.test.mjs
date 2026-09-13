@@ -12,10 +12,10 @@ function setup({mode = false, auth = {}, role = 'anonymous'} = {}) {
     showModal() { this.open = true; }, reset() {}, querySelectorAll() { return []; }});
   const ids = Object.fromEntries(['scmAdminTab', 'scmManager', 'scmLibrary', 'scmForm', 'scmFile', 'scmSave', 'scmCancelEdit', 'scmKind', 'scmKindHint'].map(id => [id, node()]));
   const requests = [], alerts = [];
-  let identity = auth, serverRole = role;
+  let identity = auth, serverRole = role, catalogGate = null;
   const window = {addEventListener() {}, ScienceContentClient: {
     auth: () => identity,
-    request: async action => { requests.push(action); return {success: true, items: [], role: serverRole}; }
+    request: async action => { requests.push(action); if (catalogGate) await catalogGate; return {success: true, items: [], role: serverRole}; }
   }};
   const context = vm.createContext({window, isAdminMode: mode, document: {getElementById: id => ids[id] || null}, alert: text => alerts.push(text)});
   const instrumented = source.replace('\n  init();\n', '\n  window.__test = {state, syncAdminUi}; authFingerprint = JSON.stringify(client.auth());\n');
@@ -24,7 +24,8 @@ function setup({mode = false, auth = {}, role = 'anonymous'} = {}) {
   Object.assign(window.__test.state, {ready: true, role});
   window.__test.syncAdminUi();
   return {context, ids, requests, alerts, manager: window.ScienceContentManager,
-    setIdentity(value) { identity = value; }, setRole(value) { serverRole = value; }};
+    setIdentity(value) { identity = value; }, setRole(value) { serverRole = value; },
+    holdCatalog() { let complete; catalogGate = new Promise(resolve => { complete = resolve; }); return () => { catalogGate = null; complete(); }; }};
 }
 
 test('only server-verified teachers in administrator mode see the compact tab', () => {
@@ -79,5 +80,47 @@ test('calling manager directly outside administrator mode never starts privilege
   const app = setup({mode: false, auth: {adminSessionToken: 'teacher-unit-test'}, role: 'admin'});
   assert.equal(await app.manager.openManager(), false);
   assert.equal(app.requests.length, 0);
+  assert.equal(app.ids.scmManager.open, false);
+});
+
+test('the verified tab stays visible with a busy state until opening authorization completes', async () => {
+  const app = setup({mode: true, auth: {adminSessionToken: 'teacher-unit-test'}, role: 'admin'});
+  const release = app.holdCatalog();
+  const opening = app.manager.openManager();
+  assert.equal(app.ids.scmAdminTab.hidden, false, 'revalidation must not remove the tab from the banner');
+  assert.equal(app.ids.scmAdminTab.disabled, true);
+  assert.equal(app.ids.scmAdminTab.attributes['aria-busy'], 'true');
+  assert.equal(app.ids.scmManager.open, false, 'the popup waits for fresh server authorization');
+  assert.equal(await app.manager.openManager(), false, 'a second activation is ignored while opening');
+  assert.equal(app.requests.length, 1);
+  release();
+  assert.equal(await opening, true);
+  assert.equal(app.ids.scmAdminTab.hidden, false);
+  assert.equal(app.ids.scmAdminTab.disabled, false);
+  assert.equal(app.ids.scmAdminTab.attributes['aria-busy'], 'false');
+  assert.equal(app.ids.scmManager.open, true);
+});
+
+test('leaving administrator mode during a delayed check never reopens the popup', async () => {
+  const app = setup({mode: true, auth: {adminSessionToken: 'teacher-unit-test'}, role: 'admin'});
+  const release = app.holdCatalog();
+  const opening = app.manager.openManager();
+  app.context.isAdminMode = false; app.manager.authChanged();
+  assert.equal(app.ids.scmAdminTab.hidden, true);
+  release();
+  assert.equal(await opening, false);
+  assert.equal(app.ids.scmManager.open, false);
+  assert.equal(app.ids.scmAdminTab.hidden, true);
+  assert.equal(app.alerts.length, 0, 'mode exit does not create a stale permission alert');
+});
+
+test('a revoked role hides the retained tab as soon as the server check returns', async () => {
+  const app = setup({mode: true, auth: {adminSessionToken: 'teacher-unit-test'}, role: 'admin'});
+  const release = app.holdCatalog();
+  const opening = app.manager.openManager();
+  assert.equal(app.ids.scmAdminTab.hidden, false);
+  app.setRole('anonymous'); release();
+  assert.equal(await opening, false);
+  assert.equal(app.ids.scmAdminTab.hidden, true);
   assert.equal(app.ids.scmManager.open, false);
 });

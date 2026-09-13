@@ -83,16 +83,29 @@ export function quizData(value: unknown): Row[] {
 }
 /** Public lesson payload has a strict schema; answer keys have a separate column. */
 export function publicPack(value: unknown, questions: Row[], lessonId: string | null): Row {
-  if (!object(value) || value.schema !== 'science-lesson/v1') throw new HttpError('수업 묶음 버전을 확인해 주세요.');
+  if (!object(value) || !['science-lesson/v1', 'science-lesson/v2'].includes(value.schema)) throw new HttpError('수업 묶음 버전을 확인해 주세요.');
   const only = (row: Row, keys: string[]) => {
     if (Object.keys(row).some(key => !keys.includes(key))) throw new HttpError('수업 내용에 지원하지 않는 항목이 있습니다. 정답·해설은 별도 quiz_data에 넣어 주세요.');
   };
   if (value.builtin_id != null) {
+    if (value.schema !== 'science-lesson/v1') throw new HttpError('실험 수업은 서버에 저장된 내용을 사용해야 합니다.');
     only(value, ['schema', 'builtin_id', 'title']);
     if (!BUILTIN.test(value.builtin_id) || value.builtin_id !== lessonId) throw new HttpError('기본 수업 식별자가 일치하지 않습니다.');
     return { schema: value.schema, builtin_id: value.builtin_id };
   }
-  only(value, ['schema', 'title', 'steps', 'quiz']);
+  only(value, value.schema === 'science-lesson/v2' ? ['schema', 'title', 'steps', 'quiz', 'simulation', 'originalLessonId'] : ['schema', 'title', 'steps', 'quiz']);
+  let simulation: Row | undefined;
+  if (value.schema === 'science-lesson/v2') {
+    if (!object(value.simulation)) throw new HttpError('실험 구성 내용을 확인해 주세요.');
+    only(value.simulation, ['html', 'css', 'js', 'dependencies', 'microphone']);
+    for (const field of ['html', 'css', 'js']) if (typeof value.simulation[field] !== 'string' || value.simulation[field].length > 900000) throw new HttpError('실험 내용의 크기 또는 형식을 확인해 주세요.');
+    // The migrated experiments are self-contained Canvas code. External scripts
+    // cannot be authorized by an uploaded content file.
+    if (!Array.isArray(value.simulation.dependencies) || value.simulation.dependencies.length !== 0) throw new HttpError('외부 실험 스크립트는 현재 지원하지 않습니다.');
+    if (value.simulation.microphone != null && typeof value.simulation.microphone !== 'boolean') throw new HttpError('마이크 설정 형식이 올바르지 않습니다.');
+    if (value.originalLessonId != null && (typeof value.originalLessonId !== 'string' || value.originalLessonId !== lessonId || !IDENTIFIER.test(value.originalLessonId))) throw new HttpError('원본 수업 ID가 일치하지 않습니다.');
+    simulation = {html: value.simulation.html, css: value.simulation.css, js: value.simulation.js, dependencies: [], ...(value.simulation.microphone != null ? {microphone: value.simulation.microphone} : {})};
+  }
   if (!Array.isArray(value.steps) || value.steps.length < 1 || value.steps.length > 4 || !Array.isArray(value.quiz ?? [])) throw new HttpError('수업 단계는 1~4개로 작성해 주세요.');
   const steps = value.steps.map((step: unknown) => {
     if (!object(step)) throw new HttpError('수업 단계 형식을 확인해 주세요.');
@@ -107,7 +120,7 @@ export function publicPack(value: unknown, questions: Row[], lessonId: string | 
     return { question: stringValue(q.question, '문항', 10000), choices: q.choices.map((choice: unknown) => stringValue(choice, '선택지', 4000)) };
   });
   if (quiz.length !== questions.length) throw new HttpError('공개 문항과 비공개 정답의 문항 수가 일치해야 합니다.');
-  return { schema: value.schema, ...(typeof value.title === 'string' ? { title: value.title.slice(0, 300) } : {}), steps, quiz };
+  return { schema: value.schema, ...(typeof value.title === 'string' ? { title: value.title.slice(0, 300) } : {}), steps, quiz, ...(simulation ? {simulation} : {}), ...(value.originalLessonId != null ? {originalLessonId: value.originalLessonId} : {}) };
 }
 export function grade(questions: Row[], answers: unknown): Row {
   if (!questions.length || !Array.isArray(answers) || answers.length !== questions.length) throw new HttpError('모든 문항의 선택 번호를 제출해 주세요.');
@@ -139,6 +152,9 @@ export class RestStore {
     const data = await response.json().catch(() => null);
     if (!response.ok) {
       if (data?.message === 'CONTENT_VERSION_CONFLICT') throw new HttpError('다른 작업에서 수정되었습니다. 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
+      if (data?.message === 'CONTENT_ARCHIVED') throw new HttpError('보관함에서 자료를 먼저 복원해 주세요.', 409, 'CONTENT_ARCHIVED');
+      if (['CONTENT_VERSION_NOT_FOUND', 'CONTENT_NOT_FOUND'].includes(data?.message)) throw new HttpError('해당 자료 또는 내용 버전을 찾을 수 없습니다.', 404, 'VERSION_NOT_FOUND');
+      if (data?.message === 'CONTENT_VERSION_INVALID') throw new HttpError('버전 번호를 확인해 주세요.');
       if (data?.message === 'QUIZ_RETRY_CONFLICT') throw new HttpError('같은 요청 번호로 다른 답안을 보낼 수 없습니다.', 409);
       throw new HttpError('자료 서버에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.', 503, 'BACKEND_UNAVAILABLE');
     }
@@ -228,17 +244,18 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       const db = deps.store ?? new RestStore(url, key, deps.fetch);
       if (body.action === 'health') {
         await db.request('content_items', { select: 'id', limit: 1 });
-        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 2, databaseReady: true, quizPointsEnabled: true, archiveRestoreEnabled: true });
+        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 3, databaseReady: true, quizPointsEnabled: true, archiveRestoreEnabled: true, contentEditorEnabled: true, serverExperimentsEnabled: true });
       }
-      if (!['catalog', 'list_archived', 'get_content', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'submit_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
+      if (!['catalog', 'list_archived', 'get_content', 'get_editable', 'list_versions', 'get_version', 'restore_version', 'save_content', 'set_publication', 'delete_content', 'restore_content', 'submit_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
       const context = await authenticate(body, db, (deps.now ?? Date.now)());
-      const mutation = ['save_content', 'set_publication', 'delete_content', 'restore_content'].includes(body.action);
-      if ((mutation || body.action === 'list_archived') && context.role !== 'admin') throw new HttpError('교사 관리자만 자료를 관리할 수 있습니다.', 403, 'PERMISSION_DENIED');
+      const mutation = ['save_content', 'set_publication', 'delete_content', 'restore_content', 'restore_version'].includes(body.action);
+      const editorAction = ['get_editable', 'list_versions', 'get_version', 'restore_version'].includes(body.action);
+      if ((mutation || editorAction || body.action === 'list_archived') && context.role !== 'admin') throw new HttpError('교사 관리자만 자료를 관리할 수 있습니다.', 403, 'PERMISSION_DENIED');
       if (body.action === 'list_archived') {
         const rows = await db.request('content_items', { select: metadataColumns, archived_at: 'not.is.null', order: 'archived_at.desc,id.asc', limit: 1000 });
         return json({ success: true, role: 'admin', items: rows.filter((item: Row) => !!item.archived_at).map(metadata) });
       }
-      const locksRow = mutation ? null : await db.one('app_settings', { select: 'setting_value', setting_key: 'eq.lock_states' });
+      const locksRow = mutation || editorAction ? null : await db.one('app_settings', { select: 'setting_value', setting_key: 'eq.lock_states' });
       const locks = locksRow?.setting_value;
       if (body.action === 'catalog') {
         const rows = await db.request('content_items', { select: metadataColumns, archived_at: 'is.null', order: 'unit_id.asc,lesson_id.asc,created_at.asc', limit: 1000, ...(context.role === 'admin' ? {} : { published: 'eq.true', student_access: 'eq.true', kind: context.role === 'anonymous' ? 'in.(lesson,worksheet)' : 'neq.answer' }) });
@@ -249,6 +266,26 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       if (typeof id !== 'string' || !UUID.test(id)) throw new HttpError('자료 번호가 올바르지 않습니다.');
       const existing = await db.one('content_items', { select: '*', id: `eq.${id}` });
       if (body.action !== 'save_content' && !existing) throw new HttpError('자료를 찾을 수 없습니다.', 404);
+      if (editorAction) {
+        if (existing!.archived_at) throw new HttpError('보관함에서 자료를 먼저 복원해 주세요.', 409, 'CONTENT_ARCHIVED');
+        if (body.action === 'get_editable') return json({ success: true, item: metadata(existing!), content: existing!.content, quiz_data: existing!.quiz_data });
+        if (body.action === 'list_versions') {
+          const versions = await db.request('content_versions', { select: 'version,created_at,snapshot', content_id: `eq.${id}`, order: 'version.desc', limit: 1000 });
+          return json({ success: true, versions: versions.map((version: Row) => ({ version: version.version, created_at: version.created_at, title: version.snapshot?.title, kind: version.snapshot?.kind, format: version.snapshot?.format })) });
+        }
+        if (body.action === 'get_version') {
+          if (!Number.isInteger(body.version) || body.version < 1) throw new HttpError('버전 번호를 확인해 주세요.');
+          const version = await db.one('content_versions', { select: 'snapshot', content_id: `eq.${id}`, version: `eq.${body.version}` });
+          if (!version) throw new HttpError('해당 내용 버전을 찾을 수 없습니다.', 404, 'VERSION_NOT_FOUND');
+          return json({ success: true, item: metadata(existing!), snapshot: version.snapshot });
+        }
+        if (body.action === 'restore_version') {
+          if (!Number.isInteger(body.expected_version) || body.expected_version < 1 || !Number.isInteger(body.target_version) || body.target_version < 1) throw new HttpError('버전 번호를 확인해 주세요.');
+          if (body.expected_version !== existing!.version) throw new HttpError('자료 목록을 새로고침해 주세요.', 409, 'VERSION_CONFLICT');
+          const restored = await db.request('rpc/content_restore_version', {}, { p_content_id: id, p_expected_version: body.expected_version, p_target_version: body.target_version, p_actor: String(context.user!.login_id) });
+          return json({ success: true, item: metadata(restored) });
+        }
+      }
       if (body.action === 'get_content') {
         if (!canRead(existing!, context.role, locks)) throw new HttpError('공개되지 않았거나 접근할 수 없는 자료입니다.', 403, 'CONTENT_LOCKED');
         if (existing!.format === 'pdf') return json({ success: true, item: metadata(existing!), file_base64: encode(await db.storage(existing!.storage_path) as Uint8Array), mime: 'application/pdf' });
@@ -310,8 +347,14 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       }
       let saved: Row;
       try { saved = await db.request('rpc/content_save_atomic', {}, { p_item: item, p_actor: String(context.user!.login_id), p_expected_version: existing?.version ?? 0 }); }
-      catch (error) { if (newPath) await db.remove(newPath); throw error; }
-      if (existing?.storage_path && existing.storage_path !== saved.storage_path) await db.remove(existing.storage_path);
+      catch (error) {
+        // A lost response does not prove that the transaction failed. Retain the
+        // private object on uncertain errors; delete only a confirmed rollback.
+        if (newPath && error instanceof HttpError && error.code === 'VERSION_CONFLICT') await db.remove(newPath);
+        throw error;
+      }
+      // Previous PDF objects remain private and are referenced by immutable
+      // content_versions snapshots. Only uncommitted failed uploads are removed.
       return json({ success: true, item: metadata(saved) });
     } catch (error) {
       const e = error instanceof HttpError ? error : new HttpError('요청을 처리하지 못했습니다.', 500, 'INTERNAL_ERROR');

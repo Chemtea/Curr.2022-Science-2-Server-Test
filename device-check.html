@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self';script-src 'self';style-src 'self';img-src 'self' data:;connect-src 'none';object-src 'none';base-uri 'none';form-action 'none'">
+  <title>수업 기기 점검 · 과학 플랫폼 테스트</title>
+  <link rel="stylesheet" href="./assets/device-check.css">
+  <script src="./assets/device-check.js" defer></script>
+</head>
+<body>
+  <main>
+    <header><a class="back" href="./index.html">← 과학 플랫폼으로</a><p class="eyebrow">테스트 기기 점검</p><h1>수업 전에 한 번 확인해 주세요</h1><p>수업에 사용할 태블릿과 브라우저에서 직접 확인하는 화면입니다. 필기와 음성은 저장하거나 서버로 전송하지 않습니다.</p></header>
+    <section aria-labelledby="penTitle">
+      <div class="section-head"><h2 id="penTitle">1. 펜·터치 필기</h2><span id="penSupport" class="badge">입력 대기</span></div>
+      <p>아래에 선과 글자를 써 보세요. 펜을 약하게·강하게 누르고, 지우개도 확인해 주세요.</p>
+      <div class="toolbar"><button id="penTool" type="button" aria-pressed="true">펜</button><button id="eraserTool" type="button" aria-pressed="false">지우개</button><button id="clearDrawing" type="button">모두 지우기</button><label class="check"><input id="allowTouch" type="checkbox" checked> 손가락 입력</label></div>
+      <canvas id="drawingCanvas" class="drawing" width="900" height="270" aria-label="펜과 손가락으로 필기하는 점검 영역"></canvas>
+      <output id="pointerInfo">아직 그리지 않았습니다.</output>
+      <p class="help">펜 사용 시 손가락 입력을 끄면 손바닥으로 생기는 선을 줄일 수 있습니다. 필압이 일정하게 표시되는 기기에서는 실제 선 굵기도 확인해 주세요.</p>
+      <label class="check result"><input id="penConfirmed" type="checkbox"> 선이 끊기지 않고, 지우개도 원하는 위치에서 작동합니다.</label>
+    </section>
+    <section aria-labelledby="micTitle">
+      <div class="section-head"><h2 id="micTitle">2. 마이크·파형</h2><span id="micBadge" class="badge">꺼짐</span></div>
+      <p>시작 버튼을 누르고 마이크 사용을 허용한 뒤, 짧게 말하거나 손뼉을 쳐 보세요.</p>
+      <div class="toolbar"><button id="startMic" type="button">마이크 점검 시작</button><button id="stopMic" type="button" disabled>마이크 끄기</button></div>
+      <canvas id="waveCanvas" width="900" height="150" aria-label="현재 마이크 입력의 파형"></canvas>
+      <output id="micInfo" role="status" aria-live="polite">녹음하지 않습니다. 60초 후 또는 이 화면을 떠나면 자동으로 꺼집니다.</output>
+      <label class="check result"><input id="micConfirmed" type="checkbox"> 소리를 낼 때 파형이 변하는 것을 확인했습니다.</label>
+    </section>
+    <section aria-labelledby="rotationTitle">
+      <div class="section-head"><h2 id="rotationTitle">3. 입체 그림 회전</h2><span id="rotationBadge" class="badge">조작 대기</span></div>
+      <p>그림을 좌우로 끌거나 각도를 바꿔 보세요. 자동 회전 중에도 끊김이 있는지 확인해 주세요.</p>
+      <canvas id="rotationCanvas" class="rotation" width="900" height="250" aria-label="끌거나 아래 슬라이더로 회전시키는 입체 도형"></canvas>
+      <div class="toolbar"><label class="angle">회전 각도 <input id="rotationAngle" type="range" min="0" max="360" value="25"><output id="angleValue">25°</output></label><button id="toggleRotation" type="button" aria-pressed="false">자동 회전 시작</button></div>
+      <p class="help">기존 실험과 같은 Canvas 2D 투영 방식의 점검입니다. WebGL 성능 검사가 아니며, 모든 실제 실험의 정상 동작을 보장하지는 않습니다.</p>
+      <label class="check result"><input id="rotationConfirmed" type="checkbox"> 드래그·각도 조절·회전이 자연스럽게 동작합니다.</label>
+    </section>
+    <section aria-labelledby="reportTitle"><h2 id="reportTitle">점검 결과 보내기</h2><p>문제가 있으면 결과를 복사해 대화에 붙여 넣고, 기기 종류와 어떤 동작이 불편했는지 함께 알려 주세요.</p><label for="deviceNotes">직접 적는 메모 <span class="help">(선택 · 개인정보는 넣지 마세요)</span></label><textarea id="deviceNotes" rows="2" maxlength="500" placeholder="예: 태블릿 가로 화면에서 펜을 빠르게 움직이면 선이 끊김"></textarea><button id="copyReport" type="button">결과 복사</button><output id="copyStatus" role="status" aria-live="polite"></output><textarea id="reportFallback" rows="10" readonly hidden aria-label="복사할 기기 점검 결과"></textarea></section>
+    <footer>체크 표시는 사용자가 직접 확인한 결과입니다. 실제 기기 검증이 자동으로 완료되는 것은 아닙니다.</footer>
+  </main>
+</body>
+</html>

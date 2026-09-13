@@ -1,4 +1,5 @@
-/* Content-only packs share this shell. Executable simulations are trusted built-ins only. */
+/* Every lesson uses this common shell. Editable v2 experiments run in an opaque
+ * iframe; they cannot alter common authentication, grading or worksheet code. */
 (async () => {
   'use strict';
   const status=document.getElementById('lesson-status');
@@ -22,28 +23,31 @@
     const id=new URLSearchParams(location.search).get('id');if(!id)throw new Error('수업 주소에 자료 ID가 없습니다. 메인 목록에서 다시 열어 주세요.');
     const result=await window.ScienceContentClient.request('get_content',{id});
     const item=result.item,pack=result.content;
-    if(item?.format!=='lesson-pack' || !pack || pack.schema!=='science-lesson/v1')throw new Error('지원하는 수업 패키지 형식이 아닙니다.');
+    if(item?.format!=='lesson-pack' || !pack || !['science-lesson/v1','science-lesson/v2'].includes(pack.schema))throw new Error('지원하는 수업 패키지 형식이 아닙니다.');
     if(pack.builtin_id){
-      const response=await fetch('./assets/lesson-builtins.json',{cache:'no-cache'});if(!response.ok)throw new Error('기본 수업 목록을 불러오지 못했습니다.');
-      const builtins=await response.json();const file=Object.hasOwn(builtins,pack.builtin_id)?builtins[pack.builtin_id]:null;
-      if(!file || !/^[a-z0-9_]+\.html$/.test(file))throw new Error('등록되지 않은 기본 수업입니다.');
-      const next=new URL(file,location.href);next.searchParams.set('content_id',id);
-      if(new URLSearchParams(location.search).get('worksheet')==='1')next.searchParams.set('worksheet','1');
-      location.replace(next.href);return;
+      throw new Error('이전 파일형 수업입니다. 선생님이 자료 관리에서 서버 편집형 수업으로 이관해야 합니다.');
     }
     if(!Array.isArray(pack.steps) || !pack.steps.length || pack.steps.length>4 || !Array.isArray(pack.quiz || []) || (pack.quiz || []).length>5)throw new Error('수업 단계는 1~4개, 형성평가 문항은 최대 5개여야 합니다.');
     const shellResponse=await fetch('./assets/lesson-shell.html',{cache:'no-cache'});if(!shellResponse.ok)throw new Error('공통 수업 화면을 불러오지 못했습니다.');
     document.body.innerHTML=await shellResponse.text();
-    const lessonKey=item.lesson_id || 'content_'+id;
-    window.LESSON_CONFIG=Object.freeze({lessonKey,unitKey:item.unit_id || '',lessonName:item.title || pack.title || '수업',pageTitle:item.title || pack.title || '수업',templateMode:false,worksheetPath:''});window.MASTER_LESSON_CONFIG=window.LESSON_CONFIG;
+    const lessonKey=item.lesson_id || 'content_'+id.replaceAll('-', '');
+    const serverExperiment=pack.schema==='science-lesson/v2';
+    window.LESSON_CONFIG=Object.freeze({lessonKey,unitKey:item.unit_id || '',lessonName:item.title || pack.title || '수업',pageTitle:item.title || pack.title || '수업',worksheetTitle:item.title || pack.title || '차시 학습지',templateMode:false,worksheetPath:'',trustedBuiltin:serverExperiment&&pack.originalLessonId===lessonKey});window.MASTER_LESSON_CONFIG=window.LESSON_CONFIG;
     document.title=window.LESSON_CONFIG.pageTitle;
     document.getElementById('lesson-title').textContent=window.LESSON_CONFIG.lessonName;
     document.querySelector('.header-tag').textContent='과학 플랫폼 · 수업';document.querySelector('.subtitle').textContent='수업 내용과 공통 기능을 분리한 차시입니다.';
     for(let index=0;index<4;index++){
       const step=pack.steps[index],section=document.getElementById('step'+(index+1));
-      const heading=document.createElement('h2');heading.textContent=step?.title || (index===3?'형성평가':'수업 단계 '+(index+1));section.append(heading);
-      if(step)section.append(safeFragment(step.html));
+      const heading=document.createElement('h2');heading.textContent=step?.title || (index===3?'형성평가':'수업 단계 '+(index+1));
+      if(!serverExperiment||index===3){section.append(heading);if(step)section.append(safeFragment(step.html));}
+      else section.style.setProperty('display','none','important');
       document.querySelector('#tabBtn'+(index+1)+' span').textContent=(index+1)+'단계: '+heading.textContent;
+    }
+    let sandbox;
+    if(serverExperiment){
+      await script('./assets/lesson-sandbox.js');
+      const host=document.createElement('div');host.id='science-server-experiment';host.style.cssText='max-width:1050px;margin:0 auto;padding:0 15px;';
+      document.querySelector('.container').before(host);sandbox=window.ScienceLessonSandbox.mount(pack,host);
     }
     const quizArea=document.getElementById('step4');
     for(const [index,q] of (pack.quiz || []).entries()){
@@ -59,6 +63,7 @@
     await script('./assets/lesson-core.js');await script('./assets/lesson-content.js');await script('./assets/lesson-quiz.js');
     await script('./assets/lesson-locks.js');await script('./assets/lesson-worksheet.js');await script('./admin-quick-points.js');
     window.checkAndApplyStudentAuth();window.updateStepLockUI();window.ensureCurrentSchoolYear();
+    if(sandbox)sandbox.setStep(typeof currentActiveStep==='number'?currentActiveStep:1);
   }catch(error){
     const target=document.getElementById('lesson-status');if(target)target.textContent=error.message || '수업을 불러오지 못했습니다.';
     else{document.body.replaceChildren();const message=document.createElement('p');message.textContent=error.message || '수업을 불러오지 못했습니다.';const back=document.createElement('a');back.href='index.html';back.textContent='과학 플랫폼으로 돌아가기';document.body.append(message,back);}

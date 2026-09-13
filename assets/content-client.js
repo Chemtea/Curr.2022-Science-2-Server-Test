@@ -41,7 +41,7 @@
     } finally { clearTimeout(timeout); }
   }
   function contentUrl(item) {
-    return (item.format === 'lesson-pack' ? 'lesson.html' : 'content-viewer.html') + '?id=' + encodeURIComponent(item.id);
+    return (item.kind === 'assessment' ? 'assessment.html' : item.format === 'lesson-pack' ? 'lesson.html' : 'content-viewer.html') + '?id=' + encodeURIComponent(item.id);
   }
   window.ScienceContentClient = Object.freeze({auth, request, contentUrl});
 })();
