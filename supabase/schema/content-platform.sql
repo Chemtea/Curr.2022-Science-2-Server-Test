@@ -1,7 +1,8 @@
 -- TEST TARGET ONLY: rerykeslgwhamreoskgx (science-platform-test).
--- Additive reviewed schema proposal. Live DB is paused: compatibility, grants,
--- existing auth status values, and advisors MUST be checked after resuming.
--- This is not a generated migration history entry. Do not apply to production.
+-- Base schema installed in the test DB on 2026-09-13 after compatibility/grant checks.
+-- Follow with lock-patches.sql and quiz-results-bridge.sql; the latter replaces
+-- this file's initial grading RPC with dashboard and first-submission credit linkage.
+-- This is a reviewed source file, not a generated migration filename. Do not apply to production.
 begin;
 
 create table if not exists public.content_items (
@@ -45,8 +46,8 @@ create table if not exists public.content_audit (
 );
 create index if not exists content_audit_item_idx on public.content_audit(content_id, created_at desc);
 
--- This test records learning submissions without crediting existing reward tables.
--- Enabling points later requires verifying the old one-time award RPC in this DB.
+-- The base RPC below records private choices. quiz-results-bridge.sql, installed
+-- after this file, connects it to the verified dashboard/one-time award routine.
 create table if not exists public.content_quiz_attempts (
   id uuid primary key default gen_random_uuid(),
   content_id uuid not null references public.content_items(id),

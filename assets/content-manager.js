@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const client = window.ScienceContentClient;
-  const state = {ready: false, loading: false, items: [], role: 'anonymous', error: '', filter: 'all', editing: null, preview: false, generation: 0};
+  const state = {ready: false, loading: false, items: [], role: 'anonymous', error: '', filter: 'all', editing: null, newContentId: null, generation: 0};
   const labels = {lesson: '수업자료', worksheet: '학습지', assessment: '수행평가', answer: '교사용 답안'};
   const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text != null) node.textContent = text; return node; };
   const byId = id => document.getElementById(id);
@@ -15,6 +15,16 @@
   function message(text, error = false) { const node = byId('scmMessage'); if (node) { node.textContent = text; node.dataset.error = String(error); } }
   function empty(container, text) { container.appendChild(el('div', 'scm-empty', text)); }
   function loadingText() { return state.loading ? '서버 자료 목록을 확인하고 있습니다.' : state.error || '등록된 자료가 없습니다.'; }
+  function inTeacherMode() { return typeof isAdminMode !== 'undefined' && isAdminMode === true && !!client.auth().adminSessionToken; }
+  function canManage() { return inTeacherMode() && state.ready && state.role === 'admin'; }
+  function syncAdminUi() {
+    const tab = byId('scmAdminTab');
+    if (tab) { tab.hidden = !canManage(); tab.setAttribute('aria-expanded', String(!!byId('scmManager')?.open)); }
+    if (!inTeacherMode() || (!state.loading && !canManage())) {
+      byId('scmManager')?.close(); byId('scmLibrary')?.close();
+      if (tab) tab.setAttribute('aria-expanded', 'false');
+    }
+  }
   function syncUnits() {
     if (typeof defaultCurriculum === 'undefined') return;
     for (const item of state.items.filter(item => item.kind === 'lesson')) {
@@ -31,6 +41,7 @@
     }
   }
   function renderAll() {
+    syncAdminUi();
     const status = byId('scmCatalogStatus');
     if (status) { status.textContent = state.ready ? `서버에 등록된 자료 ${state.items.length}개 · ${state.role === 'admin' ? '교사 권한' : state.role === 'student' ? '학생 권한' : '공개 목록'}` : loadingText(); status.dataset.state = state.error ? 'error' : ''; }
     if (typeof renderUnitHub === 'function') renderUnitHub();
@@ -58,7 +69,9 @@
   let authFingerprint = '';
   function authChanged() {
     const next = JSON.stringify(client.auth());
-    if (next === authFingerprint) return;
+    // A teacher can leave administrator mode while retaining the same login token.
+    // Always update the tab/dialogs, even when the authenticated identity is unchanged.
+    if (next === authFingerprint) { renderAll(); return; }
     authFingerprint = next;
     state.ready = false; state.items = []; state.role = 'anonymous';
     byId('scmManager')?.close(); resetEditor();
@@ -70,7 +83,7 @@
     const node = el('article', 'scm-card'); node.dataset.contentId = item.id;
     node.append(el('div', 'scm-meta', `${labels[item.kind]} · ${visibility(item)}`), el('h3', '', item.title), el('p', '', item.description || unitTitle(item)));
     const link = el('a', 'scm-button scm-primary', item.kind === 'worksheet' ? '학습지 열기' : '자료 열기'); link.href = client.contentUrl(item); node.append(link);
-    if (state.role === 'admin') node.append(button('자료 설정', () => { openManager(); edit(item); }));
+    if (canManage()) node.append(button('자료 설정', async () => { if (await openManager()) edit(item); }));
     return node;
   }
   function renderLessons(unit) {
@@ -113,24 +126,19 @@
     items.forEach(item => target.append(card(item)));
     if (!items.length) empty(target, '현재 권한으로 열 수 있는 자료가 없습니다.');
   }
-  function openLibrary() { byId('scmLibrary').showModal(); renderLibrary(); }
-  function setEditorPreview(preview) {
-    state.preview = preview;
-    byId('scmForm').querySelectorAll('input,select,textarea,button').forEach(node => { node.disabled = preview && node.id !== 'scmTemplate'; });
-    byId('scmSave').disabled = preview || !state.ready || state.role !== 'admin';
-  }
-  function openPreview() {
-    resetEditor(); setEditorPreview(true); byId('scmManager').showModal();
-    message('업로드 화면 미리보기입니다. 실제 저장은 자료 서버 연결 후 교사 인증을 완료하면 이용할 수 있습니다.');
-    byId('scmManageItems').replaceChildren();
-  }
-  function openManager() {
-    if (!client.auth().adminSessionToken) { alert('교사 계정으로 로그인하거나 교사용 관리자 인증을 먼저 완료해 주세요.'); return; }
-    setEditorPreview(false); byId('scmManager').showModal(); message(state.ready ? '자료를 등록하면 서버 저장 후 목록에 자동으로 추가됩니다.' : loadingText(), !state.ready); renderManageList();
-    if (state.role !== 'admin') refresh();
+  function openLibrary() { if (!canManage()) return; byId('scmLibrary').showModal(); renderLibrary(); }
+  async function openManager() {
+    if (!inTeacherMode()) { alert('교사용 관리자 모드에서 자료 관리를 열 수 있습니다.'); return false; }
+    // Verify the server-side role again when opening the editor. Local role flags
+    // are used only to control the tab; they never grant upload permissions.
+    await refresh();
+    if (!canManage()) { alert(state.error || '교사 권한을 확인할 수 없습니다. 관리자 인증 후 다시 시도해 주세요.'); return false; }
+    byId('scmManager').showModal(); syncAdminUi();
+    message('자료를 등록하면 서버 저장 후 목록에 자동으로 추가됩니다.'); renderManageList();
+    return true;
   }
   function resetEditor() {
-    state.editing = null; byId('scmForm').reset(); byId('scmFile').required = true; byId('scmSave').textContent = '서버에 임시저장'; byId('scmCancelEdit').hidden = true;
+    state.editing = null; state.newContentId = null; byId('scmForm').reset(); byId('scmFile').required = true; byId('scmSave').textContent = '서버에 임시저장'; byId('scmCancelEdit').hidden = true;
     byId('scmKind').disabled = false; kindChanged();
   }
   function edit(item) {
@@ -179,8 +187,7 @@
   }
   async function save(event) {
     event.preventDefault();
-    if (state.preview || !client.auth().adminSessionToken) { message('교사 인증이 필요합니다.', true); return; }
-    if (!state.ready || state.role !== 'admin') { message('자료 서버 연결과 교사 권한 확인 후 저장할 수 있습니다.', true); return; }
+    if (!canManage()) { message('교사용 관리자 모드와 서버 권한 확인 후 저장할 수 있습니다.', true); return; }
     const saveButton = byId('scmSave'); saveButton.disabled = true;
     try {
       const kind = byId('scmKind').value;
@@ -200,19 +207,27 @@
         // get_content never returns answer keys; omitting quiz_data preserves them on metadata-only updates.
       } else throw new Error('등록할 파일을 선택해 주세요.');
       if (kind === 'answer') payload.student_access = false;
+      if (!state.editing) {
+        // A timed-out request may already have committed. Retain this identity
+        // for retries; version zero prevents replacing a previously saved row.
+        state.newContentId ||= crypto.randomUUID();
+        payload.id = state.newContentId; payload.expected_version = 0;
+      }
       message('서버에 저장하고 있습니다…');
       await client.request('save_content', payload);
       resetEditor(); await refresh(); message(state.ready ? '서버 저장을 완료했습니다. 목록에서 미리 확인한 뒤 학생 공개를 선택하세요.' : '저장은 완료됐지만 새 목록을 확인하지 못했습니다. 새로고침해 주세요.', !state.ready);
-    } catch (error) { message(error.message, true); }
+    } catch (error) { message(error.code === 'VERSION_CONFLICT' || error.status === 409 ? '서버에 이미 저장됐거나 다른 작업에서 수정되었습니다. 목록을 새로고침해 해당 자료를 확인한 뒤 수정해 주세요.' : error.message, true); }
     finally { saveButton.disabled = false; }
   }
   async function publication(item) {
+    if (!canManage()) { message('교사용 관리자 모드에서 공개 설정을 변경할 수 있습니다.', true); return; }
     const next = !(item.published && item.student_access);
     if (next && !confirm(`「${item.title}」을 학생에게 공개할까요? 서버의 단원·활동 잠금도 적용됩니다.`)) return;
     try { await client.request('set_publication', {id: item.id, expected_version: item.version, published: true, student_access: next}); await refresh(); message(next ? '학생 공개 설정을 저장했습니다. 잠긴 단원·활동은 별도 잠금 해제가 필요합니다.' : '교사 전용으로 변경했습니다.'); }
     catch (error) { message(error.message, true); }
   }
   async function archive(item) {
+    if (!canManage()) { message('교사용 관리자 모드에서 자료를 보관할 수 있습니다.', true); return; }
     if (!confirm(`「${item.title}」을 목록에서 보관 처리할까요?`)) return;
     try { await client.request('delete_content', {id: item.id, expected_version: item.version}); await refresh(); message('자료를 목록에서 보관 처리했습니다.'); }
     catch (error) { message(error.message, true); }
@@ -233,7 +248,7 @@
       const row = el('div', 'scm-row-actions'); row.style.marginTop = '7px';
       row.append(el('span', 'scm-meta', label));
       for (const locked of [false, true]) row.append(button(locked ? '잠금' : '해제', async () => {
-        if (!client.auth().adminSessionToken || state.role !== 'admin') { message('교사 인증이 필요합니다.', true); return; }
+        if (!canManage()) { message('교사 인증이 필요합니다.', true); return; }
         if (!locked && !confirm(label + ' 잠금을 해제할까요? 이미 학생에게 공개된 같은 범위의 자료에도 적용됩니다.')) return;
         await saveLocksToCloud([{path, value: locked}]);
         await refresh();
@@ -246,10 +261,9 @@
   function renderManageList() {
     const target = byId('scmManageItems'); if (!target) return;
     target.replaceChildren();
-    byId('scmSave').disabled = state.preview || !state.ready || state.role !== 'admin';
-    if (state.preview) return;
+    byId('scmSave').disabled = !canManage();
     if (!state.ready) { empty(target, loadingText()); return; }
-    if (state.role !== 'admin') { empty(target, '교사 권한을 확인할 수 없습니다. 관리자 인증 후 다시 열어 주세요.'); return; }
+    if (!canManage()) { empty(target, '교사 권한을 확인할 수 없습니다. 관리자 인증 후 다시 열어 주세요.'); return; }
     if (!state.items.length) empty(target, '첫 자료를 업로드해 보세요.');
     for (const item of state.items) {
       const row = el('div', 'scm-manage-row'); const info = el('div'); info.append(el('strong', '', item.title), el('small', '', `${labels[item.kind]} · ${unitTitle(item)} · ${visibility(item)} · v${item.version}`));
@@ -265,23 +279,25 @@
     const url = URL.createObjectURL(new Blob([JSON.stringify(pack, null, 2)], {type: 'application/json'})); const a = el('a'); a.href = url; a.download = 'science-lesson-template.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function init() {
-    const toolbar = el('section', 'scm-toolbar');
-    const heading = el('div'); heading.append(el('strong', '', '서버 자료실'), el('p', 'scm-status', '자료 서버 연결 확인 중…')); heading.querySelector('p').id = 'scmCatalogStatus';
-    const actions = el('div', 'scm-toolbar-actions'); actions.append(button('새로고침', refresh), button('전체 자료 보기', openLibrary), button('업로드 화면 미리보기', openPreview), button('교사 자료 관리', openManager, true)); toolbar.append(heading, actions);
-    byId('unitHubView').prepend(toolbar);
+    const adminActions = document.querySelector('#adminModeBanner .admin-banner-actions');
+    const adminTab = button('📚 자료 관리', openManager);
+    adminTab.id = 'scmAdminTab'; adminTab.className = 'scm-admin-tab'; adminTab.hidden = true;
+    adminTab.setAttribute('aria-haspopup', 'dialog'); adminTab.setAttribute('aria-controls', 'scmManager'); adminTab.setAttribute('aria-expanded', 'false');
+    if (adminActions) adminActions.insertBefore(adminTab, byId('adminToolsBtn'));
     const dialogs = el('div');
     dialogs.innerHTML = `<dialog class="scm-dialog" id="scmLibrary" aria-labelledby="scmLibraryTitle"><div class="scm-dialog-header"><div><h2 id="scmLibraryTitle">서버 자료실</h2><p>등록된 수업·학습지·평가 자료를 현재 권한에 맞게 보여 줍니다.</p></div><button class="scm-button" type="button" data-close="scmLibrary">닫기</button></div><div class="scm-filter" id="scmFilters"></div><div class="scm-grid" id="scmLibraryItems"></div></dialog>
-      <dialog class="scm-dialog" id="scmManager" aria-labelledby="scmManagerTitle"><div class="scm-dialog-header"><div><h2 id="scmManagerTitle">교사 자료 관리</h2><p>파일을 올리고 미리 확인한 뒤 공개하세요. 공통 수업 화면은 그대로 유지됩니다.</p></div><button class="scm-button" type="button" data-close="scmManager">닫기</button></div>
+      <dialog class="scm-dialog" id="scmManager" aria-labelledby="scmManagerTitle"><div class="scm-dialog-header"><div><h2 id="scmManagerTitle">교사 자료 관리</h2><p>파일을 올리고 미리 확인한 뒤 공개하세요. 공통 수업 화면은 그대로 유지됩니다.</p><p class="scm-status" id="scmCatalogStatus" role="status" aria-live="polite"></p></div><button class="scm-button" type="button" data-close="scmManager">닫기</button></div>
       <form class="scm-editor" id="scmForm"><label>자료 종류<select id="scmKind"><option value="lesson">수업자료</option><option value="worksheet">학습지 PDF</option><option value="assessment">수행평가</option><option value="answer">교사용 모범답안</option></select></label><label>자료 제목<input id="scmTitle" required maxlength="160"></label>
       <label>단원 ID<input id="scmUnit" value="unit3" required maxlength="64" list="scmUnits"><datalist id="scmUnits"><option value="unit3">3단원</option><option value="unit7">7단원</option><option value="unit3_eval">3단원 수행평가</option><option value="unit4_eval">4단원 수행평가</option></datalist></label><label>단원 이름<input id="scmUnitTitle" maxlength="120" placeholder="3단원. 빛과 파동"></label>
       <label class="scm-wide">수업 ID (선택)<input id="scmLessonId" maxlength="64" placeholder="예: u3_l1 · 기존 수업/학습지 잠금과 연결할 때 입력"></label><label class="scm-wide">설명<textarea id="scmDescription" rows="2" maxlength="2000"></textarea></label>
       <label class="scm-wide">자료 파일<input type="file" id="scmFile" required accept=".json,.html,.htm"></label><p class="scm-wide scm-help" id="scmKindHint"></p><div class="scm-wide scm-toolbar-actions"><button class="scm-button scm-primary" id="scmSave" type="submit">서버에 임시저장</button><button class="scm-button" id="scmCancelEdit" type="button" hidden>수정 취소</button><button class="scm-button" id="scmTemplate" type="button">공통 수업팩 양식 받기</button></div></form>
-      <p class="scm-message" id="scmMessage" role="status" aria-live="polite"></p><div class="scm-toolbar-actions"><button class="scm-button" type="button" id="scmManagerRefresh">서버 목록 새로고침</button></div><div class="scm-manage-list" id="scmManageItems"></div></dialog>`;
+      <p class="scm-message" id="scmMessage" role="status" aria-live="polite"></p><div class="scm-toolbar-actions"><button class="scm-button" type="button" id="scmManagerRefresh">서버 목록 새로고침</button><button class="scm-button" type="button" id="scmBrowseLibrary">전체 자료 보기</button></div><div class="scm-manage-list" id="scmManageItems"></div></dialog>`;
     document.body.append(dialogs);
     dialogs.querySelectorAll('[data-close]').forEach(node => node.addEventListener('click', () => byId(node.dataset.close).close()));
     Object.entries({all: '전체', ...labels}).forEach(([key, label]) => { const node = button(label, () => { state.filter = key; byId('scmFilters').querySelectorAll('button').forEach(child => child.setAttribute('aria-pressed', String(child === node))); renderLibrary(); }); node.setAttribute('aria-pressed', String(key === 'all')); byId('scmFilters').append(node); });
     byId('scmForm').addEventListener('submit', save); byId('scmKind').addEventListener('change', kindChanged); byId('scmTemplate').addEventListener('click', downloadTemplate); byId('scmCancelEdit').addEventListener('click', resetEditor); byId('scmManagerRefresh').addEventListener('click', refresh);
-    const adminGrid = document.querySelector('#adminToolsModal .admin-tools-grid'); if (adminGrid) adminGrid.prepend(button('📚 수업자료·학습지 업로드', () => { closeAdminToolsModal(); openManager(); }, true));
+    byId('scmBrowseLibrary').addEventListener('click', openLibrary);
+    byId('scmManager').addEventListener('close', syncAdminUi);
     kindChanged(); authFingerprint = JSON.stringify(client.auth()); refresh();
   }
   window.ScienceContentManager = {renderLessons, renderWorksheets, renderAssessments, authChanged, refresh, openManager, openLibrary};

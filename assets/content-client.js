@@ -16,7 +16,9 @@
     const url = window.PLATFORM_CONFIG?.CONTENT_API;
     if (!url) throw new Error('자료 서버 주소가 설정되지 않았습니다.');
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 18000);
+    // A resumed Free project can take tens of seconds even for a catalog read.
+    // Keep one bounded deadline for all actions; mutations are never auto-retried.
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       const response = await fetch(url, {
         method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -25,7 +27,10 @@
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success) {
-        throw new Error(data?.error?.message || data?.message || (typeof data?.error === 'string' ? data.error : '') || '자료 서버 요청을 처리하지 못했습니다.');
+        const error = new Error(data?.error?.message || data?.message || (typeof data?.error === 'string' ? data.error : '') || '자료 서버 요청을 처리하지 못했습니다.');
+        error.code = data?.code || data?.error?.code || '';
+        error.status = response.status;
+        throw error;
       }
       return data;
     } catch (error) {

@@ -23,7 +23,7 @@ function store(overrides = {}) {
       throw new Error('Unexpected table');
     },
     async request(path, query, body) {
-      if (path === 'rpc/content_record_quiz') return { ...body.p_result, attemptNo: 1 };
+      if (path === 'rpc/content_record_quiz') return { ...body.p_result, attemptNo: 1, awardedPoints: 10, currentPoints: 10, pointsEnabled: true, dashboardSaved: true };
       if (path === 'content_items') return [item];
       throw new Error('Unexpected write');
     }, ...overrides,
@@ -115,7 +115,7 @@ test('real step_locks path gates submissions and missing builtin step4 remains l
   const handler = createHandler({ env, now: () => now, store: store() });
   const response = await handler(request({ action: 'submit_quiz', id, studentSessionToken: studentToken, answers: [1], score: 999 }));
   const result = await response.json();
-  assert.equal(result.score, 0); assert.equal(result.awardedPoints, 0);
+  assert.equal(result.score, 0); assert.equal(result.awardedPoints, 10);
 });
 test('legacy null-account admin session needs existing server credential', async () => {
   const admin = { ...studentSession, account_id: null, account_type: 'admin', session_type: 'admin', login_id: 'admin' };
@@ -123,6 +123,19 @@ test('legacy null-account admin session needs existing server credential', async
   assert.equal((await authenticate({ adminSessionToken: adminToken }, ok, now)).role, 'admin');
   const removed = store({ async one(table) { return table === 'app_sessions' ? admin : null; } });
   await assert.rejects(authenticate({ adminSessionToken: adminToken }, removed, now));
+});
+test('legacy pending admin roster requires the real server credential and rejects disabled rows', async () => {
+  const session = { ...studentSession, account_type: 'admin', session_type: 'admin', login_id: 'admin' };
+  const pending = { ...user, login_id: 'admin', account_type: '', status: '등록대기' };
+  const setup = (row, configured) => store({ async one(table) {
+    if (table === 'app_sessions') return session;
+    if (table === 'app_users') return row;
+    if (table === 'app_settings') return configured ? { setting_value: { hash: 'c'.repeat(64) } } : null;
+  } });
+  assert.equal((await authenticate({adminSessionToken: adminToken}, setup(pending,true),now)).role,'admin');
+  await assert.rejects(authenticate({adminSessionToken: adminToken},setup(pending,false),now));
+  await assert.rejects(authenticate({adminSessionToken: adminToken},setup({...pending,disabled_at:'2026-09-13'},true),now));
+  await assert.rejects(authenticate({studentSessionToken: studentToken},setup(pending,true),now));
 });
 test('production environment and opaque iframe origin are rejected', async () => {
   const bad = createHandler({ env: key => key === 'SUPABASE_URL' ? 'https://wrong-project.supabase.co' : 'test', store: store() });

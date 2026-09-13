@@ -55,7 +55,7 @@ def main():
             existing.add(result['item']['id'])
             count += 1
             print(f'{path.name}: imported')
-    print(f'{count} test records imported; quiz point rewards remain disabled.')
+    print(f'{count} test records imported; quiz points enabled: {bool(health.get("quizPointsEnabled"))}.')
 
 if __name__ == '__main__':
     main()

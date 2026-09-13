@@ -66,7 +66,11 @@ export async function authorize(body: Row, db: LockStore, now: number): Promise<
       return /^[0-9a-f]{64}$/i.test(String(setting?.setting_value?.hash ?? '')) ? 'admin' : null;
     }
     const user = await db.one('app_users',{select:'*',id:`eq.${session.account_id}`});
-    return enabled(user) && String(user!.login_id).toLowerCase() === 'admin' ? String(user!.name ?? 'admin') : null;
+    if (!user || String(user.login_id).toLowerCase() !== 'admin') return null;
+    if (enabled(user)) return String(user.name || 'admin');
+    const legacy = user.status === '등록대기' && !user.revoked_at && !user.deleted_at && !user.disabled_at && user.is_active !== false && user.active !== false;
+    const setting = legacy ? await db.one('app_settings',{select:'setting_value',setting_key:'eq.admin_password_hash'}) : null;
+    return legacy && /^[0-9a-f]{64}$/i.test(String(setting?.setting_value?.hash ?? '')) ? String(user.name || 'admin') : null;
   }
   if (!raw.startsWith('stu_') || session.session_type !== 'manager' || !session.account_id) return null;
   const user = await db.one('app_users',{select:'*',id:`eq.${session.account_id}`});

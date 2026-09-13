@@ -178,11 +178,18 @@ export async function authenticate(body: Row, db: RestStore, now: number): Promi
     return { role: 'admin', user: { login_id: 'admin' }, session: session!, tokenHash };
   }
   const user = await db.one('app_users', session!.account_id ? { select: '*', id: `eq.${session!.account_id}` } : { select: '*', login_id: 'eq.admin' });
-  if (!accountEnabled(user)) throw new HttpError('사용 가능한 승인 계정이 필요합니다.', 403, 'ACCOUNT_DISABLED');
   if (prefix === 'adm_') {
-    if (String(user!.login_id).toLowerCase() !== 'admin') throw new HttpError('교사 관리자 권한이 필요합니다.', 403);
+    if (!user || String(user.login_id).toLowerCase() !== 'admin') throw new HttpError('교사 관리자 권한이 필요합니다.', 403);
+    // The verified test DB keeps its legacy admin roster row as 등록대기.
+    // Admin authentication lives in app_settings; student enrollment status does not activate it.
+    if (!accountEnabled(user)) {
+      const legacy = user.status === '등록대기' && !user.deleted_at && !user.disabled_at && user.is_active !== false && user.active !== false;
+      const setting = legacy ? await db.one('app_settings', { select: 'setting_value', setting_key: 'eq.admin_password_hash' }) : null;
+      if (!legacy || !/^[0-9a-f]{64}$/i.test(String(setting?.setting_value?.hash ?? ''))) throw new HttpError('사용 가능한 교사 관리자 계정이 필요합니다.', 403, 'ACCOUNT_DISABLED');
+    }
     return { role: 'admin', user: user!, session: session!, tokenHash };
   }
+  if (!accountEnabled(user)) throw new HttpError('사용 가능한 승인 계정이 필요합니다.', 403, 'ACCOUNT_DISABLED');
   if (!['student', 'external', 'manager'].includes(String(user!.account_type ?? 'student').toLowerCase()) || String(user!.login_id).toLowerCase() === 'admin' || String(user!.id) !== String(session!.account_id)) throw new HttpError('학생 계정으로 로그인해 주세요.', 403);
   return { role: 'student', user: user!, session: session!, tokenHash };
 }
@@ -221,7 +228,7 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
       const db = deps.store ?? new RestStore(url, key, deps.fetch);
       if (body.action === 'health') {
         await db.request('content_items', { select: 'id', limit: 1 });
-        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 1, databaseReady: true, quizPointsEnabled: false });
+        return json({ success: true, service: 'science-platform-test-content', project: PROJECT, version: 1, databaseReady: true, quizPointsEnabled: true });
       }
       if (!['catalog', 'get_content', 'save_content', 'set_publication', 'delete_content', 'submit_quiz'].includes(body.action)) throw new HttpError('지원하지 않는 요청입니다.');
       const context = await authenticate(body, db, (deps.now ?? Date.now)());
@@ -252,7 +259,7 @@ export function createHandler(deps: { env?: (key: string) => string | undefined;
         const requestId = body.requestId ?? crypto.randomUUID();
         if (typeof requestId !== 'string' || !UUID.test(requestId)) throw new HttpError('제출 요청 번호가 올바르지 않습니다.');
         const result = await db.request('rpc/content_record_quiz', {}, { p_content_id: id, p_account_id: context.user!.id, p_request_id: requestId, p_answers: body.answers, p_result: graded, p_content_version: existing!.version });
-        return json({ success: true, ...result, awardedPoints: 0, pointsEnabled: false });
+        return json({ success: true, ...result });
       }
       if (existing && body.expected_version !== existing.version) throw new HttpError('자료 목록을 새로고침한 뒤 다시 저장해 주세요.', 409, 'VERSION_CONFLICT');
       let item: Row; let newPath: string | null = null;

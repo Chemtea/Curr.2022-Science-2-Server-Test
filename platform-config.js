@@ -20,7 +20,7 @@
   Object.defineProperty(window, 'platformLocalStorage', {value: scopedStorage(window.localStorage)});
   const config = {environment: 'test', projectRef, baseUrl, SESSION_NAMESPACE: namespace,
     // Custom-session APIs do not need a browser service key. Never use the production key.
-    SUPABASE_PUBLISHABLE_KEY: '', REALTIME_LOCK_TOPIC: 'science-platform-locks',
+    SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_gj5c2milVlOVAPnPNaQAgg_omeaIJhs', REALTIME_LOCK_TOPIC: 'science-platform-locks',
     PLATFORM_BUILD: '2026-09-13-server-test.1'};
   for (const name of ['platform', 'point', 'question', 'announcement', 'account',
     'submission', 'academic-year', 'lock-realtime', 'content']) {
